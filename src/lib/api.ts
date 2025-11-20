@@ -1,0 +1,145 @@
+import { supabase } from './supabase';
+
+const GEMINI_API_KEY = 'AIzaSyDaS7WX4dPCaz5vv_X6Spf67ev4VH9AmWo';
+
+export async function generateInterviewQuestion(params: {
+  jobRole: string;
+  experienceLevel: string;
+  jobDescription: string;
+  previousQuestions?: string[];
+  previousAnswers?: string[];
+}) {
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
+
+    const response = await fetch(
+      `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-interview-question`,
+      {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${session?.access_token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(params),
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error('Failed to generate question');
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error('Error generating question:', error);
+    const defaultQuestions = [
+      "Tell me about yourself and your background.",
+      "What motivated you to apply for this role?",
+      "Can you describe a challenging project you've worked on?",
+      "How do you handle tight deadlines and pressure?",
+    ];
+    return {
+      question: defaultQuestions[(params.previousQuestions?.length || 0) % defaultQuestions.length],
+      tone: params.experienceLevel === 'fresher' ? 'supportive mentor' : 'formal HR'
+    };
+  }
+}
+
+export async function evaluateAnswer(params: {
+  question: string;
+  answer: string;
+  jobRole: string;
+  jobDescription: string;
+}) {
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
+
+    const response = await fetch(
+      `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/evaluate-answer`,
+      {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${session?.access_token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(params),
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error('Failed to evaluate answer');
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error('Error evaluating answer:', error);
+    return {
+      clarity: 7,
+      confidence: 7,
+      relevance: 7,
+      professionalism: 8,
+      feedback: "Your answer demonstrates good understanding. Consider providing more specific examples.",
+      suggestions: [
+        "Use the STAR method for behavioral questions",
+        "Include quantifiable metrics when discussing achievements"
+      ]
+    };
+  }
+}
+
+export async function generateQuestionWithGemini(params: {
+  jobRole: string;
+  experienceLevel: string;
+  jobDescription: string;
+  previousQuestions?: string[];
+  previousAnswers?: string[];
+}) {
+  try {
+    const tone = params.experienceLevel === 'fresher' ? 'supportive mentor' :
+                 params.experienceLevel === '6+' ? 'calm senior leader' :
+                 'formal HR';
+
+    const context = `You are interviewing for: ${params.jobRole}\nExperience Level: ${params.experienceLevel}\nJob Description: ${params.jobDescription}`;
+
+    let prompt = `${context}\n\nGenerate ONE specific, relevant interview question for this candidate. `;
+    prompt += `Use a ${tone} tone. `;
+    prompt += `Focus on: behavioral questions, technical skills from JD, problem-solving, or cultural fit. `;
+    prompt += `Keep the question concise (1-2 sentences max). `;
+
+    if (params.previousQuestions && params.previousQuestions.length > 0) {
+      prompt += `\n\nPrevious questions asked: ${params.previousQuestions.join(', ')}. `;
+      prompt += `Ask something different. `;
+    }
+
+    prompt += `\n\nReturn ONLY the question text, nothing else.`;
+
+    const response = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${GEMINI_API_KEY}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{
+            parts: [{ text: prompt }]
+          }]
+        })
+      }
+    );
+
+    const data = await response.json();
+    const question = data?.candidates?.[0]?.content?.parts?.[0]?.text?.trim() ||
+                    "Tell me about a time when you demonstrated leadership.";
+
+    return { question, tone };
+  } catch (error) {
+    console.error('Error with Gemini API:', error);
+    const defaultQuestions = [
+      "Tell me about yourself and your background.",
+      "What motivated you to apply for this role?",
+      "Can you describe a challenging project you've worked on?",
+    ];
+    return {
+      question: defaultQuestions[(params.previousQuestions?.length || 0) % defaultQuestions.length],
+      tone: 'formal HR'
+    };
+  }
+}

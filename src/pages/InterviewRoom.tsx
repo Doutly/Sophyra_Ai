@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
+import { generateQuestionWithGemini, evaluateAnswer } from '../lib/api';
 import { Brain, Mic, MicOff, Video, VideoOff, Play, Square, Volume2 } from 'lucide-react';
 
 interface VoiceMetrics {
@@ -41,6 +42,9 @@ export default function InterviewRoom() {
   const [interviewStarted, setInterviewStarted] = useState(false);
   const [loading, setLoading] = useState(true);
   const [aiSpeaking, setAiSpeaking] = useState(false);
+  const [previousQuestions, setPreviousQuestions] = useState<string[]>([]);
+  const [previousAnswers, setPreviousAnswers] = useState<string[]>([]);
+  const [generating, setGenerating] = useState(false);
 
   const recognitionRef = useRef<any>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -85,39 +89,48 @@ export default function InterviewRoom() {
   };
 
   const generateNextQuestion = async () => {
+    setGenerating(true);
     setAiSpeaking(true);
 
-    const questions = [
-      "Tell me about yourself and your background.",
-      "What motivated you to apply for this role?",
-      "Can you describe a challenging project you've worked on?",
-      "How do you handle tight deadlines and pressure?",
-      "Tell me about a time when you had to work with a difficult team member.",
-      "What are your greatest strengths and how do they apply to this role?",
-      "Where do you see yourself in the next 3-5 years?",
-      "Do you have any questions for us?"
-    ];
+    try {
+      const result = await generateQuestionWithGemini({
+        jobRole: session.role,
+        experienceLevel: session.experience_level,
+        jobDescription: session.jd_text,
+        previousQuestions,
+        previousAnswers,
+      });
 
-    const question = questions[questionNumber - 1] || questions[0];
-    setCurrentQuestion(question);
+      const question = result.question;
+      setCurrentQuestion(question);
+      setPreviousQuestions(prev => [...prev, question]);
 
-    if ('speechSynthesis' in window) {
-      const utterance = new SpeechSynthesisUtterance(question);
-      utterance.rate = 0.9;
-      utterance.pitch = 1;
-      utterance.onend = () => {
+      if ('speechSynthesis' in window) {
+        const utterance = new SpeechSynthesisUtterance(question);
+        utterance.rate = 0.9;
+        utterance.pitch = 1;
+        utterance.onend = () => {
+          setAiSpeaking(false);
+        };
+        window.speechSynthesis.speak(utterance);
+      } else {
         setAiSpeaking(false);
-      };
-      window.speechSynthesis.speak(utterance);
-    } else {
-      setAiSpeaking(false);
-    }
+      }
 
-    await supabase.from('turns').insert({
-      session_id: sessionId!,
-      turn_number: questionNumber,
-      question: question,
-    });
+      await supabase.from('turns').insert({
+        session_id: sessionId!,
+        turn_number: questionNumber,
+        question: question,
+        tone_used: result.tone || 'formal_hr',
+      });
+    } catch (error) {
+      console.error('Error generating question:', error);
+      const fallbackQuestion = "Tell me about yourself and your background.";
+      setCurrentQuestion(fallbackQuestion);
+      setAiSpeaking(false);
+    } finally {
+      setGenerating(false);
+    }
   };
 
   const startRecording = async () => {
@@ -205,23 +218,37 @@ export default function InterviewRoom() {
   const nextQuestion = async () => {
     stopRecording();
 
-    await supabase
-      .from('turns')
-      .update({
-        answer_text: transcript,
-        voice_metrics: {
-          wpm: voiceMetrics.wpm,
-          filler_count: voiceMetrics.fillerWords,
-          pace_stability: voiceMetrics.paceStability,
-        },
-        body_metrics: {
-          face_present: bodyMetrics.faceDetected,
-          eye_contact_score: bodyMetrics.eyeContact,
-          attention_proxy: bodyMetrics.attentionStability,
-        }
-      })
-      .eq('session_id', sessionId)
-      .eq('turn_number', questionNumber);
+    setPreviousAnswers(prev => [...prev, transcript]);
+
+    try {
+      const evaluation = await evaluateAnswer({
+        question: currentQuestion,
+        answer: transcript,
+        jobRole: session.role,
+        jobDescription: session.jd_text,
+      });
+
+      await supabase
+        .from('turns')
+        .update({
+          answer_text: transcript,
+          voice_metrics: {
+            wpm: voiceMetrics.wpm,
+            filler_count: voiceMetrics.fillerWords,
+            pace_stability: voiceMetrics.paceStability,
+          },
+          body_metrics: {
+            face_present: bodyMetrics.faceDetected,
+            eye_contact_score: bodyMetrics.eyeContact,
+            attention_proxy: bodyMetrics.attentionStability,
+          },
+          eval_json: evaluation,
+        })
+        .eq('session_id', sessionId)
+        .eq('turn_number', questionNumber);
+    } catch (error) {
+      console.error('Error evaluating answer:', error);
+    }
 
     setTranscript('');
     setVoiceMetrics({ wpm: 0, fillerWords: 0, paceStability: 0 });
