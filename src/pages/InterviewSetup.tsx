@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
-import { Brain, AlertCircle } from 'lucide-react';
+import { Brain, AlertCircle, FileText } from 'lucide-react';
 import OptimizedFileUpload from '../components/OptimizedFileUpload';
 
 export default function InterviewSetup() {
@@ -362,13 +362,23 @@ export default function InterviewSetup() {
               </button>
               <button
                 type="submit"
-                disabled={loading || uploading}
+                disabled={loading || uploadingResume || parsing}
                 className="px-8 py-3 bg-teal-500 text-white font-semibold rounded-lg hover:bg-teal-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
               >
                 {loading ? (
                   <>
                     <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
                     <span>Creating Session...</span>
+                  </>
+                ) : uploadingResume ? (
+                  <>
+                    <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                    <span>Uploading Resume...</span>
+                  </>
+                ) : parsing ? (
+                  <>
+                    <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                    <span>Parsing Resume...</span>
                   </>
                 ) : (
                   <>
