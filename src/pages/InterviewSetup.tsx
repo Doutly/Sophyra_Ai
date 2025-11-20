@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
-import { Brain, Upload, FileText, CheckCircle, AlertCircle } from 'lucide-react';
+import { Brain, AlertCircle } from 'lucide-react';
+import OptimizedFileUpload from '../components/OptimizedFileUpload';
 
 export default function InterviewSetup() {
   const navigate = useNavigate();
@@ -23,12 +24,12 @@ export default function InterviewSetup() {
     dataUsage: true,
   });
 
-  const [uploading, setUploading] = useState(false);
   const [parsing, setParsing] = useState(false);
   const [resumeUrl, setResumeUrl] = useState<string | null>(null);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [parsedData, setParsedData] = useState<any>(null);
+  const [uploadingResume, setUploadingResume] = useState(false);
 
   useEffect(() => {
     if (!user) {
@@ -36,79 +37,39 @@ export default function InterviewSetup() {
     }
   }, [user, navigate]);
 
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    if (file.size > 15 * 1024 * 1024) {
-      setError('File size must be less than 15MB');
-      return;
-    }
-
-    if (!['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'].includes(file.type)) {
-      setError('Only PDF and DOC/DOCX files are allowed');
-      return;
-    }
-
+  const handleResumeUploadComplete = async (url: string, file: File) => {
     setFormData(prev => ({ ...prev, resumeFile: file }));
+    setResumeUrl(url);
     setError('');
 
-    setUploading(true);
+    setParsing(true);
     try {
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${user?.id}-${Date.now()}.${fileExt}`;
-      const filePath = `resumes/${fileName}`;
+      const { data: { session } } = await supabase.auth.getSession();
 
-      const { error: uploadError } = await supabase.storage
-        .from('interview-assets')
-        .upload(filePath, file);
+      const parseFormData = new FormData();
+      parseFormData.append('file', file);
 
-      if (uploadError) throw uploadError;
-
-      const { data: { publicUrl } } = supabase.storage
-        .from('interview-assets')
-        .getPublicUrl(filePath);
-
-      setResumeUrl(publicUrl);
-
-      setParsing(true);
-      try {
-        const { data: { session } } = await supabase.auth.getSession();
-
-        const parseFormData = new FormData();
-        parseFormData.append('file', file);
-
-        const parseResponse = await fetch(
-          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/parse-resume`,
-          {
-            method: 'POST',
-            headers: {
-              'Authorization': `Bearer ${session?.access_token}`,
-            },
-            body: parseFormData,
-          }
-        );
-
-        if (parseResponse.ok) {
-          const parseResult = await parseResponse.json();
-          if (parseResult.success && parseResult.data) {
-            setParsedData(parseResult.data);
-
-            setFormData(prev => ({
-              ...prev,
-              jobRole: parseResult.data.name ? prev.jobRole || '' : prev.jobRole,
-            }));
-          }
+      const parseResponse = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/parse-resume`,
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${session?.access_token}`,
+          },
+          body: parseFormData,
         }
-      } catch (parseErr) {
-        console.error('Resume parsing failed:', parseErr);
-      } finally {
-        setParsing(false);
+      );
+
+      if (parseResponse.ok) {
+        const parseResult = await parseResponse.json();
+        if (parseResult.success && parseResult.data) {
+          setParsedData(parseResult.data);
+        }
       }
-    } catch (err: any) {
-      setError(err.message || 'Failed to upload resume');
+    } catch (parseErr) {
+      console.error('Resume parsing failed:', parseErr);
     } finally {
-      setUploading(false);
+      setParsing(false);
     }
   };
 
@@ -275,44 +236,18 @@ export default function InterviewSetup() {
             </div>
 
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
-                Resume Upload
-              </label>
-              <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-teal-400 transition-colors">
-                <input
-                  type="file"
-                  onChange={handleFileChange}
-                  accept=".pdf,.doc,.docx"
-                  className="hidden"
-                  id="resume-upload"
-                />
-                <label htmlFor="resume-upload" className="cursor-pointer">
-                  {uploading ? (
-                    <div className="flex items-center justify-center space-x-2">
-                      <div className="w-5 h-5 border-2 border-teal-500 border-t-transparent rounded-full animate-spin"></div>
-                      <span className="text-sm text-gray-600">Uploading...</span>
-                    </div>
-                  ) : formData.resumeFile ? (
-                    <div className="flex items-center justify-center space-x-3">
-                      <CheckCircle className="w-6 h-6 text-green-600" />
-                      <div>
-                        <p className="font-medium text-gray-900">{formData.resumeFile.name}</p>
-                        <p className="text-sm text-gray-600">Click to change</p>
-                      </div>
-                    </div>
-                  ) : (
-                    <div>
-                      <Upload className="w-12 h-12 text-gray-400 mx-auto mb-3" />
-                      <p className="text-gray-700 font-medium mb-1">
-                        Click to upload or drag and drop
-                      </p>
-                      <p className="text-sm text-gray-500">
-                        PDF or DOC/DOCX (max 15MB)
-                      </p>
-                    </div>
-                  )}
-                </label>
-              </div>
+              <OptimizedFileUpload
+                onUploadComplete={handleResumeUploadComplete}
+                onUploadStart={() => setUploadingResume(true)}
+                onUploadError={(err) => setError(err.message)}
+                bucket="interview-assets"
+                pathPrefix={`resumes/${user?.id}`}
+                label="Resume Upload (Optional)"
+                description="Upload your resume for AI-powered parsing"
+                maxSize={15 * 1024 * 1024}
+                allowedTypes={['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document']}
+                accept=".pdf,.doc,.docx"
+              />
 
               {parsing && (
                 <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">

@@ -3,7 +3,9 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
 import { generateQuestionWithGemini, evaluateAnswer } from '../lib/api';
-import { Brain, Mic, Video, VideoOff, Play, Square, Volume2 } from 'lucide-react';
+import { Brain, Mic, Video, VideoOff, Play, Square, Volume2, VolumeX } from 'lucide-react';
+import { elevenLabs, conversationalVoiceConfig, professionalVoiceConfig } from '../lib/elevenLabs';
+import { ConversationalAI } from '../lib/conversationalAI';
 
 interface VoiceMetrics {
   wpm: number;
@@ -44,6 +46,8 @@ export default function InterviewRoom() {
   const [aiSpeaking, setAiSpeaking] = useState(false);
   const [previousQuestions, setPreviousQuestions] = useState<string[]>([]);
   const [previousAnswers, setPreviousAnswers] = useState<string[]>([]);
+  const [useElevenLabs, setUseElevenLabs] = useState(true);
+  const [conversationalAI, setConversationalAI] = useState<ConversationalAI | null>(null);
 
   const recognitionRef = useRef<any>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -75,6 +79,17 @@ export default function InterviewRoom() {
       }
 
       setSession(data);
+
+      const conversational = new ConversationalAI({
+        jobRole: data.role,
+        experienceLevel: data.experience_level,
+        questionNumber: 1,
+        totalQuestions,
+        previousQuestions: [],
+        previousAnswers: [],
+      });
+      setConversationalAI(conversational);
+
       setLoading(false);
     } catch (error) {
       console.error('Error loading session:', error);
@@ -88,7 +103,6 @@ export default function InterviewRoom() {
   };
 
   const generateNextQuestion = async () => {
-    setGenerating(true);
     setAiSpeaking(true);
 
     try {
@@ -100,20 +114,36 @@ export default function InterviewRoom() {
         previousAnswers,
       });
 
-      const question = result.question;
+      let question = result.question;
+
+      if (conversationalAI) {
+        conversationalAI.context.questionNumber = questionNumber;
+        conversationalAI.context.previousQuestions = previousQuestions;
+        conversationalAI.context.previousAnswers = previousAnswers;
+
+        question = conversationalAI.addConversationalWrapper(question);
+      }
+
       setCurrentQuestion(question);
       setPreviousQuestions(prev => [...prev, question]);
 
-      if ('speechSynthesis' in window) {
-        const utterance = new SpeechSynthesisUtterance(question);
-        utterance.rate = 0.9;
-        utterance.pitch = 1;
-        utterance.onend = () => {
-          setAiSpeaking(false);
-        };
-        window.speechSynthesis.speak(utterance);
+      const voiceConfig = session.experience_level === 'fresher'
+        ? conversationalVoiceConfig
+        : professionalVoiceConfig;
+
+      if (useElevenLabs) {
+        await elevenLabs.textToSpeech(
+          question,
+          voiceConfig,
+          () => setAiSpeaking(true),
+          () => setAiSpeaking(false),
+          (error) => {
+            console.error('TTS error:', error);
+            fallbackToWebSpeech(question);
+          }
+        );
       } else {
-        setAiSpeaking(false);
+        fallbackToWebSpeech(question);
       }
 
       await supabase.from('turns').insert({
@@ -126,9 +156,19 @@ export default function InterviewRoom() {
       console.error('Error generating question:', error);
       const fallbackQuestion = "Tell me about yourself and your background.";
       setCurrentQuestion(fallbackQuestion);
+      fallbackToWebSpeech(fallbackQuestion);
+    }
+  };
+
+  const fallbackToWebSpeech = (text: string) => {
+    if ('speechSynthesis' in window) {
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.rate = 0.9;
+      utterance.pitch = 1;
+      utterance.onend = () => setAiSpeaking(false);
+      window.speechSynthesis.speak(utterance);
+    } else {
       setAiSpeaking(false);
-    } finally {
-      setGenerating(false);
     }
   };
 
@@ -382,12 +422,25 @@ export default function InterviewRoom() {
               </p>
             </div>
           </div>
-          <button
-            onClick={endInterviewEarly}
-            className="px-4 py-2 text-red-400 hover:text-red-300 font-medium"
-          >
-            End Interview
-          </button>
+          <div className="flex items-center space-x-4">
+            <button
+              onClick={() => setUseElevenLabs(!useElevenLabs)}
+              className="p-2 hover:bg-gray-800 rounded-lg transition-colors"
+              title={useElevenLabs ? 'Using Eleven Labs Voice' : 'Using Browser Voice'}
+            >
+              {useElevenLabs ? (
+                <Volume2 className="w-5 h-5 text-teal-400" />
+              ) : (
+                <VolumeX className="w-5 h-5 text-gray-400" />
+              )}
+            </button>
+            <button
+              onClick={endInterviewEarly}
+              className="px-4 py-2 text-red-400 hover:text-red-300 font-medium"
+            >
+              End Interview
+            </button>
+          </div>
         </div>
       </div>
 
