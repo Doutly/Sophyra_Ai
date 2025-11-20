@@ -78,7 +78,11 @@ export class OptimizedFileUploader {
 
       supabase.storage
         .from(bucket)
-        .upload(path, file)
+        .upload(path, file, {
+          contentType: file.type || 'application/pdf',
+          cacheControl: '3600',
+          upsert: false
+        })
         .then(({ data, error }) => {
           if (error) {
             reject(error);
@@ -108,10 +112,24 @@ export class OptimizedFileUploader {
     for (let i = 0; i < totalChunks; i++) {
       const start = i * chunkSize;
       const end = Math.min(start + chunkSize, file.size);
-      const chunk = file.slice(start, end);
+      const chunk = file.slice(start, end, file.type);
 
       const chunkPath = `${path}.part${i}`;
-      await supabase.storage.from(bucket).upload(chunkPath, chunk);
+      const { error: chunkError } = await supabase.storage
+        .from(bucket)
+        .upload(chunkPath, chunk, {
+          contentType: file.type || 'application/pdf',
+          cacheControl: '3600',
+          upsert: true
+        });
+
+      if (chunkError) {
+        console.error(`Chunk ${i} upload failed:`, chunkError);
+        for (let j = 0; j < i; j++) {
+          await supabase.storage.from(bucket).remove([`${path}.part${j}`]).catch(() => {});
+        }
+        throw chunkError;
+      }
 
       uploadedSize += chunk.size;
 
@@ -135,7 +153,11 @@ export class OptimizedFileUploader {
 
     const { data, error } = await supabase.storage
       .from(bucket)
-      .upload(path, file, { upsert: true });
+      .upload(path, file, {
+        contentType: file.type || 'application/pdf',
+        cacheControl: '3600',
+        upsert: true
+      });
 
     if (error) throw error;
 

@@ -2,8 +2,9 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
-import { Brain, AlertCircle, FileText } from 'lucide-react';
-import OptimizedFileUpload from '../components/OptimizedFileUpload';
+import { Brain, AlertCircle, FileText, CheckCircle } from 'lucide-react';
+import ResumeUploadParser from '../components/ResumeUploadParser';
+import { ParsedResume } from '../lib/resumeParser';
 
 export default function InterviewSetup() {
   const navigate = useNavigate();
@@ -25,11 +26,9 @@ export default function InterviewSetup() {
   });
 
   const [parsing, setParsing] = useState(false);
-  const [resumeUrl, setResumeUrl] = useState<string | null>(null);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const [parsedData, setParsedData] = useState<any>(null);
-  const [uploadingResume, setUploadingResume] = useState(false);
+  const [parsedData, setParsedData] = useState<ParsedResume | null>(null);
 
   useEffect(() => {
     if (!user) {
@@ -37,39 +36,35 @@ export default function InterviewSetup() {
     }
   }, [user, navigate]);
 
-  const handleResumeUploadComplete = async (url: string, file: File) => {
+  const handleResumeParseComplete = async (parsed: ParsedResume, file: File) => {
     setFormData(prev => ({ ...prev, resumeFile: file }));
-    setResumeUrl(url);
+    setParsedData(parsed);
     setError('');
 
-    setParsing(true);
     try {
-      const { data: { session } } = await supabase.auth.getSession();
+      const { error: saveError } = await supabase
+        .from('resume_data')
+        .insert({
+          user_id: user!.id,
+          name: parsed.name,
+          email: parsed.email,
+          phone: parsed.phone,
+          skills: parsed.skills,
+          experience: parsed.experience,
+          education: parsed.education,
+          summary: parsed.summary,
+          linked_in: parsed.linkedIn || '',
+          github: parsed.github || '',
+          website: parsed.website || '',
+          file_name: file.name,
+          file_size: file.size,
+        });
 
-      const parseFormData = new FormData();
-      parseFormData.append('file', file);
-
-      const parseResponse = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/parse-resume`,
-        {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${session?.access_token}`,
-          },
-          body: parseFormData,
-        }
-      );
-
-      if (parseResponse.ok) {
-        const parseResult = await parseResponse.json();
-        if (parseResult.success && parseResult.data) {
-          setParsedData(parseResult.data);
-        }
+      if (saveError) {
+        console.error('Failed to save resume data:', saveError);
       }
-    } catch (parseErr) {
-      console.error('Resume parsing failed:', parseErr);
-    } finally {
-      setParsing(false);
+    } catch (saveErr: any) {
+      console.error('Failed to save resume:', saveErr);
     }
   };
 
@@ -95,6 +90,18 @@ export default function InterviewSetup() {
     setLoading(true);
 
     try {
+      let resumeDataId = null;
+      if (parsedData) {
+        const { data: resumeRecord } = await supabase
+          .from('resume_data')
+          .select('id')
+          .eq('user_id', user!.id)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        resumeDataId = resumeRecord?.id || null;
+      }
+
       const { data: sessionData, error: sessionError } = await supabase
         .from('sessions')
         .insert({
@@ -104,7 +111,8 @@ export default function InterviewSetup() {
           industry: formData.industry || null,
           company: formData.companyName || null,
           jd_text: formData.jobDescription,
-          resume_summary: resumeUrl || null,
+          resume_summary: parsedData?.summary || null,
+          resume_data_id: resumeDataId,
         })
         .select()
         .single();
@@ -236,27 +244,16 @@ export default function InterviewSetup() {
             </div>
 
             <div>
-              <OptimizedFileUpload
-                onUploadComplete={handleResumeUploadComplete}
-                onUploadStart={() => setUploadingResume(true)}
-                onUploadError={(err) => setError(err.message)}
-                bucket="interview-assets"
-                pathPrefix={`resumes/${user?.id}`}
+              <ResumeUploadParser
+                onParseComplete={handleResumeParseComplete}
+                onParseStart={() => setParsing(true)}
+                onParseError={(err) => setError(err.message)}
                 label="Resume Upload (Optional)"
-                description="Upload your resume for AI-powered parsing"
+                description="AI will extract your details instantly"
                 maxSize={15 * 1024 * 1024}
-                allowedTypes={['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document']}
-                accept=".pdf,.doc,.docx"
+                allowedTypes={['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'text/plain']}
+                accept=".pdf,.doc,.docx,.txt"
               />
-
-              {parsing && (
-                <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                  <div className="flex items-center space-x-3">
-                    <div className="w-5 h-5 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
-                    <p className="text-sm text-blue-700">Parsing resume with AI...</p>
-                  </div>
-                </div>
-              )}
 
               {parsedData && !parsing && (
                 <div className="mt-4 p-6 bg-green-50 border border-green-200 rounded-lg">
@@ -362,18 +359,13 @@ export default function InterviewSetup() {
               </button>
               <button
                 type="submit"
-                disabled={loading || uploadingResume || parsing}
+                disabled={loading || parsing}
                 className="px-8 py-3 bg-teal-500 text-white font-semibold rounded-lg hover:bg-teal-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
               >
                 {loading ? (
                   <>
                     <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
                     <span>Creating Session...</span>
-                  </>
-                ) : uploadingResume ? (
-                  <>
-                    <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                    <span>Uploading Resume...</span>
                   </>
                 ) : parsing ? (
                   <>
