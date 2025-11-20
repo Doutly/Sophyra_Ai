@@ -52,6 +52,13 @@ export default function Dashboard() {
         setUserName(userData.name);
       }
 
+      const { data: sessionsData } = await supabase
+        .from('sessions')
+        .select('id')
+        .eq('user_id', user.id);
+
+      const sessionIds = sessionsData?.map(s => s.id) || [];
+
       const { data: reportsData } = await supabase
         .from('reports')
         .select(`
@@ -64,7 +71,7 @@ export default function Dashboard() {
             company
           )
         `)
-        .eq('sessions.user_id', user.id)
+        .in('session_id', sessionIds.length > 0 ? sessionIds : ['00000000-0000-0000-0000-000000000000'])
         .order('created_at', { ascending: false })
         .limit(10);
 

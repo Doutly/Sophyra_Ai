@@ -107,7 +107,6 @@ export default function Report() {
   };
 
   const shareToLinkedIn = () => {
-    const text = `I just completed an AI interview practice session with Sophyra AI and scored ${report?.overall_score}/100! 🎯`;
     const url = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(shareLink || window.location.href)}`;
     window.open(url, '_blank');
   };

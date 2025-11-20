@@ -44,7 +44,6 @@ export default function InterviewRoom() {
   const [aiSpeaking, setAiSpeaking] = useState(false);
   const [previousQuestions, setPreviousQuestions] = useState<string[]>([]);
   const [previousAnswers, setPreviousAnswers] = useState<string[]>([]);
-  const [generating, setGenerating] = useState(false);
 
   const recognitionRef = useRef<any>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
