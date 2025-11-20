@@ -1,6 +1,10 @@
 import { ArrowRight, Users, Building2 } from 'lucide-react';
 
-export default function CTA() {
+interface CTAProps {
+  onStartMockTest: () => void;
+}
+
+export default function CTA({ onStartMockTest }: CTAProps) {
   return (
     <section className="py-24 bg-gradient-to-b from-gray-50 to-white">
       <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12">
@@ -15,7 +19,7 @@ export default function CTA() {
               </p>
 
               <div className="space-y-4">
-                <button className="w-full sm:w-auto px-8 py-4 bg-teal-500 text-white text-base font-semibold rounded-lg hover:bg-teal-600 transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 flex items-center justify-center group">
+                <button onClick={onStartMockTest} className="w-full sm:w-auto px-8 py-4 bg-teal-500 text-white text-base font-semibold rounded-lg hover:bg-teal-600 transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 flex items-center justify-center group">
                   <span>Start Mock Test</span>
                   <ArrowRight className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" />
                 </button>
