@@ -3,7 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
 import { generateQuestionWithGemini, evaluateAnswer } from '../lib/api';
-import { Brain, Mic, MicOff, Video, VideoOff, Play, Square, Volume2 } from 'lucide-react';
+import { Brain, Mic, Video, VideoOff, Play, Square, Volume2 } from 'lucide-react';
 
 interface VoiceMetrics {
   wpm: number;

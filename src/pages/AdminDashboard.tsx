@@ -26,7 +26,6 @@ export default function AdminDashboard() {
   const [candidates, setCandidates] = useState<CandidateStats[]>([]);
   const [cohortMetrics, setCohortMetrics] = useState<CohortMetric[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
-  const [filterExperience, setFilterExperience] = useState('all');
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {

@@ -17,7 +17,6 @@ export default function Profile() {
     careerGoals: '',
   });
 
-  const [resumeFile, setResumeFile] = useState<File | null>(null);
   const [resumeUrl, setResumeUrl] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -77,7 +76,6 @@ export default function Profile() {
       return;
     }
 
-    setResumeFile(file);
     setError('');
 
     setUploading(true);
