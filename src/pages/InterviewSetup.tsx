@@ -24,9 +24,11 @@ export default function InterviewSetup() {
   });
 
   const [uploading, setUploading] = useState(false);
+  const [parsing, setParsing] = useState(false);
   const [resumeUrl, setResumeUrl] = useState<string | null>(null);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [parsedData, setParsedData] = useState<any>(null);
 
   useEffect(() => {
     if (!user) {
@@ -38,8 +40,8 @@ export default function InterviewSetup() {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    if (file.size > 5 * 1024 * 1024) {
-      setError('File size must be less than 5MB');
+    if (file.size > 15 * 1024 * 1024) {
+      setError('File size must be less than 15MB');
       return;
     }
 
@@ -68,6 +70,41 @@ export default function InterviewSetup() {
         .getPublicUrl(filePath);
 
       setResumeUrl(publicUrl);
+
+      setParsing(true);
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+
+        const parseFormData = new FormData();
+        parseFormData.append('file', file);
+
+        const parseResponse = await fetch(
+          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/parse-resume`,
+          {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${session?.access_token}`,
+            },
+            body: parseFormData,
+          }
+        );
+
+        if (parseResponse.ok) {
+          const parseResult = await parseResponse.json();
+          if (parseResult.success && parseResult.data) {
+            setParsedData(parseResult.data);
+
+            setFormData(prev => ({
+              ...prev,
+              jobRole: parseResult.data.name ? prev.jobRole || '' : prev.jobRole,
+            }));
+          }
+        }
+      } catch (parseErr) {
+        console.error('Resume parsing failed:', parseErr);
+      } finally {
+        setParsing(false);
+      }
     } catch (err: any) {
       setError(err.message || 'Failed to upload resume');
     } finally {
@@ -270,12 +307,61 @@ export default function InterviewSetup() {
                         Click to upload or drag and drop
                       </p>
                       <p className="text-sm text-gray-500">
-                        PDF or DOC/DOCX (max 5MB)
+                        PDF or DOC/DOCX (max 15MB)
                       </p>
                     </div>
                   )}
                 </label>
               </div>
+
+              {parsing && (
+                <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                  <div className="flex items-center space-x-3">
+                    <div className="w-5 h-5 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+                    <p className="text-sm text-blue-700">Parsing resume with AI...</p>
+                  </div>
+                </div>
+              )}
+
+              {parsedData && !parsing && (
+                <div className="mt-4 p-6 bg-green-50 border border-green-200 rounded-lg">
+                  <div className="flex items-start space-x-3 mb-4">
+                    <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
+                    <div className="flex-1">
+                      <h4 className="font-semibold text-green-900 mb-2">Resume Parsed Successfully</h4>
+                      <div className="space-y-2 text-sm">
+                        {parsedData.name && (
+                          <p><span className="font-medium text-green-800">Name:</span> <span className="text-green-700">{parsedData.name}</span></p>
+                        )}
+                        {parsedData.email && (
+                          <p><span className="font-medium text-green-800">Email:</span> <span className="text-green-700">{parsedData.email}</span></p>
+                        )}
+                        {parsedData.phone && (
+                          <p><span className="font-medium text-green-800">Phone:</span> <span className="text-green-700">{parsedData.phone}</span></p>
+                        )}
+                        {parsedData.skills && parsedData.skills.length > 0 && (
+                          <div>
+                            <span className="font-medium text-green-800">Skills:</span>
+                            <div className="flex flex-wrap gap-2 mt-1">
+                              {parsedData.skills.slice(0, 10).map((skill: string, idx: number) => (
+                                <span key={idx} className="px-2 py-1 bg-green-100 text-green-700 rounded text-xs">
+                                  {skill}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                        {parsedData.education && (
+                          <p><span className="font-medium text-green-800">Education:</span> <span className="text-green-700">{parsedData.education}</span></p>
+                        )}
+                        {parsedData.experience && (
+                          <p><span className="font-medium text-green-800">Experience:</span> <span className="text-green-700">{parsedData.experience}</span></p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
 
             <div className="border-t border-gray-200 pt-6">
