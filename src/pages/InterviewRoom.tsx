@@ -6,6 +6,14 @@ import { generateQuestionWithGemini, evaluateAnswer } from '../lib/api';
 import { Brain, Mic, Video, VideoOff, Play, Square, Volume2, VolumeX } from 'lucide-react';
 import { elevenLabs, conversationalVoiceConfig, professionalVoiceConfig } from '../lib/elevenLabs';
 import { ConversationalAI } from '../lib/conversationalAI';
+import {
+  PROFESSIONAL_WELCOME,
+  FINAL_FAREWELL,
+  wrapQuestionWithContext,
+  determineInterviewPhase,
+  getAnswerAcknowledgment,
+  InterviewPhase
+} from '../lib/interviewDialogue';
 
 interface VoiceMetrics {
   wpm: number;
@@ -48,6 +56,9 @@ export default function InterviewRoom() {
   const [previousAnswers, setPreviousAnswers] = useState<string[]>([]);
   const [useElevenLabs, setUseElevenLabs] = useState(true);
   const [conversationalAI, setConversationalAI] = useState<ConversationalAI | null>(null);
+  const [currentPhase, setCurrentPhase] = useState<InterviewPhase['phase']>('welcome');
+  const [showWelcome, setShowWelcome] = useState(true);
+  const [acknowledgment, setAcknowledgment] = useState<string>('');
 
   const recognitionRef = useRef<any>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -99,11 +110,45 @@ export default function InterviewRoom() {
 
   const startInterview = async () => {
     setInterviewStarted(true);
-    await generateNextQuestion();
+    setShowWelcome(true);
+    setCurrentQuestion(PROFESSIONAL_WELCOME);
+    setAiSpeaking(true);
+
+    const voiceConfig = session.experience_level === 'fresher'
+      ? conversationalVoiceConfig
+      : professionalVoiceConfig;
+
+    if (useElevenLabs) {
+      await elevenLabs.textToSpeech(
+        PROFESSIONAL_WELCOME,
+        voiceConfig,
+        () => setAiSpeaking(true),
+        () => {
+          setAiSpeaking(false);
+          setShowWelcome(false);
+          setTimeout(() => generateNextQuestion(), 2000);
+        },
+        (error) => {
+          console.error('TTS error:', error);
+          fallbackToWebSpeech(PROFESSIONAL_WELCOME);
+          setTimeout(() => {
+            setShowWelcome(false);
+            generateNextQuestion();
+          }, 5000);
+        }
+      );
+    } else {
+      fallbackToWebSpeech(PROFESSIONAL_WELCOME);
+      setTimeout(() => {
+        setShowWelcome(false);
+        generateNextQuestion();
+      }, 8000);
+    }
   };
 
   const generateNextQuestion = async () => {
     setAiSpeaking(true);
+    setAcknowledgment('');
 
     try {
       const result = await generateQuestionWithGemini({
@@ -114,18 +159,19 @@ export default function InterviewRoom() {
         previousAnswers,
       });
 
-      let question = result.question;
+      let baseQuestion = result.question;
 
-      if (conversationalAI) {
-        conversationalAI.context.questionNumber = questionNumber;
-        conversationalAI.context.previousQuestions = previousQuestions;
-        conversationalAI.context.previousAnswers = previousAnswers;
+      const newPhase = determineInterviewPhase(questionNumber, totalQuestions);
+      const wrappedQuestion = wrapQuestionWithContext(
+        baseQuestion,
+        questionNumber,
+        totalQuestions,
+        currentPhase
+      );
+      setCurrentPhase(newPhase);
 
-        question = conversationalAI.addConversationalWrapper(question);
-      }
-
-      setCurrentQuestion(question);
-      setPreviousQuestions(prev => [...prev, question]);
+      setCurrentQuestion(wrappedQuestion);
+      setPreviousQuestions(prev => [...prev, wrappedQuestion]);
 
       const voiceConfig = session.experience_level === 'fresher'
         ? conversationalVoiceConfig
@@ -133,28 +179,28 @@ export default function InterviewRoom() {
 
       if (useElevenLabs) {
         await elevenLabs.textToSpeech(
-          question,
+          wrappedQuestion,
           voiceConfig,
           () => setAiSpeaking(true),
           () => setAiSpeaking(false),
           (error) => {
             console.error('TTS error:', error);
-            fallbackToWebSpeech(question);
+            fallbackToWebSpeech(wrappedQuestion);
           }
         );
       } else {
-        fallbackToWebSpeech(question);
+        fallbackToWebSpeech(wrappedQuestion);
       }
 
       await supabase.from('turns').insert({
         session_id: sessionId!,
         turn_number: questionNumber,
-        question: question,
-        tone_used: result.tone || 'formal_hr',
+        question: wrappedQuestion,
+        tone_used: result.tone || 'professional_hr',
       });
     } catch (error) {
       console.error('Error generating question:', error);
-      const fallbackQuestion = "Tell me about yourself and your background.";
+      const fallbackQuestion = "Let's start with this: Tell me about yourself and your background.";
       setCurrentQuestion(fallbackQuestion);
       fallbackToWebSpeech(fallbackQuestion);
     }
@@ -257,6 +303,10 @@ export default function InterviewRoom() {
   const nextQuestion = async () => {
     stopRecording();
 
+    const answerWordCount = transcript.trim().split(/\s+/).length;
+    const ack = getAnswerAcknowledgment(answerWordCount);
+    setAcknowledgment(ack);
+
     setPreviousAnswers(prev => [...prev, transcript]);
 
     try {
@@ -301,6 +351,32 @@ export default function InterviewRoom() {
   };
 
   const completeInterview = async () => {
+    setCurrentQuestion(FINAL_FAREWELL);
+    setAiSpeaking(true);
+
+    const voiceConfig = session.experience_level === 'fresher'
+      ? conversationalVoiceConfig
+      : professionalVoiceConfig;
+
+    const speakFarewell = async () => {
+      if (useElevenLabs) {
+        await elevenLabs.textToSpeech(
+          FINAL_FAREWELL,
+          voiceConfig,
+          () => setAiSpeaking(true),
+          () => setAiSpeaking(false),
+          (error) => {
+            console.error('TTS error:', error);
+            fallbackToWebSpeech(FINAL_FAREWELL);
+          }
+        );
+      } else {
+        fallbackToWebSpeech(FINAL_FAREWELL);
+      }
+    };
+
+    await speakFarewell();
+
     await supabase
       .from('sessions')
       .update({ ended_at: new Date().toISOString() })
@@ -337,11 +413,13 @@ export default function InterviewRoom() {
       .select()
       .single();
 
-    if (reportData) {
-      navigate(`/report/${reportData.id}`);
-    } else {
-      navigate('/dashboard');
-    }
+    setTimeout(() => {
+      if (reportData) {
+        navigate(`/report/${reportData.id}`);
+      } else {
+        navigate('/dashboard');
+      }
+    }, useElevenLabs ? 15000 : 10000);
   };
 
   const endInterviewEarly = async () => {
@@ -418,7 +496,7 @@ export default function InterviewRoom() {
             <div>
               <h1 className="text-lg font-bold">Sophyra AI Interview</h1>
               <p className="text-sm text-gray-400">
-                Question {questionNumber} of {totalQuestions}
+                {showWelcome ? 'Welcome Message' : `Question ${questionNumber} of ${totalQuestions}`}
               </p>
             </div>
           </div>
@@ -463,12 +541,18 @@ export default function InterviewRoom() {
                       </div>
                     )}
                   </div>
-                  <p className="text-lg text-gray-100 leading-relaxed">{currentQuestion}</p>
+                  <p className="text-lg text-gray-100 leading-relaxed whitespace-pre-wrap">{currentQuestion}</p>
+                  {acknowledgment && (
+                    <div className="mt-4 pt-4 border-t border-gray-700">
+                      <p className="text-sm text-teal-300 italic">{acknowledgment}</p>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
 
-            <div className="bg-gray-800 rounded-2xl p-6 border border-gray-700">
+            {!showWelcome && (
+              <div className="bg-gray-800 rounded-2xl p-6 border border-gray-700">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="font-semibold text-gray-200">Your Response</h3>
                 <div className="flex items-center space-x-3">
@@ -531,8 +615,10 @@ export default function InterviewRoom() {
                 {questionNumber >= totalQuestions ? 'Complete Interview' : 'Next Question'}
               </button>
             </div>
+            )}
           </div>
 
+          {!showWelcome && (
           <div className="space-y-6">
             <div className="bg-gray-800 rounded-2xl p-6 border border-gray-700">
               <h3 className="font-semibold text-gray-200 mb-4">Voice Metrics</h3>
@@ -632,6 +718,7 @@ export default function InterviewRoom() {
               </div>
             </div>
           </div>
+          )}
         </div>
       </div>
     </div>
