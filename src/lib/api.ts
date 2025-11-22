@@ -8,9 +8,22 @@ export async function generateInterviewQuestion(params: {
   jobDescription: string;
   previousQuestions?: string[];
   previousAnswers?: string[];
+  conversationHistory?: string;
+  avoidTopics?: string[];
 }) {
   try {
     const { data: { session } } = await supabase.auth.getSession();
+
+    const enhancedParams = {
+      ...params,
+      instructions: `CRITICAL: Do NOT repeat any of these previously asked questions:
+${params.previousQuestions?.map((q, i) => `${i + 1}. ${q}`).join('\n') || 'None yet'}
+
+Avoid these topics that have already been covered: ${params.avoidTopics?.join(', ') || 'None'}
+
+Generate a COMPLETELY DIFFERENT question that explores new aspects of the candidate's experience.
+Make it conversational and natural, building on what you've learned from previous answers.`,
+    };
 
     const response = await fetch(
       `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-interview-question`,
@@ -20,7 +33,7 @@ export async function generateInterviewQuestion(params: {
           'Authorization': `Bearer ${session?.access_token}`,
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(params),
+        body: JSON.stringify(enhancedParams),
       }
     );
 
@@ -36,9 +49,21 @@ export async function generateInterviewQuestion(params: {
       "What motivated you to apply for this role?",
       "Can you describe a challenging project you've worked on?",
       "How do you handle tight deadlines and pressure?",
+      "What are your key strengths for this position?",
+      "Describe a time when you had to learn something quickly.",
+      "How do you collaborate with team members?",
+      "What's your approach to problem-solving?",
     ];
+
+    const askedCount = params.previousQuestions?.length || 0;
+    const availableQuestions = defaultQuestions.filter(
+      q => !params.previousQuestions?.some(pq =>
+        pq.toLowerCase().includes(q.toLowerCase().substring(0, 20))
+      )
+    );
+
     return {
-      question: defaultQuestions[(params.previousQuestions?.length || 0) % defaultQuestions.length],
+      question: availableQuestions[askedCount % availableQuestions.length] || defaultQuestions[askedCount % defaultQuestions.length],
       tone: params.experienceLevel === 'fresher' ? 'supportive mentor' : 'formal HR'
     };
   }

@@ -6,6 +6,8 @@ import { generateQuestionWithGemini, evaluateAnswer } from '../lib/api';
 import { Brain, Mic, Video, VideoOff, Play, Square, Volume2, VolumeX } from 'lucide-react';
 import { elevenLabs, conversationalVoiceConfig, professionalVoiceConfig } from '../lib/elevenLabs';
 import { ConversationalAI } from '../lib/conversationalAI';
+import { ElevenLabsStreamService, ElevenLabsSTTService, createStreamService, createSTTService } from '../lib/elevenLabsStream';
+import { ConversationStateManager, createConversationState } from '../lib/conversationState';
 import {
   PROFESSIONAL_WELCOME,
   FINAL_FAREWELL,
@@ -59,6 +61,12 @@ export default function InterviewRoom() {
   const [currentPhase, setCurrentPhase] = useState<InterviewPhase['phase']>('welcome');
   const [showWelcome, setShowWelcome] = useState(true);
   const [acknowledgment, setAcknowledgment] = useState<string>('');
+  const [useRealTimeStream, setUseRealTimeStream] = useState(true);
+  const [conversationState, setConversationState] = useState<ConversationStateManager | null>(null);
+
+  const streamServiceRef = useRef<ElevenLabsStreamService | null>(null);
+  const sttServiceRef = useRef<ElevenLabsSTTService | null>(null);
+  const interimTranscriptRef = useRef<string>('');
 
   const recognitionRef = useRef<any>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -101,11 +109,92 @@ export default function InterviewRoom() {
       });
       setConversationalAI(conversational);
 
+      const convState = createConversationState(sessionId);
+      setConversationState(convState);
+
+      if (useRealTimeStream) {
+        await initializeRealTimeServices();
+      }
+
       setLoading(false);
     } catch (error) {
       console.error('Error loading session:', error);
       navigate('/dashboard');
     }
+  };
+
+  const initializeRealTimeServices = async () => {
+    try {
+      const ELEVEN_LABS_API_KEY = 'sk_2feb87f2f52657be03e3ab471343a8017020f6ffaf7304a9';
+
+      streamServiceRef.current = createStreamService(ELEVEN_LABS_API_KEY, {
+        stability: session?.experience_level === 'fresher' ? 0.6 : 0.75,
+        similarityBoost: 0.75,
+        style: session?.experience_level === 'fresher' ? 0.7 : 0.4,
+      });
+
+      streamServiceRef.current.setCallbacks({
+        onConnect: () => console.log('Stream service connected'),
+        onComplete: () => setAiSpeaking(false),
+        onError: (error) => console.error('Stream error:', error),
+      });
+
+      await streamServiceRef.current.connect();
+
+      sttServiceRef.current = createSTTService(ELEVEN_LABS_API_KEY);
+
+      console.log('Real-time services initialized');
+    } catch (error) {
+      console.error('Failed to initialize real-time services:', error);
+      setUseRealTimeStream(false);
+    }
+  };
+
+  const speakWithStream = async (text: string) => {
+    if (!streamServiceRef.current || !streamServiceRef.current.isConnected()) {
+      fallbackToWebSpeech(text);
+      return;
+    }
+
+    try {
+      setAiSpeaking(true);
+      await streamServiceRef.current.streamText(text);
+    } catch (error) {
+      console.error('Stream TTS error:', error);
+      fallbackToWebSpeech(text);
+    }
+  };
+
+  const startRealTimeListening = () => {
+    if (!sttServiceRef.current) {
+      startRecording();
+      return;
+    }
+
+    sttServiceRef.current.startListening(
+      (text, isFinal) => {
+        if (isFinal) {
+          setTranscript(prev => prev + ' ' + text);
+          interimTranscriptRef.current = '';
+        } else {
+          interimTranscriptRef.current = text;
+          setTranscript(prev => prev + ' ' + text);
+        }
+      },
+      (error) => {
+        console.error('STT error:', error);
+        startRecording();
+      }
+    );
+
+    setIsRecording(true);
+  };
+
+  const stopRealTimeListening = () => {
+    if (sttServiceRef.current) {
+      sttServiceRef.current.stopListening();
+    }
+    setIsRecording(false);
   };
 
   const startInterview = async () => {
@@ -114,35 +203,43 @@ export default function InterviewRoom() {
     setCurrentQuestion(PROFESSIONAL_WELCOME);
     setAiSpeaking(true);
 
-    const voiceConfig = session.experience_level === 'fresher'
-      ? conversationalVoiceConfig
-      : professionalVoiceConfig;
-
-    if (useElevenLabs) {
-      await elevenLabs.textToSpeech(
-        PROFESSIONAL_WELCOME,
-        voiceConfig,
-        () => setAiSpeaking(true),
-        () => {
-          setAiSpeaking(false);
-          setShowWelcome(false);
-          setTimeout(() => generateNextQuestion(), 2000);
-        },
-        (error) => {
-          console.error('TTS error:', error);
-          fallbackToWebSpeech(PROFESSIONAL_WELCOME);
-          setTimeout(() => {
-            setShowWelcome(false);
-            generateNextQuestion();
-          }, 5000);
-        }
-      );
-    } else {
-      fallbackToWebSpeech(PROFESSIONAL_WELCOME);
+    if (useRealTimeStream && streamServiceRef.current) {
+      await speakWithStream(PROFESSIONAL_WELCOME);
       setTimeout(() => {
         setShowWelcome(false);
         generateNextQuestion();
-      }, 8000);
+      }, 2000);
+    } else {
+      const voiceConfig = session.experience_level === 'fresher'
+        ? conversationalVoiceConfig
+        : professionalVoiceConfig;
+
+      if (useElevenLabs) {
+        await elevenLabs.textToSpeech(
+          PROFESSIONAL_WELCOME,
+          voiceConfig,
+          () => setAiSpeaking(true),
+          () => {
+            setAiSpeaking(false);
+            setShowWelcome(false);
+            setTimeout(() => generateNextQuestion(), 2000);
+          },
+          (error) => {
+            console.error('TTS error:', error);
+            fallbackToWebSpeech(PROFESSIONAL_WELCOME);
+            setTimeout(() => {
+              setShowWelcome(false);
+              generateNextQuestion();
+            }, 5000);
+          }
+        );
+      } else {
+        fallbackToWebSpeech(PROFESSIONAL_WELCOME);
+        setTimeout(() => {
+          setShowWelcome(false);
+          generateNextQuestion();
+        }, 8000);
+      }
     }
   };
 
@@ -151,15 +248,35 @@ export default function InterviewRoom() {
     setAcknowledgment('');
 
     try {
+      const coveredTopics = conversationState?.getAllAskedQuestions().map(q =>
+        q.split(' ').slice(0, 3).join(' ')
+      ) || [];
+
       const result = await generateQuestionWithGemini({
         jobRole: session.role,
         experienceLevel: session.experience_level,
         jobDescription: session.jd_text,
         previousQuestions,
         previousAnswers,
+        conversationHistory: conversationState?.getConversationHistory(),
+        avoidTopics: coveredTopics,
       });
 
       let baseQuestion = result.question;
+
+      if (conversationState?.hasAskedSimilarQuestion(baseQuestion, 0.7)) {
+        console.warn('Similar question detected, regenerating...');
+        const retryResult = await generateQuestionWithGemini({
+          jobRole: session.role,
+          experienceLevel: session.experience_level,
+          jobDescription: session.jd_text,
+          previousQuestions: [...previousQuestions, baseQuestion],
+          previousAnswers,
+          conversationHistory: conversationState?.getConversationHistory(),
+          avoidTopics: coveredTopics,
+        });
+        baseQuestion = retryResult.question;
+      }
 
       const newPhase = determineInterviewPhase(questionNumber, totalQuestions);
       const wrappedQuestion = wrapQuestionWithContext(
@@ -173,23 +290,27 @@ export default function InterviewRoom() {
       setCurrentQuestion(wrappedQuestion);
       setPreviousQuestions(prev => [...prev, wrappedQuestion]);
 
-      const voiceConfig = session.experience_level === 'fresher'
-        ? conversationalVoiceConfig
-        : professionalVoiceConfig;
-
-      if (useElevenLabs) {
-        await elevenLabs.textToSpeech(
-          wrappedQuestion,
-          voiceConfig,
-          () => setAiSpeaking(true),
-          () => setAiSpeaking(false),
-          (error) => {
-            console.error('TTS error:', error);
-            fallbackToWebSpeech(wrappedQuestion);
-          }
-        );
+      if (useRealTimeStream && streamServiceRef.current) {
+        await speakWithStream(wrappedQuestion);
       } else {
-        fallbackToWebSpeech(wrappedQuestion);
+        const voiceConfig = session.experience_level === 'fresher'
+          ? conversationalVoiceConfig
+          : professionalVoiceConfig;
+
+        if (useElevenLabs) {
+          await elevenLabs.textToSpeech(
+            wrappedQuestion,
+            voiceConfig,
+            () => setAiSpeaking(true),
+            () => setAiSpeaking(false),
+            (error) => {
+              console.error('TTS error:', error);
+              fallbackToWebSpeech(wrappedQuestion);
+            }
+          );
+        } else {
+          fallbackToWebSpeech(wrappedQuestion);
+        }
       }
 
       await supabase.from('turns').insert({
@@ -202,7 +323,12 @@ export default function InterviewRoom() {
       console.error('Error generating question:', error);
       const fallbackQuestion = "Let's start with this: Tell me about yourself and your background.";
       setCurrentQuestion(fallbackQuestion);
-      fallbackToWebSpeech(fallbackQuestion);
+
+      if (useRealTimeStream && streamServiceRef.current) {
+        await speakWithStream(fallbackQuestion);
+      } else {
+        fallbackToWebSpeech(fallbackQuestion);
+      }
     }
   };
 
@@ -301,11 +427,19 @@ export default function InterviewRoom() {
   };
 
   const nextQuestion = async () => {
-    stopRecording();
+    if (useRealTimeStream && sttServiceRef.current) {
+      stopRealTimeListening();
+    } else {
+      stopRecording();
+    }
 
     const answerWordCount = transcript.trim().split(/\s+/).length;
     const ack = getAnswerAcknowledgment(answerWordCount);
     setAcknowledgment(ack);
+
+    if (conversationState) {
+      conversationState.addTurn(currentQuestion, transcript, []);
+    }
 
     setPreviousAnswers(prev => [...prev, transcript]);
 
@@ -557,12 +691,17 @@ export default function InterviewRoom() {
                 <h3 className="font-semibold text-gray-200">Your Response</h3>
                 <div className="flex items-center space-x-3">
                   <button
-                    onClick={isRecording ? stopRecording : startRecording}
+                    onClick={
+                      isRecording
+                        ? (useRealTimeStream ? stopRealTimeListening : stopRecording)
+                        : (useRealTimeStream ? startRealTimeListening : startRecording)
+                    }
                     className={`p-3 rounded-lg transition-colors ${
                       isRecording
-                        ? 'bg-red-500 hover:bg-red-600'
+                        ? 'bg-red-500 hover:bg-red-600 animate-pulse'
                         : 'bg-teal-500 hover:bg-teal-600'
                     }`}
+                    title={isRecording ? 'Stop recording' : 'Start recording'}
                   >
                     {isRecording ? <Square className="w-5 h-5" /> : <Mic className="w-5 h-5" />}
                   </button>
