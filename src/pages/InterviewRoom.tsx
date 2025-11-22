@@ -8,6 +8,8 @@ import { elevenLabs, conversationalVoiceConfig, professionalVoiceConfig } from '
 import { ConversationalAI } from '../lib/conversationalAI';
 import { ElevenLabsStreamService, ElevenLabsSTTService, createStreamService, createSTTService } from '../lib/elevenLabsStream';
 import { ConversationStateManager, createConversationState } from '../lib/conversationState';
+import { createVAD, createInterruptionDetector, InterruptionDetector } from '../lib/voiceActivityDetection';
+import { AutoInterviewController, createAutoInterviewController, InterviewState as AutoInterviewState } from '../lib/autoInterviewController';
 import {
   PROFESSIONAL_WELCOME,
   FINAL_FAREWELL,
@@ -64,9 +66,15 @@ export default function InterviewRoom() {
   const [useRealTimeStream, setUseRealTimeStream] = useState(true);
   const [conversationState, setConversationState] = useState<ConversationStateManager | null>(null);
 
+  const [useAutoMode, setUseAutoMode] = useState(true);
+  const [autoState, setAutoState] = useState<AutoInterviewState | null>(null);
+  const [volumeLevel, setVolumeLevel] = useState(0);
+
   const streamServiceRef = useRef<ElevenLabsStreamService | null>(null);
   const sttServiceRef = useRef<ElevenLabsSTTService | null>(null);
   const interimTranscriptRef = useRef<string>('');
+  const interruptionDetectorRef = useRef<InterruptionDetector | null>(null);
+  const autoControllerRef = useRef<AutoInterviewController | null>(null);
 
   const recognitionRef = useRef<any>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -116,6 +124,10 @@ export default function InterviewRoom() {
         await initializeRealTimeServices();
       }
 
+      if (useAutoMode) {
+        await initializeAutoMode();
+      }
+
       setLoading(false);
     } catch (error) {
       console.error('Error loading session:', error);
@@ -150,6 +162,102 @@ export default function InterviewRoom() {
     }
   };
 
+  const initializeAutoMode = async () => {
+    try {
+      const interruptionDetector = createInterruptionDetector({
+        energyThreshold: -50,
+        silenceThreshold: -60,
+        silenceDuration: 2500,
+        speechStartDelay: 200,
+        minSpeechDuration: 400,
+      });
+
+      await interruptionDetector.initialize();
+
+      const vad = interruptionDetector.getVAD();
+      vad.setCallbacks({
+        onVolumeChange: (volume) => setVolumeLevel(volume),
+      });
+
+      interruptionDetector.setOnInterrupt(() => {
+        console.log('User interrupted, stopping AI speech');
+        if (streamServiceRef.current) {
+          streamServiceRef.current.stop();
+        }
+        setAiSpeaking(false);
+
+        if (autoControllerRef.current) {
+          autoControllerRef.current.onAISpeakingInterrupted();
+        }
+      });
+
+      interruptionDetectorRef.current = interruptionDetector;
+
+      const autoController = createAutoInterviewController({
+        silenceThresholdMs: 2500,
+        minAnswerLengthWords: 10,
+        maxAnswerDurationMs: 180000,
+        transitionDelayMs: 1500,
+        interruptionEnabled: true,
+      });
+
+      autoController.initialize(vad);
+
+      autoController.setCallbacks({
+        onQuestionStart: (question, number) => {
+          console.log(`Auto: Question ${number} started`);
+          setCurrentQuestion(question);
+          setQuestionNumber(number);
+          interruptionDetector.setAISpeaking(true);
+        },
+        onQuestionEnd: () => {
+          console.log('Auto: AI finished speaking, user can answer');
+          interruptionDetector.setAISpeaking(false);
+          setAiSpeaking(false);
+          setIsRecording(true);
+        },
+        onAnswerStart: () => {
+          console.log('Auto: User started answering');
+          setTranscript('');
+        },
+        onAnswerComplete: async (answer, duration) => {
+          console.log(`Auto: Answer completed (${duration}ms)`);
+          setTranscript(answer);
+          setPreviousAnswers(prev => [...prev, answer]);
+          setIsRecording(false);
+
+          if (conversationState) {
+            conversationState.addTurn(currentQuestion, answer, []);
+          }
+
+          await evaluateAndSaveAnswer(answer);
+
+          if (questionNumber < totalQuestions) {
+            setTimeout(() => generateNextQuestion(), 1500);
+          } else {
+            completeInterview();
+          }
+        },
+        onTransitionStart: () => {
+          console.log('Auto: Transitioning to next question');
+        },
+        onStateChange: (state) => {
+          setAutoState(state);
+        },
+        onError: (error) => {
+          console.error('Auto controller error:', error);
+        },
+      });
+
+      autoControllerRef.current = autoController;
+
+      console.log('Auto mode initialized');
+    } catch (error) {
+      console.error('Failed to initialize auto mode:', error);
+      setUseAutoMode(false);
+    }
+  };
+
   const speakWithStream = async (text: string) => {
     if (!streamServiceRef.current || !streamServiceRef.current.isConnected()) {
       fallbackToWebSpeech(text);
@@ -174,11 +282,20 @@ export default function InterviewRoom() {
     sttServiceRef.current.startListening(
       (text, isFinal) => {
         if (isFinal) {
-          setTranscript(prev => prev + ' ' + text);
+          const fullText = (transcript + ' ' + text).trim();
+          setTranscript(fullText);
           interimTranscriptRef.current = '';
+
+          if (autoControllerRef.current) {
+            autoControllerRef.current.addTranscriptChunk(text, true);
+          }
         } else {
           interimTranscriptRef.current = text;
-          setTranscript(prev => prev + ' ' + text);
+          setTranscript(transcript + ' ' + text);
+
+          if (autoControllerRef.current) {
+            autoControllerRef.current.addTranscriptChunk(text, false);
+          }
         }
       },
       (error) => {
@@ -197,14 +314,71 @@ export default function InterviewRoom() {
     setIsRecording(false);
   };
 
+  const evaluateAndSaveAnswer = async (answer: string) => {
+    try {
+      const evaluation = await evaluateAnswer({
+        question: currentQuestion,
+        answer,
+        jobRole: session.role,
+        jobDescription: session.jd_text,
+      });
+
+      await supabase.from('turns').update({
+        answer,
+        score: evaluation.score,
+        feedback: evaluation.feedback,
+        strengths: evaluation.strengths,
+        improvements: evaluation.improvements,
+      }).eq('session_id', sessionId!).eq('turn_number', questionNumber);
+    } catch (error) {
+      console.error('Failed to evaluate answer:', error);
+    }
+  };
+
+  const completeInterview = async () => {
+    setInterviewStarted(false);
+
+    if (interruptionDetectorRef.current) {
+      interruptionDetectorRef.current.stop();
+    }
+
+    if (autoControllerRef.current) {
+      autoControllerRef.current.completeInterview();
+    }
+
+    if (useRealTimeStream && streamServiceRef.current) {
+      await speakWithStream(FINAL_FAREWELL);
+    } else {
+      fallbackToWebSpeech(FINAL_FAREWELL);
+    }
+
+    await supabase.from('sessions').update({
+      status: 'completed',
+      completed_at: new Date().toISOString(),
+    }).eq('id', sessionId!);
+
+    setTimeout(() => {
+      navigate(`/report/${sessionId}`);
+    }, 3000);
+  };
+
   const startInterview = async () => {
     setInterviewStarted(true);
     setShowWelcome(true);
     setCurrentQuestion(PROFESSIONAL_WELCOME);
     setAiSpeaking(true);
 
+    if (useAutoMode && interruptionDetectorRef.current) {
+      interruptionDetectorRef.current.start();
+    }
+
     if (useRealTimeStream && streamServiceRef.current) {
       await speakWithStream(PROFESSIONAL_WELCOME);
+
+      if (autoControllerRef.current) {
+        autoControllerRef.current.onQuestionSpeakingComplete();
+      }
+
       setTimeout(() => {
         setShowWelcome(false);
         generateNextQuestion();
@@ -290,8 +464,20 @@ export default function InterviewRoom() {
       setCurrentQuestion(wrappedQuestion);
       setPreviousQuestions(prev => [...prev, wrappedQuestion]);
 
+      if (autoControllerRef.current) {
+        autoControllerRef.current.startQuestion(wrappedQuestion, questionNumber, totalQuestions);
+      }
+
       if (useRealTimeStream && streamServiceRef.current) {
         await speakWithStream(wrappedQuestion);
+
+        if (autoControllerRef.current) {
+          autoControllerRef.current.onQuestionSpeakingComplete();
+        }
+
+        if (sttServiceRef.current || useAutoMode) {
+          startRealTimeListening();
+        }
       } else {
         const voiceConfig = session.experience_level === 'fresher'
           ? conversationalVoiceConfig
@@ -482,78 +668,6 @@ export default function InterviewRoom() {
       setQuestionNumber(prev => prev + 1);
       await generateNextQuestion();
     }
-  };
-
-  const completeInterview = async () => {
-    setCurrentQuestion(FINAL_FAREWELL);
-    setAiSpeaking(true);
-
-    const voiceConfig = session.experience_level === 'fresher'
-      ? conversationalVoiceConfig
-      : professionalVoiceConfig;
-
-    const speakFarewell = async () => {
-      if (useElevenLabs) {
-        await elevenLabs.textToSpeech(
-          FINAL_FAREWELL,
-          voiceConfig,
-          () => setAiSpeaking(true),
-          () => setAiSpeaking(false),
-          (error) => {
-            console.error('TTS error:', error);
-            fallbackToWebSpeech(FINAL_FAREWELL);
-          }
-        );
-      } else {
-        fallbackToWebSpeech(FINAL_FAREWELL);
-      }
-    };
-
-    await speakFarewell();
-
-    await supabase
-      .from('sessions')
-      .update({ ended_at: new Date().toISOString() })
-      .eq('id', sessionId);
-
-    const overallScore = Math.floor(Math.random() * 20) + 70;
-
-    const { data: reportData } = await supabase
-      .from('reports')
-      .insert({
-        session_id: sessionId!,
-        overall_score: overallScore,
-        performance_breakdown: {
-          clarity: Math.floor(Math.random() * 3) + 7,
-          confidence: Math.floor(Math.random() * 3) + 7,
-          relevance: Math.floor(Math.random() * 3) + 7,
-          professionalism: Math.floor(Math.random() * 3) + 8,
-          domain: Math.floor(Math.random() * 3) + 6,
-        },
-        strengths: [
-          'Strong communication skills',
-          'Clear and structured responses',
-          'Good technical knowledge'
-        ],
-        gaps: [
-          'Could provide more specific examples',
-          'Watch for filler words'
-        ],
-        suggested_topics: [
-          'STAR method for behavioral questions',
-          'Technical depth in domain area'
-        ]
-      })
-      .select()
-      .single();
-
-    setTimeout(() => {
-      if (reportData) {
-        navigate(`/report/${reportData.id}`);
-      } else {
-        navigate('/dashboard');
-      }
-    }, useElevenLabs ? 15000 : 10000);
   };
 
   const endInterviewEarly = async () => {
