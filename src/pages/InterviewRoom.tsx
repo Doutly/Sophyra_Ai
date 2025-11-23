@@ -3,9 +3,10 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
 import { generateQuestionWithGemini, evaluateAnswer } from '../lib/api';
-import { Brain, Mic, Video, VideoOff, Play, Square, Volume2, VolumeX } from 'lucide-react';
+import { Brain, Mic, Video, VideoOff, Play, Square, Volume2, VolumeX, Power } from 'lucide-react';
 import { elevenLabs, conversationalVoiceConfig, professionalVoiceConfig } from '../lib/elevenLabs';
 import { ConversationalAI } from '../lib/conversationalAI';
+import VoiceAgentUI from '../components/VoiceAgentUI';
 import { ElevenLabsStreamService, ElevenLabsSTTService, createStreamService, createSTTService } from '../lib/elevenLabsStream';
 import { ConversationStateManager, createConversationState } from '../lib/conversationState';
 import { createVAD, createInterruptionDetector, InterruptionDetector } from '../lib/voiceActivityDetection';
@@ -828,246 +829,36 @@ export default function InterviewRoom() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-900 text-white">
-      <div className="border-b border-gray-800 bg-gray-900/50 backdrop-blur-sm sticky top-0 z-10">
-        <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
-          <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 bg-teal-500 rounded-lg flex items-center justify-center">
-              <Brain className="w-6 h-6 text-white" />
-            </div>
-            <div>
-              <h1 className="text-lg font-bold">Sophyra AI Interview</h1>
-              <p className="text-sm text-gray-400">
-                {showWelcome ? 'Welcome Message' : `Question ${questionNumber} of ${totalQuestions}`}
-              </p>
-            </div>
-          </div>
-          <div className="flex items-center space-x-4">
-            <button
-              onClick={() => setUseElevenLabs(!useElevenLabs)}
-              className="p-2 hover:bg-gray-800 rounded-lg transition-colors"
-              title={useElevenLabs ? 'Using Eleven Labs Voice' : 'Using Browser Voice'}
-            >
-              {useElevenLabs ? (
-                <Volume2 className="w-5 h-5 text-teal-400" />
-              ) : (
-                <VolumeX className="w-5 h-5 text-gray-400" />
-              )}
-            </button>
-            <button
-              onClick={endInterviewEarly}
-              className="px-4 py-2 text-red-400 hover:text-red-300 font-medium"
-            >
-              End Interview
-            </button>
-          </div>
-        </div>
-      </div>
+    <div className="relative">
+      {/* Emergency exit button - subtle, top-right corner */}
+      <button
+        onClick={endInterviewEarly}
+        className="fixed top-6 right-6 z-50 p-3 bg-gray-800/80 hover:bg-red-500/20 border border-gray-700 hover:border-red-500 rounded-full backdrop-blur-sm transition-all group"
+        title="End Interview"
+      >
+        <Power className="w-5 h-5 text-gray-400 group-hover:text-red-400" />
+      </button>
 
-      <div className="max-w-7xl mx-auto px-6 py-8">
-        <div className="grid lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2 space-y-6">
-            <div className="bg-gray-800 rounded-2xl p-8 border border-gray-700">
-              <div className="flex items-start space-x-4 mb-6">
-                <div className="w-12 h-12 bg-teal-500 rounded-full flex items-center justify-center flex-shrink-0">
-                  <span className="text-white font-bold text-lg">S</span>
-                </div>
-                <div className="flex-1">
-                  <div className="flex items-center space-x-2 mb-2">
-                    <h2 className="font-semibold text-gray-200">Sophyra AI</h2>
-                    <span className="text-xs text-gray-400">HR Interviewer</span>
-                    {aiSpeaking && (
-                      <div className="flex items-center space-x-1">
-                        <Volume2 className="w-4 h-4 text-teal-400 animate-pulse" />
-                        <span className="text-xs text-teal-400">Speaking...</span>
-                      </div>
-                    )}
-                  </div>
-                  <p className="text-lg text-gray-100 leading-relaxed whitespace-pre-wrap">{currentQuestion}</p>
-                  {acknowledgment && (
-                    <div className="mt-4 pt-4 border-t border-gray-700">
-                      <p className="text-sm text-teal-300 italic">{acknowledgment}</p>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
+      {/* Pure Voice Agent UI */}
+      <VoiceAgentUI
+        isAISpeaking={aiSpeaking}
+        isUserSpeaking={isRecording}
+        currentQuestion={currentQuestion}
+        transcript={transcript}
+        volumeLevel={volumeLevel}
+        questionNumber={questionNumber}
+        totalQuestions={totalQuestions}
+        aiName="Sarah"
+      />
 
-            {!showWelcome && (
-              <div className="bg-gray-800 rounded-2xl p-6 border border-gray-700">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="font-semibold text-gray-200">Your Response</h3>
-                <div className="flex items-center space-x-3">
-                  <button
-                    onClick={
-                      isRecording
-                        ? (useRealTimeStream ? stopRealTimeListening : stopRecording)
-                        : (useRealTimeStream ? startRealTimeListening : startRecording)
-                    }
-                    className={`p-3 rounded-lg transition-colors ${
-                      isRecording
-                        ? 'bg-red-500 hover:bg-red-600 animate-pulse'
-                        : 'bg-teal-500 hover:bg-teal-600'
-                    }`}
-                    title={isRecording ? 'Stop recording' : 'Start recording'}
-                  >
-                    {isRecording ? <Square className="w-5 h-5" /> : <Mic className="w-5 h-5" />}
-                  </button>
-                  <button
-                    onClick={toggleCamera}
-                    className={`p-3 rounded-lg transition-colors ${
-                      isCameraOn
-                        ? 'bg-teal-500 hover:bg-teal-600'
-                        : 'bg-gray-700 hover:bg-gray-600'
-                    }`}
-                  >
-                    {isCameraOn ? <Video className="w-5 h-5" /> : <VideoOff className="w-5 h-5" />}
-                  </button>
-                </div>
-              </div>
-
-              {isRecording && (
-                <div className="flex items-center space-x-2 mb-4 text-red-400">
-                  <div className="w-3 h-3 bg-red-500 rounded-full animate-pulse"></div>
-                  <span className="text-sm font-medium">Recording...</span>
-                </div>
-              )}
-
-              <div className="min-h-[200px] max-h-[300px] overflow-y-auto bg-gray-900 rounded-lg p-4 mb-4">
-                {transcript ? (
-                  <p className="text-gray-300 leading-relaxed">{transcript}</p>
-                ) : (
-                  <p className="text-gray-500 italic">
-                    {isRecording ? 'Listening...' : 'Click the microphone to start answering'}
-                  </p>
-                )}
-              </div>
-
-              {isCameraOn && (
-                <div className="mb-4">
-                  <video
-                    ref={videoRef}
-                    autoPlay
-                    muted
-                    className="w-full h-48 bg-gray-900 rounded-lg object-cover"
-                  />
-                </div>
-              )}
-
-              <button
-                onClick={nextQuestion}
-                disabled={!transcript.trim()}
-                className="w-full py-3 bg-teal-500 text-white font-semibold rounded-lg hover:bg-teal-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {questionNumber >= totalQuestions ? 'Complete Interview' : 'Next Question'}
-              </button>
-            </div>
-            )}
-          </div>
-
-          {!showWelcome && (
-          <div className="space-y-6">
-            <div className="bg-gray-800 rounded-2xl p-6 border border-gray-700">
-              <h3 className="font-semibold text-gray-200 mb-4">Voice Metrics</h3>
-              <div className="space-y-4">
-                <div>
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm text-gray-400">Speaking Pace</span>
-                    <span className="text-lg font-bold text-teal-400">{voiceMetrics.wpm} WPM</span>
-                  </div>
-                  <div className="h-2 bg-gray-700 rounded-full overflow-hidden">
-                    <div
-                      className="h-full bg-teal-500 transition-all"
-                      style={{ width: `${Math.min((voiceMetrics.wpm / 200) * 100, 100)}%` }}
-                    ></div>
-                  </div>
-                  <p className="text-xs text-gray-500 mt-1">
-                    Optimal: 120-160 WPM
-                  </p>
-                </div>
-
-                <div>
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm text-gray-400">Filler Words</span>
-                    <span className="text-lg font-bold text-yellow-400">{voiceMetrics.fillerWords}</span>
-                  </div>
-                  <p className="text-xs text-gray-500">
-                    Lower is better
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            {isCameraOn && (
-              <div className="bg-gray-800 rounded-2xl p-6 border border-gray-700">
-                <h3 className="font-semibold text-gray-200 mb-4">Body Language</h3>
-                <div className="space-y-4">
-                  <div>
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-sm text-gray-400">Face Detection</span>
-                      <span className={`text-sm font-medium ${bodyMetrics.faceDetected ? 'text-green-400' : 'text-red-400'}`}>
-                        {bodyMetrics.faceDetected ? 'Detected' : 'Not Detected'}
-                      </span>
-                    </div>
-                  </div>
-
-                  <div>
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-sm text-gray-400">Eye Contact</span>
-                      <span className="text-lg font-bold text-teal-400">{bodyMetrics.eyeContact}%</span>
-                    </div>
-                    <div className="h-2 bg-gray-700 rounded-full overflow-hidden">
-                      <div
-                        className="h-full bg-teal-500 transition-all"
-                        style={{ width: `${bodyMetrics.eyeContact}%` }}
-                      ></div>
-                    </div>
-                  </div>
-
-                  <div>
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-sm text-gray-400">Attention Stability</span>
-                      <span className="text-lg font-bold text-teal-400">{bodyMetrics.attentionStability}%</span>
-                    </div>
-                    <div className="h-2 bg-gray-700 rounded-full overflow-hidden">
-                      <div
-                        className="h-full bg-teal-500 transition-all"
-                        style={{ width: `${bodyMetrics.attentionStability}%` }}
-                      ></div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            <div className="bg-gray-800 rounded-2xl p-6 border border-gray-700">
-              <h3 className="font-semibold text-gray-200 mb-4">Progress</h3>
-              <div className="space-y-2">
-                {Array.from({ length: totalQuestions }).map((_, idx) => (
-                  <div
-                    key={idx}
-                    className={`flex items-center space-x-2 ${
-                      idx + 1 < questionNumber ? 'text-green-400' :
-                      idx + 1 === questionNumber ? 'text-teal-400' :
-                      'text-gray-600'
-                    }`}
-                  >
-                    <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center text-xs font-bold ${
-                      idx + 1 < questionNumber ? 'bg-green-500 border-green-500' :
-                      idx + 1 === questionNumber ? 'bg-teal-500 border-teal-500' :
-                      'border-gray-600'
-                    }`}>
-                      {idx + 1}
-                    </div>
-                    <span className="text-sm">Question {idx + 1}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-          )}
-        </div>
-      </div>
+      {/* Video element - hidden but functional */}
+      <video
+        ref={videoRef}
+        autoPlay
+        playsInline
+        muted
+        className="hidden"
+      />
     </div>
   );
 }
