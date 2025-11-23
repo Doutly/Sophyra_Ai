@@ -3,13 +3,7 @@ export interface InterviewPhase {
   messages: string[];
 }
 
-export const PROFESSIONAL_WELCOME = `Hello! Welcome to your interview session. My name is Sarah, and I'll be conducting your interview today. I'm really excited to learn more about you and your experiences.
-
-Before we begin, I want you to know that this is a conversational interview - think of it as a professional discussion rather than a formal interrogation. There are no trick questions here. I'm genuinely interested in understanding your background, your skills, and what you can bring to this role.
-
-Throughout our conversation, I'll be asking you about your experience, your approach to problem-solving, and your career goals. Feel free to take a moment to think before you answer, and don't hesitate to ask if you need any clarification.
-
-Take a deep breath, relax, and let's have a great conversation. Are you ready to get started?`;
+export const PROFESSIONAL_WELCOME = `Hello! I'm Sarah, your AI interviewer today. I'll be asking you questions tailored to your role and experience level. Answer naturally and I'll provide detailed feedback. Let's begin!`;
 
 export const PHASE_TRANSITIONS = {
   toWarmup: "Great! Let's ease into things with some introductory questions. This will help me get to know you better.",
@@ -72,13 +66,7 @@ export const CLOSING_MESSAGES = [
   "We're in the home stretch now. I really appreciate the thoughtful answers you've been giving."
 ];
 
-export const FINAL_FAREWELL = `Thank you so much for your time today! You've provided some really thoughtful and detailed answers throughout this interview. I genuinely enjoyed our conversation and learning more about your background and experiences.
-
-I'll be reviewing everything we discussed and generating a comprehensive performance report for you. This report will include detailed feedback on your responses, areas of strength, and opportunities for improvement.
-
-You should see your results shortly. Before you go, do you have any questions for me about the process or what comes next?
-
-Thank you again, and best of luck! You did a wonderful job today.`;
+export const FINAL_FAREWELL = `Thank you for completing this interview! I'll now generate your performance report with detailed feedback. You'll see your results momentarily. Great job today!`;
 
 export function getRandomElement<T>(array: T[]): T {
   return array[Math.floor(Math.random() * array.length)];

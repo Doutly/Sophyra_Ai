@@ -10,6 +10,9 @@ import { ElevenLabsStreamService, ElevenLabsSTTService, createStreamService, cre
 import { ConversationStateManager, createConversationState } from '../lib/conversationState';
 import { createVAD, createInterruptionDetector, InterruptionDetector } from '../lib/voiceActivityDetection';
 import { AutoInterviewController, createAutoInterviewController, InterviewState as AutoInterviewState } from '../lib/autoInterviewController';
+import { QuestionQueueManager, createQuestionQueue } from '../lib/questionQueueManager';
+import { VoiceConsistencyManager, createVoiceManager } from '../lib/voiceConsistencyManager';
+import { EnhancedSTTService, createEnhancedSTT, STTResult } from '../lib/enhancedSTT';
 import {
   PROFESSIONAL_WELCOME,
   FINAL_FAREWELL,
@@ -72,9 +75,12 @@ export default function InterviewRoom() {
 
   const streamServiceRef = useRef<ElevenLabsStreamService | null>(null);
   const sttServiceRef = useRef<ElevenLabsSTTService | null>(null);
+  const enhancedSTTRef = useRef<EnhancedSTTService | null>(null);
   const interimTranscriptRef = useRef<string>('');
   const interruptionDetectorRef = useRef<InterruptionDetector | null>(null);
   const autoControllerRef = useRef<AutoInterviewController | null>(null);
+  const questionQueueRef = useRef<QuestionQueueManager | null>(null);
+  const voiceManagerRef = useRef<VoiceConsistencyManager | null>(null);
 
   const recognitionRef = useRef<any>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -120,6 +126,20 @@ export default function InterviewRoom() {
       const convState = createConversationState(sessionId);
       setConversationState(convState);
 
+      const questionQueue = createQuestionQueue(sessionId, totalQuestions);
+      await questionQueue.initialize();
+      questionQueueRef.current = questionQueue;
+      console.log('Question queue initialized');
+
+      const voiceManager = createVoiceManager(sessionId);
+      await voiceManager.initialize({
+        experienceLevel: data.experience_level || 'experienced',
+        voiceGender: 'female',
+        voiceTone: data.experience_level === 'fresher' ? 'conversational' : 'professional',
+      });
+      voiceManagerRef.current = voiceManager;
+      console.log('Voice manager initialized:', voiceManager.getVoiceDescription());
+
       if (useRealTimeStream) {
         await initializeRealTimeServices();
       }
@@ -127,6 +147,8 @@ export default function InterviewRoom() {
       if (useAutoMode) {
         await initializeAutoMode();
       }
+
+      await initializeEnhancedSTT();
 
       setLoading(false);
     } catch (error) {
@@ -255,6 +277,45 @@ export default function InterviewRoom() {
     } catch (error) {
       console.error('Failed to initialize auto mode:', error);
       setUseAutoMode(false);
+    }
+  };
+
+  const initializeEnhancedSTT = async () => {
+    try {
+      const enhancedSTT = createEnhancedSTT({
+        minConfidence: 0.7,
+        fallbackEnabled: true,
+        autoGainControl: true,
+        echoCancellation: true,
+      });
+
+      await enhancedSTT.initialize();
+
+      enhancedSTT.setCallbacks({
+        onTranscript: (result: STTResult) => {
+          if (result.isFinal) {
+            const fullText = (transcript + ' ' + result.transcript).trim();
+            setTranscript(fullText);
+
+            if (autoControllerRef.current) {
+              autoControllerRef.current.addTranscriptChunk(result.transcript, true);
+            }
+          } else {
+            setTranscript(transcript + ' ' + result.transcript);
+          }
+        },
+        onLowConfidence: (text, confidence) => {
+          console.warn(`Low confidence (${confidence.toFixed(2)}): ${text}`);
+        },
+        onError: (error) => {
+          console.error('Enhanced STT error:', error);
+        },
+      });
+
+      enhancedSTTRef.current = enhancedSTT;
+      console.log('Enhanced STT initialized');
+    } catch (error) {
+      console.error('Failed to initialize enhanced STT:', error);
     }
   };
 
@@ -418,6 +479,20 @@ export default function InterviewRoom() {
   };
 
   const generateNextQuestion = async () => {
+    if (!questionQueueRef.current) {
+      console.error('Question queue not initialized');
+      return;
+    }
+
+    if (!questionQueueRef.current.hasNextQuestion() && questionQueueRef.current.getCurrentQuestionNumber() > 1) {
+      console.log('No more questions, completing interview');
+      await completeInterview();
+      return;
+    }
+
+    const currentQueueNumber = questionQueueRef.current.getCurrentQuestionNumber();
+    console.log(`Generating question ${currentQueueNumber}/${totalQuestions}`);
+
     setAiSpeaking(true);
     setAcknowledgment('');
 
@@ -438,8 +513,8 @@ export default function InterviewRoom() {
 
       let baseQuestion = result.question;
 
-      if (conversationState?.hasAskedSimilarQuestion(baseQuestion, 0.7)) {
-        console.warn('Similar question detected, regenerating...');
+      if (questionQueueRef.current.isQuestionAlreadyAsked(baseQuestion)) {
+        console.warn('DUPLICATE DETECTED: Question already asked, regenerating...');
         const retryResult = await generateQuestionWithGemini({
           jobRole: session.role,
           experienceLevel: session.experience_level,
@@ -452,15 +527,19 @@ export default function InterviewRoom() {
         baseQuestion = retryResult.question;
       }
 
-      const newPhase = determineInterviewPhase(questionNumber, totalQuestions);
+      const newPhase = determineInterviewPhase(currentQueueNumber, totalQuestions);
       const wrappedQuestion = wrapQuestionWithContext(
         baseQuestion,
-        questionNumber,
+        currentQueueNumber,
         totalQuestions,
         currentPhase
       );
       setCurrentPhase(newPhase);
 
+      const questionObj = questionQueueRef.current.addQuestion(wrappedQuestion);
+      questionQueueRef.current.markAsAsked(questionObj.number);
+
+      setQuestionNumber(currentQueueNumber);
       setCurrentQuestion(wrappedQuestion);
       setPreviousQuestions(prev => [...prev, wrappedQuestion]);
 
@@ -627,6 +706,11 @@ export default function InterviewRoom() {
       conversationState.addTurn(currentQuestion, transcript, []);
     }
 
+    if (questionQueueRef.current) {
+      questionQueueRef.current.markAsAnswered(questionNumber, transcript);
+      console.log('Marked question as answered in queue');
+    }
+
     setPreviousAnswers(prev => [...prev, transcript]);
 
     try {
@@ -662,11 +746,21 @@ export default function InterviewRoom() {
     setTranscript('');
     setVoiceMetrics({ wpm: 0, fillerWords: 0, paceStability: 0 });
 
-    if (questionNumber >= totalQuestions) {
-      await completeInterview();
+    if (questionQueueRef.current) {
+      if (questionQueueRef.current.canAdvance()) {
+        questionQueueRef.current.moveToNext();
+        await generateNextQuestion();
+      } else if (!questionQueueRef.current.hasNextQuestion()) {
+        console.log('No more questions - completing interview');
+        await completeInterview();
+      }
     } else {
-      setQuestionNumber(prev => prev + 1);
-      await generateNextQuestion();
+      if (questionNumber >= totalQuestions) {
+        await completeInterview();
+      } else {
+        setQuestionNumber(prev => prev + 1);
+        await generateNextQuestion();
+      }
     }
   };
 
