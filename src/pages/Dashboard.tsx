@@ -362,7 +362,13 @@ export default function Dashboard() {
                   onClick={() => navigate('/interview/setup')}
                   className="w-full px-4 py-3 bg-teal-50 text-teal-700 font-medium rounded-lg hover:bg-teal-100 transition-colors text-left"
                 >
-                  New Mock Interview
+                  🤖 AI Mock Interview
+                </button>
+                <button
+                  onClick={() => navigate('/interview/manual')}
+                  className="w-full px-4 py-3 bg-blue-50 text-blue-700 font-medium rounded-lg hover:bg-blue-100 transition-colors text-left"
+                >
+                  👤 Request Manual Mock Interview
                 </button>
                 <button
                   onClick={() => navigate('/profile')}
