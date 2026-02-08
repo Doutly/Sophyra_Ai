@@ -153,9 +153,7 @@ export default function Dashboard() {
         <div className="max-w-7xl mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 bg-teal-500 rounded-lg flex items-center justify-center">
-                <Brain className="w-6 h-6 text-white" />
-              </div>
+              <img src="/lo.png" alt="Sophyra AI" className="w-10 h-10" />
               <span className="text-2xl font-bold text-gray-900">Sophyra AI</span>
             </div>
             <div className="flex items-center space-x-4">
@@ -185,239 +183,189 @@ export default function Dashboard() {
           <p className="text-gray-600">Ready to practice and improve your interview skills?</p>
         </div>
 
-        <div className="grid gap-6 mb-8">
-          <div className="bg-gradient-to-br from-teal-500 to-teal-600 rounded-2xl p-8 text-white shadow-lg">
-            <div className="flex items-center justify-between">
-              <div>
-                <h2 className="text-2xl font-bold mb-2">Start Mock Test</h2>
-                <p className="text-teal-100 mb-6">Practice with AI that adapts to your role and experience</p>
-                <button
-                  onClick={() => navigate('/interview/setup')}
-                  className="px-8 py-3 bg-white text-teal-600 font-semibold rounded-lg hover:bg-teal-50 transition-colors inline-flex items-center space-x-2"
-                >
-                  <Play className="w-5 h-5" />
-                  <span>Begin Interview</span>
-                </button>
-              </div>
-              <div className="hidden md:block">
-                <div className="w-32 h-32 bg-white/10 rounded-2xl flex items-center justify-center backdrop-blur-sm">
-                  <Brain className="w-16 h-16 text-white" />
+        <div className="grid grid-cols-12 gap-6 mb-8">
+          <div className="hidden lg:block lg:col-span-1"></div>
+
+          <div className="col-span-12 lg:col-span-7 space-y-6">
+            <div className="bg-gradient-to-br from-brand-electric to-brand-electric-dark rounded-2xl p-8 text-white shadow-lg">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-3xl font-bold mb-2">Start Mock Test</h2>
+                  <p className="text-white/90 text-lg mb-6">Practice with AI that adapts to your role and experience</p>
+                  <button
+                    onClick={() => navigate('/interview/setup')}
+                    className="px-10 py-4 bg-white text-brand-electric font-bold rounded-lg hover:bg-gray-50 transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 inline-flex items-center space-x-2"
+                  >
+                    <Play className="w-6 h-6" />
+                    <span>Begin Interview</span>
+                  </button>
+                </div>
+                <div className="hidden xl:block">
+                  <div className="w-40 h-40 bg-white/10 rounded-2xl flex items-center justify-center backdrop-blur-sm">
+                    <img src="/lo.png" alt="Sophyra AI" className="w-32 h-32 opacity-90" />
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
-        </div>
 
-        <div className="grid lg:grid-cols-3 gap-6 mb-8">
-          <div className="lg:col-span-2 space-y-6">
             <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-200">
               <div className="flex items-center justify-between mb-6">
-                <h2 className="text-xl font-bold text-gray-900">Past Interview Reports</h2>
+                <h2 className="text-2xl font-bold text-gray-900">Quick Actions</h2>
+                <Target className="w-6 h-6 text-gray-400" />
+              </div>
+              <div className="grid md:grid-cols-2 gap-4">
+                <button
+                  onClick={() => navigate('/interview/setup')}
+                  className="p-6 bg-brand-electric/5 text-brand-electric font-semibold rounded-xl hover:bg-brand-electric/10 transition-all border-2 border-brand-electric/20 hover:border-brand-electric/40 text-left group"
+                >
+                  <div className="flex items-center space-x-3 mb-2">
+                    <Play className="w-8 h-8 group-hover:scale-110 transition-transform" />
+                    <span className="text-xl">AI Mock Interview</span>
+                  </div>
+                  <p className="text-sm text-gray-600">Practice with adaptive AI interviewer</p>
+                </button>
+                <button
+                  onClick={() => navigate('/interview/manual')}
+                  className="p-6 bg-blue-50 text-blue-700 font-semibold rounded-xl hover:bg-blue-100 transition-all border-2 border-blue-100 hover:border-blue-200 text-left group"
+                >
+                  <div className="flex items-center space-x-3 mb-2">
+                    <Ticket className="w-8 h-8 group-hover:scale-110 transition-transform" />
+                    <span className="text-xl">Request Manual Interview</span>
+                  </div>
+                  <p className="text-sm text-blue-600">Get interviewed by HR professional</p>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div className="col-span-12 lg:col-span-4 space-y-4">
+            <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-200">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-lg font-bold text-gray-900">Past Reports</h2>
                 <FileText className="w-5 h-5 text-gray-400" />
               </div>
 
               {reports.length === 0 ? (
-                <div className="text-center py-12">
-                  <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <FileText className="w-8 h-8 text-gray-400" />
-                  </div>
-                  <h3 className="text-lg font-semibold text-gray-900 mb-2">No interviews yet</h3>
-                  <p className="text-gray-600 mb-6">Start your first mock test to see your reports here</p>
+                <div className="text-center py-8">
+                  <FileText className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+                  <p className="text-sm text-gray-600 mb-4">No reports yet</p>
                   <button
                     onClick={() => navigate('/interview/setup')}
-                    className="px-6 py-2 bg-teal-500 text-white font-medium rounded-lg hover:bg-teal-600 transition-colors"
+                    className="px-4 py-2 bg-brand-electric text-white text-sm font-medium rounded-lg hover:bg-brand-electric-dark transition-colors"
                   >
-                    Start Mock Test
+                    Start Now
                   </button>
                 </div>
               ) : (
-                <div className="space-y-4">
-                  {reports.map((report) => {
+                <div className="space-y-3 max-h-96 overflow-y-auto">
+                  {reports.slice(0, 4).map((report) => {
                     const badge = getScoreBadge(report.overall_score);
                     return (
                       <div
                         key={report.id}
-                        className="border border-gray-200 rounded-xl p-5 hover:border-teal-300 hover:shadow-md transition-all cursor-pointer"
+                        className="border border-gray-200 rounded-lg p-3 hover:border-brand-electric/50 hover:shadow-sm transition-all cursor-pointer"
                         onClick={() => navigate(`/report/${report.id}`)}
                       >
-                        <div className="flex items-center justify-between mb-3">
-                          <div>
-                            <h3 className="font-semibold text-gray-900">{report.session.role}</h3>
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="flex-1 min-w-0 pr-2">
+                            <h3 className="font-medium text-gray-900 text-sm truncate">{report.session.role}</h3>
                             {report.session.company && (
-                              <p className="text-sm text-gray-600">{report.session.company}</p>
+                              <p className="text-xs text-gray-500 truncate">{report.session.company}</p>
                             )}
                           </div>
                           <div className="text-right">
-                            <div className="text-3xl font-bold text-gray-900">{report.overall_score}</div>
-                            <div className="text-xs text-gray-500">out of 100</div>
+                            <div className="text-2xl font-bold text-gray-900">{report.overall_score}</div>
                           </div>
                         </div>
                         <div className="flex items-center justify-between">
-                          <span className={`px-3 py-1 rounded-full text-xs font-medium border ${badge.color}`}>
+                          <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${badge.color}`}>
                             {badge.text}
                           </span>
-                          <div className="flex items-center space-x-2">
-                            <span className="text-sm text-gray-500">
-                              {new Date(report.created_at).toLocaleDateString()}
-                            </span>
-                            <div className="flex items-center space-x-1">
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  navigate(`/report/${report.id}`);
-                                }}
-                                className="p-2 text-gray-400 hover:text-teal-600 transition-colors"
-                              >
-                                <FileText className="w-4 h-4" />
-                              </button>
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                }}
-                                className="p-2 text-gray-400 hover:text-teal-600 transition-colors"
-                              >
-                                <Share2 className="w-4 h-4" />
-                              </button>
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                }}
-                                className="p-2 text-gray-400 hover:text-teal-600 transition-colors"
-                              >
-                                <Download className="w-4 h-4" />
-                              </button>
-                            </div>
-                          </div>
+                          <span className="text-xs text-gray-500">
+                            {new Date(report.created_at).toLocaleDateString()}
+                          </span>
                         </div>
                       </div>
                     );
                   })}
-                </div>
-              )}
-            </div>
-
-            {reports.length > 0 && (
-              <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-200">
-                <div className="flex items-center justify-between mb-6">
-                  <h2 className="text-xl font-bold text-gray-900">Progress Overview</h2>
-                  <TrendingUp className="w-5 h-5 text-gray-400" />
-                </div>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  <div className="text-center p-4 bg-gray-50 rounded-xl">
-                    <div className="text-2xl font-bold text-gray-900 mb-1">
-                      {reports.length}
-                    </div>
-                    <div className="text-sm text-gray-600">Interviews</div>
-                  </div>
-                  <div className="text-center p-4 bg-gray-50 rounded-xl">
-                    <div className="text-2xl font-bold text-gray-900 mb-1">
-                      {Math.round(reports.reduce((acc, r) => acc + r.overall_score, 0) / reports.length)}
-                    </div>
-                    <div className="text-sm text-gray-600">Avg Score</div>
-                  </div>
-                  <div className="text-center p-4 bg-gray-50 rounded-xl">
-                    <div className="text-2xl font-bold text-teal-600 mb-1">
-                      {reports[0]?.overall_score || 0}
-                    </div>
-                    <div className="text-sm text-gray-600">Latest</div>
-                  </div>
-                  <div className="text-center p-4 bg-gray-50 rounded-xl">
-                    <div className="text-2xl font-bold text-gray-900 mb-1">
-                      {Math.max(...reports.map(r => r.overall_score), 0)}
-                    </div>
-                    <div className="text-sm text-gray-600">Best</div>
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-
-          <div className="space-y-6">
-            <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-200">
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-xl font-bold text-gray-900">My Requests</h2>
-                <Ticket className="w-5 h-5 text-swiss-accent-teal" />
-              </div>
-
-              {mockRequests.length === 0 ? (
-                <div className="text-center py-8">
-                  <div className="w-16 h-16 bg-swiss-accent-teal-light rounded-full flex items-center justify-center mx-auto mb-4">
-                    <Ticket className="w-8 h-8 text-swiss-accent-teal" />
-                  </div>
-                  <p className="text-sm text-gray-600 mb-4">No requests yet</p>
-                  <button
-                    onClick={() => navigate('/interview/manual')}
-                    className="px-4 py-2 bg-swiss-accent-teal text-white text-sm font-medium rounded-lg hover:bg-swiss-accent-teal-dark transition-colors"
-                  >
-                    Request Interview
-                  </button>
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  {mockRequests.map((request) => (
-                    <div
-                      key={request.id}
-                      className="border border-gray-200 rounded-lg p-4 hover:border-swiss-accent-teal hover:shadow-sm transition-all cursor-pointer"
-                    >
-                      <div className="flex items-start justify-between mb-2">
-                        <div className="flex-1">
-                          <p className="text-sm font-semibold text-gray-900 mb-1">{request.job_role}</p>
-                          {request.company_name && (
-                            <p className="text-xs text-gray-500">{request.company_name}</p>
-                          )}
-                        </div>
-                        <StatusBadge status={request.status} size="sm" />
-                      </div>
-
-                      <div className="flex items-center text-xs text-gray-500 space-x-3">
-                        <div className="flex items-center space-x-1">
-                          <Calendar className="w-3 h-3" />
-                          <span>{new Date(request.preferred_date).toLocaleDateString()}</span>
-                        </div>
-                        <div className="flex items-center space-x-1">
-                          <Ticket className="w-3 h-3" />
-                          <span>{request.ticket_number}</span>
-                        </div>
-                      </div>
-
-                      {request.status === 'approved' && request.scheduled_date && (
-                        <div className="mt-2 pt-2 border-t border-gray-200">
-                          <p className="text-xs text-green-600 font-medium flex items-center">
-                            <Clock className="w-3 h-3 mr-1" />
-                            Scheduled: {new Date(request.scheduled_date).toLocaleDateString()} at {request.scheduled_time}
-                          </p>
-                        </div>
-                      )}
-                    </div>
-                  ))}
-
-                  {mockRequests.length >= 5 && (
-                    <button
-                      onClick={() => navigate('/my-requests')}
-                      className="w-full text-center text-sm text-swiss-accent-teal font-medium hover:underline"
-                    >
-                      View All Requests →
+                  {reports.length > 4 && (
+                    <button className="w-full text-center text-sm text-brand-electric font-medium hover:underline py-2">
+                      View All Reports →
                     </button>
                   )}
                 </div>
               )}
             </div>
 
-            <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-200">
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-xl font-bold text-gray-900">HR Tips</h2>
+            <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-200">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-lg font-bold text-gray-900">My Requests</h2>
+                <Ticket className="w-5 h-5 text-swiss-accent-teal" />
+              </div>
+
+              {mockRequests.length === 0 ? (
+                <div className="text-center py-6">
+                  <Ticket className="w-10 h-10 text-gray-300 mx-auto mb-2" />
+                  <p className="text-xs text-gray-600 mb-3">No requests yet</p>
+                  <button
+                    onClick={() => navigate('/interview/manual')}
+                    className="px-3 py-1.5 bg-swiss-accent-teal text-white text-xs font-medium rounded-lg hover:bg-swiss-accent-teal-dark transition-colors"
+                  >
+                    Request Interview
+                  </button>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {mockRequests.slice(0, 3).map((request) => (
+                    <div
+                      key={request.id}
+                      className="border border-gray-200 rounded-lg p-3 hover:border-swiss-accent-teal hover:shadow-sm transition-all"
+                    >
+                      <div className="flex items-start justify-between mb-1">
+                        <p className="text-sm font-medium text-gray-900 truncate flex-1 pr-2">{request.job_role}</p>
+                        <StatusBadge status={request.status} size="sm" />
+                      </div>
+
+                      <div className="flex items-center text-xs text-gray-500">
+                        <Calendar className="w-3 h-3 mr-1" />
+                        <span>{new Date(request.preferred_date).toLocaleDateString()}</span>
+                      </div>
+
+                      {request.status === 'approved' && request.scheduled_date && (
+                        <div className="mt-2 pt-2 border-t border-gray-200">
+                          <p className="text-xs text-green-600 font-medium flex items-center">
+                            <Clock className="w-3 h-3 mr-1" />
+                            {new Date(request.scheduled_date).toLocaleDateString()} at {request.scheduled_time}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+
+                  {mockRequests.length > 3 && (
+                    <button className="w-full text-center text-sm text-swiss-accent-teal font-medium hover:underline py-1">
+                      View All →
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
+
+            <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-200">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-lg font-bold text-gray-900">HR Tips</h2>
                 <Lightbulb className="w-5 h-5 text-yellow-500" />
               </div>
 
               {tips ? (
-                <div className="space-y-4">
+                <div className="space-y-3">
                   {tips.identified_weaknesses && tips.identified_weaknesses.length > 0 && (
                     <div>
-                      <h3 className="text-sm font-semibold text-gray-700 mb-2">Focus Areas</h3>
-                      <ul className="space-y-2">
-                        {tips.identified_weaknesses.slice(0, 3).map((weakness, idx) => (
-                          <li key={idx} className="text-sm text-gray-600 flex items-start">
-                            <span className="w-1.5 h-1.5 bg-teal-500 rounded-full mt-1.5 mr-2 flex-shrink-0"></span>
+                      <h3 className="text-xs font-semibold text-gray-700 mb-1.5">Focus Areas</h3>
+                      <ul className="space-y-1.5">
+                        {tips.identified_weaknesses.slice(0, 2).map((weakness, idx) => (
+                          <li key={idx} className="text-xs text-gray-600 flex items-start">
+                            <span className="w-1 h-1 bg-brand-electric rounded-full mt-1.5 mr-2 flex-shrink-0"></span>
                             {weakness}
                           </li>
                         ))}
@@ -427,12 +375,12 @@ export default function Dashboard() {
 
                   {tips.suggested_topics && tips.suggested_topics.length > 0 && (
                     <div>
-                      <h3 className="text-sm font-semibold text-gray-700 mb-2">Practice Topics</h3>
-                      <div className="flex flex-wrap gap-2">
-                        {tips.suggested_topics.slice(0, 5).map((topic, idx) => (
+                      <h3 className="text-xs font-semibold text-gray-700 mb-1.5">Topics</h3>
+                      <div className="flex flex-wrap gap-1.5">
+                        {tips.suggested_topics.slice(0, 3).map((topic, idx) => (
                           <span
                             key={idx}
-                            className="px-3 py-1 bg-teal-50 text-teal-700 text-xs font-medium rounded-full"
+                            className="px-2 py-0.5 bg-brand-electric/10 text-brand-electric text-xs font-medium rounded-full"
                           >
                             {topic}
                           </span>
@@ -442,37 +390,10 @@ export default function Dashboard() {
                   )}
                 </div>
               ) : (
-                <div className="text-center py-8">
-                  <p className="text-sm text-gray-600">Complete your first interview to get personalized tips</p>
+                <div className="text-center py-6">
+                  <p className="text-xs text-gray-600">Complete an interview for tips</p>
                 </div>
               )}
-            </div>
-
-            <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-200">
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-xl font-bold text-gray-900">Quick Actions</h2>
-                <Target className="w-5 h-5 text-gray-400" />
-              </div>
-              <div className="space-y-3">
-                <button
-                  onClick={() => navigate('/interview/setup')}
-                  className="w-full px-4 py-3 bg-teal-50 text-teal-700 font-medium rounded-lg hover:bg-teal-100 transition-colors text-left"
-                >
-                  🤖 AI Mock Interview
-                </button>
-                <button
-                  onClick={() => navigate('/interview/manual')}
-                  className="w-full px-4 py-3 bg-blue-50 text-blue-700 font-medium rounded-lg hover:bg-blue-100 transition-colors text-left"
-                >
-                  👤 Request Manual Mock Interview
-                </button>
-                <button
-                  onClick={() => navigate('/profile')}
-                  className="w-full px-4 py-3 bg-gray-50 text-gray-700 font-medium rounded-lg hover:bg-gray-100 transition-colors text-left"
-                >
-                  Update Profile
-                </button>
-              </div>
             </div>
           </div>
         </div>

@@ -7,6 +7,14 @@ export default {
         sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
       },
       colors: {
+        brand: {
+          electric: '#6F00FF',
+          'electric-light': '#9333FF',
+          'electric-dark': '#5500CC',
+          deep: '#0A0021',
+          'deep-light': '#1A1040',
+          white: '#FFFFFF',
+        },
         swiss: {
           base: {
             white: '#FFFFFF',
@@ -18,9 +26,9 @@ export default {
             dark: '#A8B2BD',
           },
           accent: {
-            teal: '#00B4D8',
-            'teal-dark': '#0096B8',
-            'teal-light': '#E5F7FA',
+            teal: '#6F00FF',
+            'teal-dark': '#5500CC',
+            'teal-light': '#F3E5FF',
           },
           status: {
             pending: '#FEF3C7',

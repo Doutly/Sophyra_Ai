@@ -41,14 +41,25 @@ interface MockInterviewRequest {
   };
 }
 
+interface HRUser {
+  id: string;
+  name: string;
+  email: string;
+  role: string;
+  is_approved: boolean;
+  created_at: string;
+  approved_at: string | null;
+}
+
 export default function AdminDashboard() {
   const navigate = useNavigate();
   const { user, signOut } = useAuth();
 
-  const [activeTab, setActiveTab] = useState<'candidates' | 'requests'>('candidates');
+  const [activeTab, setActiveTab] = useState<'candidates' | 'requests' | 'hr_approvals'>('candidates');
   const [candidates, setCandidates] = useState<CandidateStats[]>([]);
   const [cohortMetrics, setCohortMetrics] = useState<CohortMetric[]>([]);
   const [mockRequests, setMockRequests] = useState<MockInterviewRequest[]>([]);
+  const [hrUsers, setHrUsers] = useState<HRUser[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [loading, setLoading] = useState(true);
@@ -159,6 +170,16 @@ export default function AdminDashboard() {
           users: Array.isArray(r.users) ? r.users[0] : r.users
         })) as any);
       }
+
+      const { data: hrUsersData } = await supabase
+        .from('users')
+        .select('*')
+        .eq('role', 'hr')
+        .order('created_at', { ascending: false });
+
+      if (hrUsersData) {
+        setHrUsers(hrUsersData as any);
+      }
     } catch (error) {
       console.error('Error loading admin data:', error);
     } finally {
@@ -217,6 +238,37 @@ export default function AdminDashboard() {
     }
   };
 
+  const handleHRApproval = async (hrUserId: string, approve: boolean) => {
+    setActionLoading(hrUserId);
+    try {
+      if (approve) {
+        const { error } = await supabase
+          .from('users')
+          .update({
+            is_approved: true,
+            approved_by: user!.id,
+            approved_at: new Date().toISOString(),
+          })
+          .eq('id', hrUserId);
+
+        if (error) throw error;
+      } else {
+        const { error } = await supabase
+          .from('users')
+          .delete()
+          .eq('id', hrUserId);
+
+        if (error) throw error;
+      }
+
+      await loadAdminData();
+    } catch (error) {
+      console.error('Error updating HR approval:', error);
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
   const filteredCandidates = candidates.filter(c =>
     c.user_name.toLowerCase().includes(searchTerm.toLowerCase())
   );
@@ -254,12 +306,10 @@ export default function AdminDashboard() {
         <div className="max-w-7xl mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 bg-teal-500 rounded-lg flex items-center justify-center">
-                <Brain className="w-6 h-6 text-white" />
-              </div>
+              <img src="/lo.png" alt="Sophyra AI" className="w-10 h-10" />
               <div>
                 <span className="text-2xl font-bold text-gray-900">Sophyra AI</span>
-                <span className="ml-3 px-3 py-1 bg-purple-100 text-purple-700 text-xs font-semibold rounded-full">
+                <span className="ml-3 px-3 py-1 bg-brand-electric/10 text-brand-electric text-xs font-semibold rounded-full">
                   Admin
                 </span>
               </div>
@@ -308,6 +358,24 @@ export default function AdminDashboard() {
                 {requestStats.pending > 0 && (
                   <span className="ml-2 px-2 py-0.5 bg-red-500 text-white text-xs font-bold rounded-full">
                     {requestStats.pending}
+                  </span>
+                )}
+              </div>
+            </button>
+            <button
+              onClick={() => setActiveTab('hr_approvals')}
+              className={`px-6 py-3 font-medium transition-all relative ${
+                activeTab === 'hr_approvals'
+                  ? 'text-swiss-accent-teal border-b-2 border-swiss-accent-teal'
+                  : 'text-gray-600 hover:text-gray-900'
+              }`}
+            >
+              <div className="flex items-center space-x-2">
+                <Users className="w-4 h-4" />
+                <span>HR Approvals</span>
+                {hrUsers.filter(h => !h.is_approved).length > 0 && (
+                  <span className="ml-2 px-2 py-0.5 bg-amber-500 text-white text-xs font-bold rounded-full">
+                    {hrUsers.filter(h => !h.is_approved).length}
                   </span>
                 )}
               </div>
@@ -671,6 +739,131 @@ export default function AdminDashboard() {
                     </div>
                   ))
                 )}
+              </div>
+            </div>
+          </>
+        )}
+
+        {activeTab === 'hr_approvals' && (
+          <>
+            <div className="grid md:grid-cols-3 gap-6 mb-8">
+              <BentoCard>
+                <div className="flex items-center justify-between mb-2">
+                  <Users className="w-8 h-8 text-swiss-accent-teal" />
+                  <span className="text-sm text-gray-500">Total</span>
+                </div>
+                <div className="text-3xl font-bold text-gray-900">{hrUsers.length}</div>
+                <div className="text-sm text-gray-600 mt-1">All HRs</div>
+              </BentoCard>
+
+              <BentoCard>
+                <div className="flex items-center justify-between mb-2">
+                  <Clock className="w-8 h-8 text-amber-500" />
+                  <span className="text-sm text-gray-500">Pending</span>
+                </div>
+                <div className="text-3xl font-bold text-gray-900">{hrUsers.filter(h => !h.is_approved).length}</div>
+                <div className="text-sm text-gray-600 mt-1">Awaiting Approval</div>
+              </BentoCard>
+
+              <BentoCard>
+                <div className="flex items-center justify-between mb-2">
+                  <CheckCircle className="w-8 h-8 text-green-500" />
+                  <span className="text-sm text-gray-500">Approved</span>
+                </div>
+                <div className="text-3xl font-bold text-gray-900">{hrUsers.filter(h => h.is_approved).length}</div>
+                <div className="text-sm text-gray-600 mt-1">Active HRs</div>
+              </BentoCard>
+            </div>
+
+            <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-200 mb-6">
+              <h2 className="text-xl font-bold text-gray-900 mb-6">Pending HR Approvals</h2>
+              <div className="space-y-4">
+                {hrUsers.filter(h => !h.is_approved).length === 0 ? (
+                  <div className="text-center py-12">
+                    <Users className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                    <h3 className="text-lg font-semibold text-gray-900 mb-2">No pending approvals</h3>
+                    <p className="text-gray-600">All HR applications have been reviewed</p>
+                  </div>
+                ) : (
+                  hrUsers.filter(h => !h.is_approved).map((hr) => (
+                    <div
+                      key={hr.id}
+                      className="border border-gray-200 rounded-xl p-5 hover:border-swiss-accent-teal transition-all"
+                    >
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <h3 className="font-semibold text-gray-900 mb-1">{hr.name}</h3>
+                          <p className="text-sm text-gray-600 mb-2">{hr.email}</p>
+                          <p className="text-xs text-gray-500">
+                            Applied: {new Date(hr.created_at).toLocaleDateString()} at {new Date(hr.created_at).toLocaleTimeString()}
+                          </p>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <button
+                            onClick={() => handleHRApproval(hr.id, true)}
+                            disabled={actionLoading === hr.id}
+                            className="px-4 py-2 bg-green-500 text-white text-sm font-medium rounded-lg hover:bg-green-600 transition-colors disabled:opacity-50 flex items-center space-x-1"
+                          >
+                            <CheckCircle className="w-4 h-4" />
+                            <span>Approve</span>
+                          </button>
+                          <button
+                            onClick={() => handleHRApproval(hr.id, false)}
+                            disabled={actionLoading === hr.id}
+                            className="px-4 py-2 bg-red-500 text-white text-sm font-medium rounded-lg hover:bg-red-600 transition-colors disabled:opacity-50 flex items-center space-x-1"
+                          >
+                            <XCircle className="w-4 h-4" />
+                            <span>Reject</span>
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+
+            <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-200">
+              <h2 className="text-xl font-bold text-gray-900 mb-6">Active HRs</h2>
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead>
+                    <tr className="border-b border-gray-200">
+                      <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">Name</th>
+                      <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">Email</th>
+                      <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">Joined</th>
+                      <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {hrUsers.filter(h => h.is_approved).length === 0 ? (
+                      <tr>
+                        <td colSpan={4} className="text-center py-8 text-gray-500">
+                          No active HRs yet
+                        </td>
+                      </tr>
+                    ) : (
+                      hrUsers.filter(h => h.is_approved).map((hr) => (
+                        <tr key={hr.id} className="border-b border-gray-100 hover:bg-gray-50">
+                          <td className="py-4 px-4">
+                            <div className="font-medium text-gray-900">{hr.name}</div>
+                          </td>
+                          <td className="py-4 px-4 text-gray-700">
+                            {hr.email}
+                          </td>
+                          <td className="py-4 px-4 text-sm text-gray-600">
+                            {new Date(hr.created_at).toLocaleDateString()}
+                          </td>
+                          <td className="py-4 px-4">
+                            <span className="px-3 py-1 bg-green-50 text-green-700 rounded-full text-sm font-medium">
+                              Active
+                            </span>
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
               </div>
             </div>
           </>

@@ -11,15 +11,13 @@ export default function Hero({ onStartMockTest, onSignIn }: HeroProps) {
       <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12">
         <nav className="flex items-center justify-between py-8 mb-20">
           <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 bg-teal-500 rounded-lg flex items-center justify-center">
-              <Brain className="w-6 h-6 text-white" />
-            </div>
+            <img src="/lo.png" alt="Sophyra AI" className="w-10 h-10" />
             <span className="text-2xl font-bold tracking-tight text-gray-900">Sophyra AI</span>
           </div>
           <div className="flex items-center space-x-6">
             <a href="#how-it-works" className="text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors">How It Works</a>
             <button onClick={onSignIn} className="text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors">Sign In</button>
-            <button onClick={onStartMockTest} className="px-6 py-2.5 bg-teal-500 text-white text-sm font-semibold rounded-lg hover:bg-teal-600 transition-colors shadow-sm">
+            <button onClick={onStartMockTest} className="px-6 py-2.5 bg-brand-electric500 text-white text-sm font-semibold rounded-lg hover:bg-brand-electric600 transition-colors shadow-sm">
               Start Mock Test
             </button>
           </div>
@@ -27,14 +25,14 @@ export default function Hero({ onStartMockTest, onSignIn }: HeroProps) {
 
         <div className="grid lg:grid-cols-2 gap-16 items-center pb-24 pt-12">
           <div className="space-y-8">
-            <div className="inline-flex items-center space-x-2 px-4 py-2 bg-teal-50 rounded-full border border-teal-100">
-              <span className="w-2 h-2 bg-teal-500 rounded-full animate-pulse"></span>
-              <span className="text-sm font-medium text-teal-700">Live AI HR Interviews</span>
+            <div className="inline-flex items-center space-x-2 px-4 py-2 bg-brand-electric50 rounded-full border border-teal-100">
+              <span className="w-2 h-2 bg-brand-electric500 rounded-full animate-pulse"></span>
+              <span className="text-sm font-medium text-brand-electric700">Live AI HR Interviews</span>
             </div>
 
             <h1 className="text-5xl sm:text-6xl lg:text-7xl font-bold leading-[1.1] tracking-tight text-gray-900">
               Practice interviews with an AI HR who{' '}
-              <span className="text-teal-500">actually feels human.</span>
+              <span className="text-brand-electric500">actually feels human.</span>
             </h1>
 
             <p className="text-lg sm:text-xl text-gray-600 leading-relaxed max-w-xl">
@@ -42,7 +40,7 @@ export default function Hero({ onStartMockTest, onSignIn }: HeroProps) {
             </p>
 
             <div className="flex flex-col sm:flex-row gap-4 pt-4">
-              <button onClick={onStartMockTest} className="px-8 py-4 bg-teal-500 text-white text-base font-semibold rounded-lg hover:bg-teal-600 transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-0.5">
+              <button onClick={onStartMockTest} className="px-8 py-4 bg-brand-electric500 text-white text-base font-semibold rounded-lg hover:bg-brand-electric600 transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-0.5">
                 Start Mock Test
               </button>
               <button className="px-8 py-4 bg-white text-gray-900 text-base font-semibold rounded-lg border-2 border-gray-200 hover:border-gray-300 transition-all">
@@ -52,15 +50,15 @@ export default function Hero({ onStartMockTest, onSignIn }: HeroProps) {
 
             <div className="flex items-center space-x-8 pt-8">
               <div className="flex items-center space-x-2">
-                <Mic className="w-5 h-5 text-teal-500" />
+                <Mic className="w-5 h-5 text-brand-electric500" />
                 <span className="text-sm text-gray-600">Voice Analysis</span>
               </div>
               <div className="flex items-center space-x-2">
-                <Video className="w-5 h-5 text-teal-500" />
+                <Video className="w-5 h-5 text-brand-electric500" />
                 <span className="text-sm text-gray-600">Body Language</span>
               </div>
               <div className="flex items-center space-x-2">
-                <Brain className="w-5 h-5 text-teal-500" />
+                <Brain className="w-5 h-5 text-brand-electric500" />
                 <span className="text-sm text-gray-600">Adaptive AI</span>
               </div>
             </div>
@@ -77,7 +75,7 @@ export default function Hero({ onStartMockTest, onSignIn }: HeroProps) {
               <div className="space-y-6">
                 <div className="bg-gray-800 rounded-lg p-6 border border-gray-700">
                   <div className="flex items-center space-x-3 mb-4">
-                    <div className="w-10 h-10 bg-teal-500 rounded-full flex items-center justify-center">
+                    <div className="w-10 h-10 bg-brand-electric500 rounded-full flex items-center justify-center">
                       <span className="text-white font-semibold text-sm">S</span>
                     </div>
                     <div>
@@ -91,7 +89,7 @@ export default function Hero({ onStartMockTest, onSignIn }: HeroProps) {
                 </div>
 
                 <div className="flex justify-end">
-                  <div className="bg-teal-500 rounded-lg p-4 max-w-md">
+                  <div className="bg-brand-electric500 rounded-lg p-4 max-w-md">
                     <p className="text-white text-sm leading-relaxed">
                       Analyzing response clarity, confidence, and relevance...
                     </p>
@@ -101,11 +99,11 @@ export default function Hero({ onStartMockTest, onSignIn }: HeroProps) {
                 <div className="grid grid-cols-2 gap-3">
                   <div className="bg-gray-800 rounded-lg p-4 border border-gray-700">
                     <p className="text-xs text-gray-400 mb-1">Pace</p>
-                    <p className="text-lg font-semibold text-teal-400">142 WPM</p>
+                    <p className="text-lg font-semibold text-brand-electric400">142 WPM</p>
                   </div>
                   <div className="bg-gray-800 rounded-lg p-4 border border-gray-700">
                     <p className="text-xs text-gray-400 mb-1">Clarity</p>
-                    <p className="text-lg font-semibold text-teal-400">8.5/10</p>
+                    <p className="text-lg font-semibold text-brand-electric400">8.5/10</p>
                   </div>
                 </div>
               </div>

@@ -17,6 +17,10 @@ export interface Database {
           profile_picture_url: string | null
           bio: string | null
           resume_url: string | null
+          role: 'student' | 'hr' | 'admin'
+          is_approved: boolean
+          approved_by: string | null
+          approved_at: string | null
           created_at: string
           updated_at: string
         }
@@ -27,6 +31,10 @@ export interface Database {
           profile_picture_url?: string | null
           bio?: string | null
           resume_url?: string | null
+          role?: 'student' | 'hr' | 'admin'
+          is_approved?: boolean
+          approved_by?: string | null
+          approved_at?: string | null
           created_at?: string
           updated_at?: string
         }
@@ -37,6 +45,10 @@ export interface Database {
           profile_picture_url?: string | null
           bio?: string | null
           resume_url?: string | null
+          role?: 'student' | 'hr' | 'admin'
+          is_approved?: boolean
+          approved_by?: string | null
+          approved_at?: string | null
           created_at?: string
           updated_at?: string
         }
@@ -244,6 +256,10 @@ export interface Database {
           scheduled_time: string | null
           assigned_admin_id: string | null
           status_updated_at: string | null
+          claimed_by: string | null
+          claimed_at: string | null
+          booking_status: 'unclaimed' | 'claimed' | 'booked' | 'completed' | 'cancelled'
+          meeting_room_link: string | null
           created_at: string
           updated_at: string
         }
@@ -265,6 +281,10 @@ export interface Database {
           scheduled_time?: string | null
           assigned_admin_id?: string | null
           status_updated_at?: string | null
+          claimed_by?: string | null
+          claimed_at?: string | null
+          booking_status?: 'unclaimed' | 'claimed' | 'booked' | 'completed' | 'cancelled'
+          meeting_room_link?: string | null
           created_at?: string
           updated_at?: string
         }
@@ -286,40 +306,12 @@ export interface Database {
           scheduled_time?: string | null
           assigned_admin_id?: string | null
           status_updated_at?: string | null
+          claimed_by?: string | null
+          claimed_at?: string | null
+          booking_status?: 'unclaimed' | 'claimed' | 'booked' | 'completed' | 'cancelled'
+          meeting_room_link?: string | null
           created_at?: string
           updated_at?: string
-        }
-      }
-      notifications: {
-        Row: {
-          id: string
-          user_id: string
-          type: 'request_created' | 'status_changed' | 'interview_scheduled' | 'reminder'
-          title: string
-          message: string
-          read_status: boolean
-          related_request_id: string | null
-          created_at: string
-        }
-        Insert: {
-          id?: string
-          user_id: string
-          type: 'request_created' | 'status_changed' | 'interview_scheduled' | 'reminder'
-          title: string
-          message: string
-          read_status?: boolean
-          related_request_id?: string | null
-          created_at?: string
-        }
-        Update: {
-          id?: string
-          user_id?: string
-          type?: 'request_created' | 'status_changed' | 'interview_scheduled' | 'reminder'
-          title?: string
-          message?: string
-          read_status?: boolean
-          related_request_id?: string | null
-          created_at?: string
         }
       }
       admin_actions: {
