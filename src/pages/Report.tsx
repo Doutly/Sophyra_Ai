@@ -3,7 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { db } from '../lib/firebase';
 import { doc, getDoc, collection, addDoc, serverTimestamp } from 'firebase/firestore';
-import { Download, Share2, TrendingUp, AlertCircle, CheckCircle2, Target, ArrowLeft } from 'lucide-react';
+import { Download, Share2, TrendingUp, AlertCircle, CheckCircle2, Target, ArrowLeft, Brain } from 'lucide-react';
 
 interface Report {
   id: string;

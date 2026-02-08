@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { db } from '../lib/firebase';
-import { collection, query, where, orderBy, onSnapshot, doc, updateDoc, Timestamp } from 'firebase/firestore';
+import { collection, query, where, orderBy, onSnapshot, doc, updateDoc, Timestamp, getDocs } from 'firebase/firestore';
 import { LogOut, Ticket, Clock, Calendar, CheckCircle, XCircle, ExternalLink, User, Briefcase, Brain } from 'lucide-react';
 import StatusBadge from '../components/StatusBadge';
 
@@ -63,10 +63,8 @@ export default function HRDashboard() {
             const data = docSnap.data();
 
             const userQuery = query(collection(db, 'users'), where('__name__', '==', data.user_id));
-            const userSnapshot = await onSnapshot(userQuery, () => {});
-            const userData = (await import('firebase/firestore')).getDocs(userQuery).then(snap =>
-              snap.docs[0]?.data() || { name: 'Unknown', email: 'unknown@example.com' }
-            );
+            const userSnapshot = await getDocs(userQuery);
+            const userData = userSnapshot.docs[0]?.data() || { name: 'Unknown', email: 'unknown@example.com' };
 
             return {
               id: docSnap.id,
@@ -86,7 +84,7 @@ export default function HRDashboard() {
               claimed_at: data.claimed_at || null,
               meeting_room_link: data.meeting_room_link || null,
               created_at: data.created_at || '',
-              users: await userData,
+              users: userData,
             };
           })
         );

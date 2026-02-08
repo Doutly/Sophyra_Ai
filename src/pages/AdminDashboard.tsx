@@ -146,9 +146,9 @@ export default function AdminDashboard() {
           snapshot.docs.map(async (docSnap) => {
             const requestData = docSnap.data();
 
-            const userDocRef = doc(db, 'users', requestData.user_id);
-            const userDocSnap = await getDocs(query(collection(db, 'users'), where('__name__', '==', requestData.user_id)));
-            const userData = userDocSnap.docs[0]?.data() || { name: 'Unknown', email: 'unknown@example.com' };
+            const userQuery = query(collection(db, 'users'), where('__name__', '==', requestData.user_id));
+            const userSnapshot = await getDocs(userQuery);
+            const userData = userSnapshot.docs[0]?.data() || { name: 'Unknown', email: 'unknown@example.com' };
 
             return {
               id: docSnap.id,
