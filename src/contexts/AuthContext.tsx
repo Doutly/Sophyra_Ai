@@ -1,13 +1,18 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
-import { User, Session } from '@supabase/supabase-js';
-import { supabase } from '../lib/supabase';
-import { Database } from '../lib/database.types';
-
-type UserRole = Database['public']['Tables']['users']['Row']['role'];
+import { User as FirebaseUser } from 'firebase/auth';
+import {
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+  signOut as firebaseSignOut,
+  sendPasswordResetEmail,
+  onAuthStateChanged
+} from 'firebase/auth';
+import { doc, getDoc, setDoc, Timestamp } from 'firebase/firestore';
+import { auth, db } from '../lib/firebase';
+import { UserRole } from '../lib/firebase.types';
 
 interface AuthContextType {
-  user: User | null;
-  session: Session | null;
+  user: FirebaseUser | null;
   loading: boolean;
   role: UserRole | null;
   isApproved: boolean | null;
@@ -21,8 +26,7 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
-  const [session, setSession] = useState<Session | null>(null);
+  const [user, setUser] = useState<FirebaseUser | null>(null);
   const [loading, setLoading] = useState(true);
   const [role, setRole] = useState<UserRole | null>(null);
   const [isApproved, setIsApproved] = useState<boolean | null>(null);
@@ -30,15 +34,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const fetchUserData = async (userId: string, retries = 5, delay = 200) => {
     for (let i = 0; i < retries; i++) {
       try {
-        const { data, error } = await supabase
-          .from('users')
-          .select('role, is_approved')
-          .eq('id', userId)
-          .maybeSingle();
+        const userDocRef = doc(db, 'users', userId);
+        const userDoc = await getDoc(userDocRef);
 
-        if (data && !error) {
-          setRole(data.role);
-          setIsApproved(data.is_approved);
+        if (userDoc.exists()) {
+          const userData = userDoc.data();
+          setRole(userData.role);
+          setIsApproved(userData.isApproved);
           return;
         }
 
@@ -61,76 +63,75 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const refreshUserData = async () => {
-    if (user?.id) {
-      await fetchUserData(user.id);
+    if (user?.uid) {
+      await fetchUserData(user.uid);
     }
   };
 
   useEffect(() => {
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        await fetchUserData(session.user.id);
-      }
-      setLoading(false);
-    });
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        await fetchUserData(session.user.id);
+    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+      setUser(firebaseUser);
+      if (firebaseUser) {
+        await fetchUserData(firebaseUser.uid);
       } else {
         setRole(null);
         setIsApproved(null);
       }
+      setLoading(false);
     });
 
-    return () => subscription.unsubscribe();
+    return () => unsubscribe();
   }, []);
 
-  const signUp = async (email: string, password: string, fullName: string, userRole: UserRole = 'student') => {
-    const isApproved = userRole === 'student' || userRole === 'admin';
+  const signUp = async (email: string, password: string, fullName: string, userRole: UserRole = 'candidate') => {
+    try {
+      const isApproved = userRole === 'candidate' || userRole === 'admin';
 
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: {
-          full_name: fullName,
-          role: userRole,
-          is_approved: isApproved,
-        },
-      },
-    });
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      const userId = userCredential.user.uid;
 
-    if (!error && data.user) {
-      await fetchUserData(data.user.id);
+      await setDoc(doc(db, 'users', userId), {
+        uid: userId,
+        email: email,
+        name: fullName,
+        role: userRole,
+        isApproved: isApproved,
+        createdAt: Timestamp.now(),
+        updatedAt: Timestamp.now(),
+      });
+
+      await fetchUserData(userId);
+
+      return { error: null };
+    } catch (error: any) {
+      return { error };
     }
-
-    return { error };
   };
 
   const signIn = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
-    return { error };
+    try {
+      await signInWithEmailAndPassword(auth, email, password);
+      return { error: null };
+    } catch (error: any) {
+      return { error };
+    }
   };
 
   const signOut = async () => {
-    await supabase.auth.signOut();
+    await firebaseSignOut(auth);
   };
 
   const resetPassword = async (email: string) => {
-    const { error } = await supabase.auth.resetPasswordForEmail(email);
-    return { error };
+    try {
+      await sendPasswordResetEmail(auth, email);
+      return { error: null };
+    } catch (error: any) {
+      return { error };
+    }
   };
 
   return (
-    <AuthContext.Provider value={{ user, session, loading, role, isApproved, signUp, signIn, signOut, resetPassword, refreshUserData }}>
+    <AuthContext.Provider value={{ user, loading, role, isApproved, signUp, signIn, signOut, resetPassword, refreshUserData }}>
       {children}
     </AuthContext.Provider>
   );

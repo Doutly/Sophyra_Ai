@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { supabase } from '../lib/supabase';
-import { User, Mail, Briefcase, Target, Upload, Save, ArrowLeft, AlertCircle } from 'lucide-react';
+import { doc, getDoc, updateDoc, Timestamp } from 'firebase/firestore';
+import { db } from '../lib/firebase';
+import { fileUploader } from '../lib/fileUpload';
+import { User, Mail, Briefcase, Target, Upload, Save, ArrowLeft, AlertCircle, Brain } from 'lucide-react';
 
 export default function Profile() {
   const navigate = useNavigate();
@@ -36,15 +38,11 @@ export default function Profile() {
     if (!user) return;
 
     try {
-      const { data, error } = await supabase
-        .from('users')
-        .select('*')
-        .eq('id', user.id)
-        .maybeSingle();
+      const userDocRef = doc(db, 'users', user.uid);
+      const userDoc = await getDoc(userDocRef);
 
-      if (error) throw error;
-
-      if (data) {
+      if (userDoc.exists()) {
+        const data = userDoc.data();
         setFormData({
           name: data.name || '',
           email: data.email || user.email || '',
@@ -53,7 +51,7 @@ export default function Profile() {
           industry: '',
           careerGoals: '',
         });
-        setResumeUrl(data.resume_url);
+        setResumeUrl(data.resumeUrl || null);
       }
     } catch (error) {
       console.error('Error loading profile:', error);
@@ -81,20 +79,12 @@ export default function Profile() {
     setUploading(true);
     try {
       const fileExt = file.name.split('.').pop();
-      const fileName = `${user?.id}-resume.${fileExt}`;
-      const filePath = `resumes/${fileName}`;
+      const fileName = `${user?.uid}-resume.${fileExt}`;
+      const filePath = `resumes/${user?.uid}/${fileName}`;
 
-      const { error: uploadError } = await supabase.storage
-        .from('interview-assets')
-        .upload(filePath, file, { upsert: true });
+      const downloadURL = await fileUploader.uploadWithProgress(file, filePath);
 
-      if (uploadError) throw uploadError;
-
-      const { data: { publicUrl } } = supabase.storage
-        .from('interview-assets')
-        .getPublicUrl(filePath);
-
-      setResumeUrl(publicUrl);
+      setResumeUrl(downloadURL);
       setSuccess('Resume uploaded successfully');
     } catch (err: any) {
       setError(err.message || 'Failed to upload resume');
@@ -109,17 +99,13 @@ export default function Profile() {
     setSaving(true);
 
     try {
-      const { error } = await supabase
-        .from('users')
-        .update({
-          name: formData.name,
-          bio: formData.bio,
-          resume_url: resumeUrl,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', user!.id);
-
-      if (error) throw error;
+      const userDocRef = doc(db, 'users', user!.uid);
+      await updateDoc(userDocRef, {
+        name: formData.name,
+        bio: formData.bio,
+        resumeUrl: resumeUrl,
+        updatedAt: Timestamp.now(),
+      });
 
       setSuccess('Profile updated successfully');
       setTimeout(() => setSuccess(''), 3000);
@@ -305,7 +291,7 @@ export default function Profile() {
                 <div className="flex items-center justify-between py-3 border-b border-gray-100">
                   <span className="text-sm text-gray-600">Member Since</span>
                   <span className="text-sm font-medium text-gray-900">
-                    {new Date(user?.created_at || '').toLocaleDateString()}
+                    {new Date(user?.metadata.creationTime || '').toLocaleDateString()}
                   </span>
                 </div>
                 <div className="flex items-center justify-between py-3">

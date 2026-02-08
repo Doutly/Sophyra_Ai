@@ -1,4 +1,5 @@
-import { supabase } from './supabase';
+import { doc, getDoc, updateDoc } from 'firebase/firestore';
+import { db } from './firebase';
 
 export interface Question {
   id: string;
@@ -212,18 +213,11 @@ export class QuestionQueueManager {
 
   async saveToDatabase(): Promise<void> {
     try {
-      const { error } = await supabase
-        .from('sessions')
-        .update({
-          queue_state: JSON.stringify(this.state),
-          current_question_number: this.getCurrentQuestionNumber(),
-        })
-        .eq('id', this.state.sessionId);
-
-      if (error) {
-        console.error('Failed to save queue state:', error);
-        this.saveToLocalStorage();
-      }
+      const sessionDocRef = doc(db, 'sessions', this.state.sessionId);
+      await updateDoc(sessionDocRef, {
+        queueState: JSON.stringify(this.state),
+        currentQuestionNumber: this.getCurrentQuestionNumber(),
+      });
     } catch (err) {
       console.error('Error saving queue state:', err);
       this.saveToLocalStorage();
@@ -232,17 +226,14 @@ export class QuestionQueueManager {
 
   private async loadFromDatabase(): Promise<QueueState | null> {
     try {
-      const { data, error } = await supabase
-        .from('sessions')
-        .select('queue_state')
-        .eq('id', this.state.sessionId)
-        .maybeSingle();
+      const sessionDocRef = doc(db, 'sessions', this.state.sessionId);
+      const sessionDoc = await getDoc(sessionDocRef);
 
-      if (error || !data?.queue_state) {
+      if (!sessionDoc.exists() || !sessionDoc.data().queueState) {
         return this.loadFromLocalStorage();
       }
 
-      return JSON.parse(data.queue_state);
+      return JSON.parse(sessionDoc.data().queueState);
     } catch (err) {
       console.error('Error loading queue state:', err);
       return this.loadFromLocalStorage();

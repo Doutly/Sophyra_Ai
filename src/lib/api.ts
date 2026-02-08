@@ -1,4 +1,5 @@
-import { supabase } from './supabase';
+import { httpsCallable } from 'firebase/functions';
+import { functions } from './firebase';
 
 const GEMINI_API_KEY = 'AIzaSyDaS7WX4dPCaz5vv_X6Spf67ev4VH9AmWo';
 
@@ -12,7 +13,7 @@ export async function generateInterviewQuestion(params: {
   avoidTopics?: string[];
 }) {
   try {
-    const { data: { session } } = await supabase.auth.getSession();
+    const generateQuestion = httpsCallable(functions, 'generateInterviewQuestion');
 
     const enhancedParams = {
       ...params,
@@ -25,23 +26,8 @@ Generate a COMPLETELY DIFFERENT question that explores new aspects of the candid
 Make it conversational and natural, building on what you've learned from previous answers.`,
     };
 
-    const response = await fetch(
-      `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-interview-question`,
-      {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${session?.access_token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(enhancedParams),
-      }
-    );
-
-    if (!response.ok) {
-      throw new Error('Failed to generate question');
-    }
-
-    return await response.json();
+    const result = await generateQuestion(enhancedParams);
+    return result.data;
   } catch (error) {
     console.error('Error generating question:', error);
     const defaultQuestions = [
@@ -76,25 +62,9 @@ export async function evaluateAnswer(params: {
   jobDescription: string;
 }) {
   try {
-    const { data: { session } } = await supabase.auth.getSession();
-
-    const response = await fetch(
-      `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/evaluate-answer`,
-      {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${session?.access_token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(params),
-      }
-    );
-
-    if (!response.ok) {
-      throw new Error('Failed to evaluate answer');
-    }
-
-    return await response.json();
+    const evaluateFunc = httpsCallable(functions, 'evaluateAnswer');
+    const result = await evaluateFunc(params);
+    return result.data;
   } catch (error) {
     console.error('Error evaluating answer:', error);
     return {
@@ -108,6 +78,17 @@ export async function evaluateAnswer(params: {
         "Include quantifiable metrics when discussing achievements"
       ]
     };
+  }
+}
+
+export async function parseResume(fileData: string) {
+  try {
+    const parseFunc = httpsCallable(functions, 'parseResume');
+    const result = await parseFunc({ fileData });
+    return result.data;
+  } catch (error) {
+    console.error('Error parsing resume:', error);
+    throw error;
   }
 }
 
