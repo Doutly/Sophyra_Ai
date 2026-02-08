@@ -109,7 +109,7 @@ export default function SharedReport() {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
-          <div className="w-16 h-16 border-4 border-teal-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <div className="w-16 h-16 border-4 border-brand-electric border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
           <p className="text-gray-600">Loading shared report...</p>
         </div>
       </div>
@@ -127,7 +127,7 @@ export default function SharedReport() {
           </p>
           <button
             onClick={() => navigate('/')}
-            className="px-6 py-3 bg-teal-500 text-white font-semibold rounded-lg hover:bg-teal-600 transition-colors"
+            className="px-6 py-3 bg-brand-electric text-white font-semibold rounded-lg hover:bg-brand-electric-dark transition-colors"
           >
             Go to Home
           </button>
@@ -144,7 +144,7 @@ export default function SharedReport() {
         <div className="max-w-5xl mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 bg-teal-500 rounded-lg flex items-center justify-center">
+              <div className="w-10 h-10 bg-brand-electric rounded-lg flex items-center justify-center">
                 <Brain className="w-6 h-6 text-white" />
               </div>
               <span className="text-2xl font-bold text-gray-900">Sophyra AI</span>
@@ -161,14 +161,14 @@ export default function SharedReport() {
       </nav>
 
       <div className="max-w-5xl mx-auto px-6 py-12">
-        <div className="bg-teal-50 border border-teal-200 rounded-xl p-4 mb-8 text-center">
-          <p className="text-sm text-teal-800">
+        <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 mb-8 text-center">
+          <p className="text-sm text-gray-800">
             <strong>Shared Report</strong> - This is a public view of an interview performance report
           </p>
         </div>
 
         <div className="bg-white rounded-2xl shadow-lg border border-gray-200 overflow-hidden">
-          <div className="bg-gradient-to-br from-teal-500 to-teal-600 p-8 text-white">
+          <div className="bg-gradient-to-br from-brand-electric to-brand-electric-dark p-8 text-white">
             <div className="flex items-start justify-between mb-6">
               <div>
                 <h1 className="text-3xl font-bold mb-2">Interview Performance Report</h1>
@@ -197,7 +197,7 @@ export default function SharedReport() {
           <div className="p-8">
             <div className="mb-12">
               <h2 className="text-2xl font-bold text-gray-900 mb-6 flex items-center">
-                <TrendingUp className="w-6 h-6 mr-2 text-teal-500" />
+                <TrendingUp className="w-6 h-6 mr-2 text-brand-electric" />
                 Performance Breakdown
               </h2>
               <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -209,7 +209,7 @@ export default function SharedReport() {
                     </div>
                     <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
                       <div
-                        className="h-full bg-teal-500 transition-all"
+                        className="h-full bg-brand-electric transition-all"
                         style={{ width: `${(value / 10) * 100}%` }}
                       ></div>
                     </div>
@@ -252,7 +252,7 @@ export default function SharedReport() {
 
             <div className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl p-8 mb-8">
               <h2 className="text-2xl font-bold text-gray-900 mb-6 flex items-center">
-                <Target className="w-6 h-6 mr-2 text-teal-500" />
+                <Target className="w-6 h-6 mr-2 text-brand-electric" />
                 Suggested Topics for Practice
               </h2>
               <div className="flex flex-wrap gap-3">
@@ -276,7 +276,7 @@ export default function SharedReport() {
               </p>
               <button
                 onClick={() => navigate('/')}
-                className="px-8 py-3 bg-teal-500 text-white font-semibold rounded-lg hover:bg-teal-600 transition-colors"
+                className="px-8 py-3 bg-brand-electric text-white font-semibold rounded-lg hover:bg-brand-electric-dark transition-colors"
               >
                 Start Your Mock Interview
               </button>

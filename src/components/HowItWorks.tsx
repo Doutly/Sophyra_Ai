@@ -45,10 +45,10 @@ export default function HowItWorks() {
               const Icon = step.icon;
               return (
                 <div key={index} className="relative">
-                  <div className="bg-white rounded-2xl p-8 shadow-sm border-2 border-gray-100 hover:border-teal-200 transition-all h-full">
+                  <div className="bg-white rounded-2xl p-8 shadow-sm border-2 border-gray-100 hover:border-blue-200 transition-all h-full">
                     <div className="flex items-center justify-between mb-6">
                       <span className="text-6xl font-bold text-gray-100">{step.number}</span>
-                      <div className="w-14 h-14 bg-teal-500 rounded-xl flex items-center justify-center">
+                      <div className="w-14 h-14 bg-brand-electric rounded-xl flex items-center justify-center">
                         <Icon className="w-7 h-7 text-white" />
                       </div>
                     </div>
@@ -56,13 +56,13 @@ export default function HowItWorks() {
                     <h3 className="text-2xl font-bold text-gray-900 mb-4">{step.title}</h3>
                     <p className="text-gray-600 leading-relaxed mb-4">{step.description}</p>
 
-                    <div className="inline-flex items-center space-x-2 px-3 py-1.5 bg-teal-50 rounded-full">
-                      <span className="text-xs font-semibold text-teal-700">{step.highlight}</span>
+                    <div className="inline-flex items-center space-x-2 px-3 py-1.5 bg-blue-50 rounded-full">
+                      <span className="text-xs font-semibold text-brand-electric-dark">{step.highlight}</span>
                     </div>
                   </div>
 
                   {index < steps.length - 1 && (
-                    <div className="hidden lg:flex absolute top-1/2 -right-4 -translate-y-1/2 z-10 w-8 h-8 bg-teal-500 rounded-full items-center justify-center">
+                    <div className="hidden lg:flex absolute top-1/2 -right-4 -translate-y-1/2 z-10 w-8 h-8 bg-brand-electric rounded-full items-center justify-center">
                       <ArrowRight className="w-4 h-4 text-white" />
                     </div>
                   )}
@@ -73,7 +73,7 @@ export default function HowItWorks() {
         </div>
 
         <div className="mt-16 text-center">
-          <button className="px-8 py-4 bg-teal-500 text-white text-base font-semibold rounded-lg hover:bg-teal-600 transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-0.5">
+          <button className="px-8 py-4 bg-brand-electric text-white text-base font-semibold rounded-lg hover:bg-brand-electric-dark transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-0.5">
             Start Your First Mock Test
           </button>
         </div>

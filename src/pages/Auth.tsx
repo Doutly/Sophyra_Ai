@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { Brain, Mail, Lock, User, AlertCircle, UserCheck, Briefcase } from 'lucide-react';
+import { Mail, Lock, User, AlertCircle, UserCheck, Briefcase } from 'lucide-react';
 import { Database } from '../lib/database.types';
 
 type UserRole = Database['public']['Tables']['users']['Row']['role'];
@@ -23,7 +23,7 @@ export default function Auth() {
 
   useEffect(() => {
     if (user && role) {
-      if (email === 'mani@sophrya.ai') {
+      if (user.email === 'mani@sophrya.ai') {
         navigate('/admin');
       } else if (role === 'admin') {
         navigate('/admin');
@@ -37,7 +37,7 @@ export default function Auth() {
         navigate('/dashboard');
       }
     }
-  }, [user, role, isApproved, email, navigate]);
+  }, [user, role, isApproved, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

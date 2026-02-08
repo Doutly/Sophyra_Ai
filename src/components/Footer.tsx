@@ -1,4 +1,4 @@
-import { Brain, Linkedin, Twitter, Mail } from 'lucide-react';
+import { Linkedin, Twitter, Mail } from 'lucide-react';
 
 export default function Footer() {
   const links = {
@@ -28,9 +28,7 @@ export default function Footer() {
         <div className="py-16 grid md:grid-cols-2 lg:grid-cols-5 gap-12">
           <div className="lg:col-span-2 space-y-6">
             <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 bg-teal-500 rounded-lg flex items-center justify-center">
-                <Brain className="w-6 h-6 text-white" />
-              </div>
+              <img src="/lo.png" alt="Sophyra AI" className="w-10 h-10" />
               <span className="text-2xl font-bold text-white">Sophyra AI</span>
             </div>
             <p className="text-sm text-gray-400 leading-relaxed max-w-sm">

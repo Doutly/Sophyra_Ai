@@ -42,10 +42,10 @@ export default function ValueProps() {
             return (
               <div
                 key={index}
-                className="group relative bg-white border-2 border-gray-100 rounded-2xl p-8 hover:border-teal-200 hover:shadow-lg transition-all duration-300"
+                className="group relative bg-white border-2 border-gray-100 rounded-2xl p-8 hover:border-blue-200 hover:shadow-lg transition-all duration-300"
               >
-                <div className="w-12 h-12 bg-teal-50 rounded-xl flex items-center justify-center mb-6 group-hover:bg-teal-100 transition-colors">
-                  <Icon className="w-6 h-6 text-teal-600" />
+                <div className="w-12 h-12 bg-blue-50 rounded-xl flex items-center justify-center mb-6 group-hover:bg-blue-50 transition-colors">
+                  <Icon className="w-6 h-6 text-brand-electric" />
                 </div>
                 <h3 className="text-xl font-bold text-gray-900 mb-3">{feature.title}</h3>
                 <p className="text-gray-600 leading-relaxed">{feature.description}</p>
@@ -54,7 +54,7 @@ export default function ValueProps() {
           })}
         </div>
 
-        <div className="mt-16 bg-gradient-to-r from-gray-50 to-teal-50 rounded-2xl p-12 border border-gray-200">
+        <div className="mt-16 bg-gradient-to-r from-gray-50 to-blue-50 rounded-2xl p-12 border border-gray-200">
           <div className="grid md:grid-cols-3 gap-8 text-center">
             <div>
               <p className="text-5xl font-bold text-gray-900 mb-2">85%+</p>

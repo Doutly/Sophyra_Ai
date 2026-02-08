@@ -779,7 +779,7 @@ export default function InterviewRoom() {
     return (
       <div className="min-h-screen bg-gray-900 flex items-center justify-center">
         <div className="text-center">
-          <div className="w-16 h-16 border-4 border-teal-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <div className="w-16 h-16 border-4 border-brand-electric border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
           <p className="text-gray-400">Loading interview...</p>
         </div>
       </div>
@@ -790,7 +790,7 @@ export default function InterviewRoom() {
     return (
       <div className="min-h-screen bg-gray-900 flex items-center justify-center px-4">
         <div className="max-w-2xl w-full bg-gray-800 rounded-2xl p-8 text-center border border-gray-700">
-          <div className="w-20 h-20 bg-teal-500 rounded-full flex items-center justify-center mx-auto mb-6">
+          <div className="w-20 h-20 bg-brand-electric rounded-full flex items-center justify-center mx-auto mb-6">
             <Brain className="w-10 h-10 text-white" />
           </div>
           <h1 className="text-3xl font-bold text-white mb-4">Ready to Begin?</h1>
@@ -800,11 +800,11 @@ export default function InterviewRoom() {
           </p>
           <div className="space-y-4 mb-8">
             <div className="flex items-center justify-center space-x-3 text-gray-300">
-              <Mic className="w-5 h-5 text-teal-400" />
+              <Mic className="w-5 h-5 text-brand-electric-light" />
               <span>Microphone access required</span>
             </div>
             <div className="flex items-center justify-center space-x-3 text-gray-300">
-              <Video className="w-5 h-5 text-teal-400" />
+              <Video className="w-5 h-5 text-brand-electric-light" />
               <span>Camera access optional</span>
             </div>
           </div>
@@ -817,7 +817,7 @@ export default function InterviewRoom() {
             </button>
             <button
               onClick={startInterview}
-              className="px-8 py-3 bg-teal-500 text-white font-semibold rounded-lg hover:bg-teal-600 transition-colors flex items-center space-x-2"
+              className="px-8 py-3 bg-brand-electric text-white font-semibold rounded-lg hover:bg-brand-electric-dark transition-colors flex items-center space-x-2"
             >
               <Play className="w-5 h-5" />
               <span>Start Interview</span>

@@ -142,7 +142,7 @@ export default function InterviewRoomV2() {
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-900 via-slate-900 to-gray-900 flex items-center justify-center">
         <div className="text-center">
-          <div className="w-16 h-16 border-4 border-teal-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <div className="w-16 h-16 border-4 border-brand-electric border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
           <p className="text-gray-400">Loading interview...</p>
         </div>
       </div>
@@ -168,7 +168,7 @@ export default function InterviewRoomV2() {
           <div className="bg-gray-800/50 backdrop-blur-xl rounded-3xl p-12 border border-gray-700/50 shadow-2xl">
             {/* Header */}
             <div className="text-center mb-12">
-              <div className="w-24 h-24 bg-gradient-to-br from-teal-500 to-blue-500 rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg shadow-teal-500/50">
+              <div className="w-24 h-24 bg-gradient-to-br from-brand-electric to-blue-500 rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg shadow-brand-electric/50">
                 <Phone className="w-12 h-12 text-white" />
               </div>
               <h1 className="text-3xl font-bold text-white mb-2">AI Interview with Sarah</h1>
@@ -186,7 +186,7 @@ export default function InterviewRoomV2() {
                   </p>
                   <button
                     onClick={startInterview}
-                    className="w-full py-4 bg-gradient-to-r from-teal-500 to-blue-500 text-white font-semibold rounded-xl hover:from-teal-600 hover:to-blue-600 transition-all shadow-lg shadow-teal-500/30 flex items-center justify-center space-x-3"
+                    className="w-full py-4 bg-gradient-to-r from-brand-electric to-blue-500 text-white font-semibold rounded-xl hover:from-brand-electric-dark hover:to-blue-600 transition-all shadow-lg shadow-brand-electric/30 flex items-center justify-center space-x-3"
                   >
                     <Phone className="w-5 h-5" />
                     <span>Start Interview Call</span>
@@ -196,20 +196,20 @@ export default function InterviewRoomV2() {
 
               {callStatus === 'connecting' && (
                 <div className="text-center">
-                  <div className="w-16 h-16 border-4 border-teal-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-                  <p className="text-teal-400 font-medium">Connecting to Sarah...</p>
+                  <div className="w-16 h-16 border-4 border-brand-electric border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+                  <p className="text-brand-electric-light font-medium">Connecting to Sarah...</p>
                 </div>
               )}
 
               {callStatus === 'active' && (
                 <div className="text-center">
                   <div className="relative inline-block mb-6">
-                    <div className="absolute inset-0 rounded-full bg-teal-500/20 animate-ping"></div>
-                    <div className="w-32 h-32 bg-gradient-to-br from-teal-500 to-blue-500 rounded-full flex items-center justify-center relative">
+                    <div className="absolute inset-0 rounded-full bg-brand-electric/20 animate-ping"></div>
+                    <div className="w-32 h-32 bg-gradient-to-br from-brand-electric to-blue-500 rounded-full flex items-center justify-center relative">
                       <Phone className="w-16 h-16 text-white animate-pulse" />
                     </div>
                   </div>
-                  <p className="text-teal-400 font-medium text-xl mb-2">Interview In Progress</p>
+                  <p className="text-brand-electric-light font-medium text-xl mb-2">Interview In Progress</p>
                   <p className="text-gray-400 text-sm">Speaking with Sarah...</p>
                 </div>
               )}
@@ -231,19 +231,19 @@ export default function InterviewRoomV2() {
                 <h3 className="text-white font-semibold mb-3">What to Expect:</h3>
                 <ul className="space-y-2 text-gray-300 text-sm">
                   <li className="flex items-start space-x-2">
-                    <span className="text-teal-400 mt-1">•</span>
+                    <span className="text-brand-electric-light mt-1">•</span>
                     <span>Sarah will ask you 8 questions about the {session?.role} role</span>
                   </li>
                   <li className="flex items-start space-x-2">
-                    <span className="text-teal-400 mt-1">•</span>
+                    <span className="text-brand-electric-light mt-1">•</span>
                     <span>Answer naturally - this is a conversation, not a test</span>
                   </li>
                   <li className="flex items-start space-x-2">
-                    <span className="text-teal-400 mt-1">•</span>
+                    <span className="text-brand-electric-light mt-1">•</span>
                     <span>The interview typically lasts 15-20 minutes</span>
                   </li>
                   <li className="flex items-start space-x-2">
-                    <span className="text-teal-400 mt-1">•</span>
+                    <span className="text-brand-electric-light mt-1">•</span>
                     <span>You'll receive a detailed performance report at the end</span>
                   </li>
                 </ul>

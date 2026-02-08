@@ -8,11 +8,11 @@ export default {
       },
       colors: {
         brand: {
-          electric: '#6F00FF',
-          'electric-light': '#9333FF',
-          'electric-dark': '#5500CC',
-          deep: '#0A0021',
-          'deep-light': '#1A1040',
+          electric: '#0066FF',
+          'electric-light': '#3D8BFF',
+          'electric-dark': '#0052CC',
+          deep: '#0A2540',
+          'deep-light': '#1E3A5F',
           white: '#FFFFFF',
         },
         swiss: {
@@ -26,9 +26,9 @@ export default {
             dark: '#A8B2BD',
           },
           accent: {
-            teal: '#6F00FF',
-            'teal-dark': '#5500CC',
-            'teal-light': '#F3E5FF',
+            teal: '#0066FF',
+            'teal-dark': '#0052CC',
+            'teal-light': '#E6F2FF',
           },
           status: {
             pending: '#FEF3C7',

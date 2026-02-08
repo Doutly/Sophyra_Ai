@@ -134,7 +134,7 @@ export default function Profile() {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
-          <div className="w-16 h-16 border-4 border-teal-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <div className="w-16 h-16 border-4 border-brand-electric border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
           <p className="text-gray-600">Loading profile...</p>
         </div>
       </div>
@@ -147,7 +147,7 @@ export default function Profile() {
         <div className="max-w-5xl mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 bg-teal-500 rounded-lg flex items-center justify-center">
+              <div className="w-10 h-10 bg-brand-electric rounded-lg flex items-center justify-center">
                 <Brain className="w-6 h-6 text-white" />
               </div>
               <span className="text-2xl font-bold text-gray-900">Sophyra AI</span>
@@ -198,7 +198,7 @@ export default function Profile() {
                     type="text"
                     value={formData.name}
                     onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-electric focus:border-transparent"
                     placeholder="John Doe"
                   />
                 </div>
@@ -226,7 +226,7 @@ export default function Profile() {
                     value={formData.bio}
                     onChange={(e) => setFormData(prev => ({ ...prev, bio: e.target.value }))}
                     rows={4}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-electric focus:border-transparent"
                     placeholder="Tell us about yourself..."
                   />
                 </div>
@@ -240,7 +240,7 @@ export default function Profile() {
                     value={formData.careerGoals}
                     onChange={(e) => setFormData(prev => ({ ...prev, careerGoals: e.target.value }))}
                     rows={3}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-electric focus:border-transparent"
                     placeholder="What are your career aspirations?"
                   />
                 </div>
@@ -250,7 +250,7 @@ export default function Profile() {
             <div className="bg-white rounded-2xl p-8 shadow-sm border border-gray-200">
               <h2 className="text-xl font-bold text-gray-900 mb-6">Resume</h2>
 
-              <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-teal-400 transition-colors">
+              <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-brand-electric-light transition-colors">
                 <input
                   type="file"
                   onChange={handleFileChange}
@@ -262,13 +262,13 @@ export default function Profile() {
                 <label htmlFor="resume-upload-profile" className="cursor-pointer">
                   {uploading ? (
                     <div className="flex items-center justify-center space-x-2">
-                      <div className="w-5 h-5 border-2 border-teal-500 border-t-transparent rounded-full animate-spin"></div>
+                      <div className="w-5 h-5 border-2 border-brand-electric border-t-transparent rounded-full animate-spin"></div>
                       <span className="text-sm text-gray-600">Uploading...</span>
                     </div>
                   ) : resumeUrl ? (
                     <div>
-                      <div className="w-16 h-16 bg-teal-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                        <Upload className="w-8 h-8 text-teal-600" />
+                      <div className="w-16 h-16 bg-blue-50 rounded-full flex items-center justify-center mx-auto mb-3">
+                        <Upload className="w-8 h-8 text-brand-electric" />
                       </div>
                       <p className="font-medium text-gray-900 mb-1">Resume uploaded</p>
                       <p className="text-sm text-gray-600 mb-2">Click to replace</p>
@@ -276,7 +276,7 @@ export default function Profile() {
                         href={resumeUrl}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-sm text-teal-600 hover:text-teal-700"
+                        className="text-sm text-brand-electric hover:text-brand-electric-dark"
                         onClick={(e) => e.stopPropagation()}
                       >
                         View current resume
@@ -317,7 +317,7 @@ export default function Profile() {
               </div>
             </div>
 
-            <div className="bg-gradient-to-br from-teal-500 to-teal-600 rounded-2xl p-6 text-white">
+            <div className="bg-gradient-to-br from-brand-electric to-brand-electric-dark rounded-2xl p-6 text-white">
               <h3 className="font-semibold mb-2">Save Changes</h3>
               <p className="text-sm text-teal-100 mb-4">
                 Update your profile information
@@ -325,11 +325,11 @@ export default function Profile() {
               <button
                 onClick={handleSave}
                 disabled={saving}
-                className="w-full py-3 bg-white text-teal-600 font-semibold rounded-lg hover:bg-teal-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
+                className="w-full py-3 bg-white text-brand-electric font-semibold rounded-lg hover:bg-blue-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
               >
                 {saving ? (
                   <>
-                    <div className="w-5 h-5 border-2 border-teal-600 border-t-transparent rounded-full animate-spin"></div>
+                    <div className="w-5 h-5 border-2 border-brand-electric-dark border-t-transparent rounded-full animate-spin"></div>
                     <span>Saving...</span>
                   </>
                 ) : (

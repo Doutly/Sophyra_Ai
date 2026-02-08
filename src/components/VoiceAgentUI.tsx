@@ -49,7 +49,7 @@ export default function VoiceAgentUI({
   };
 
   const getStatusColor = () => {
-    if (isAISpeaking) return 'text-teal-400';
+    if (isAISpeaking) return 'text-brand-electric-light';
     if (isUserSpeaking) return 'text-blue-400';
     return 'text-gray-400';
   };
@@ -66,7 +66,7 @@ export default function VoiceAgentUI({
                 <div
                   key={i}
                   className={`w-1.5 h-1.5 rounded-full transition-colors ${
-                    i < questionNumber ? 'bg-teal-500' : 'bg-gray-700'
+                    i < questionNumber ? 'bg-brand-electric' : 'bg-gray-700'
                   }`}
                 />
               ))}
@@ -82,15 +82,15 @@ export default function VoiceAgentUI({
               {/* Pulsing rings when speaking */}
               {isAISpeaking && (
                 <>
-                  <div className="absolute inset-0 rounded-full bg-teal-500/20 animate-ping" />
-                  <div className="absolute inset-0 rounded-full bg-teal-500/10 animate-pulse" />
+                  <div className="absolute inset-0 rounded-full bg-brand-electric/20 animate-ping" />
+                  <div className="absolute inset-0 rounded-full bg-brand-electric/10 animate-pulse" />
                 </>
               )}
 
               {/* Main avatar circle */}
               <div className={`w-32 h-32 rounded-full flex items-center justify-center transition-all duration-300 ${
                 isAISpeaking
-                  ? 'bg-gradient-to-br from-teal-500 to-blue-500 shadow-lg shadow-teal-500/50'
+                  ? 'bg-gradient-to-br from-brand-electric to-blue-500 shadow-lg shadow-brand-electric/50'
                   : isUserSpeaking
                   ? 'bg-gradient-to-br from-blue-500 to-purple-500 shadow-lg shadow-blue-500/50'
                   : 'bg-gradient-to-br from-gray-600 to-gray-700'
@@ -122,7 +122,7 @@ export default function VoiceAgentUI({
                   key={i}
                   className={`w-1 rounded-full transition-all duration-100 ${
                     isAISpeaking
-                      ? 'bg-gradient-to-t from-teal-500 to-blue-500'
+                      ? 'bg-gradient-to-t from-brand-electric to-blue-500'
                       : isUserSpeaking
                       ? 'bg-gradient-to-t from-blue-500 to-purple-500'
                       : 'bg-gray-700'
@@ -138,9 +138,9 @@ export default function VoiceAgentUI({
 
           {/* Current question (when AI is speaking) */}
           {isAISpeaking && currentQuestion && (
-            <div className="mb-6 p-6 bg-gray-900/50 rounded-2xl border border-teal-500/30">
+            <div className="mb-6 p-6 bg-gray-900/50 rounded-2xl border border-brand-electric/30">
               <div className="flex items-start space-x-3">
-                <Volume2 className="w-5 h-5 text-teal-400 mt-1 flex-shrink-0 animate-pulse" />
+                <Volume2 className="w-5 h-5 text-brand-electric-light mt-1 flex-shrink-0 animate-pulse" />
                 <p className="text-lg text-gray-200 leading-relaxed">
                   {currentQuestion}
                 </p>
@@ -190,7 +190,7 @@ export default function VoiceAgentUI({
           <div className="mt-8 pt-6 border-t border-gray-700/50">
             <div className="flex items-center justify-center space-x-8 text-xs text-gray-500">
               <div className="flex items-center space-x-2">
-                <div className="w-2 h-2 rounded-full bg-teal-500" />
+                <div className="w-2 h-2 rounded-full bg-brand-electric" />
                 <span>AI Speaking</span>
               </div>
               <div className="flex items-center space-x-2">

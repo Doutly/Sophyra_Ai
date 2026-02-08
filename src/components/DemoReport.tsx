@@ -34,7 +34,7 @@ export default function DemoReport() {
 
         <div className="max-w-5xl mx-auto">
           <div className="bg-white border-2 border-gray-200 rounded-2xl overflow-hidden shadow-xl">
-            <div className="bg-gradient-to-r from-gray-50 to-teal-50 px-8 py-6 border-b-2 border-gray-200">
+            <div className="bg-gradient-to-r from-gray-50 to-blue-50 px-8 py-6 border-b-2 border-gray-200">
               <div className="flex items-center justify-between">
                 <div>
                   <h3 className="text-2xl font-bold text-gray-900 mb-1">Interview Report</h3>
@@ -42,7 +42,7 @@ export default function DemoReport() {
                 </div>
                 <div className="text-right">
                   <div className="text-5xl font-bold text-gray-900 mb-1">84</div>
-                  <p className="text-sm font-semibold text-teal-600">Strong Performance</p>
+                  <p className="text-sm font-semibold text-brand-electric">Strong Performance</p>
                 </div>
               </div>
             </div>
@@ -50,7 +50,7 @@ export default function DemoReport() {
             <div className="p-8 space-y-8">
               <div>
                 <h4 className="text-lg font-bold text-gray-900 mb-6 flex items-center">
-                  <TrendingUp className="w-5 h-5 text-teal-500 mr-2" />
+                  <TrendingUp className="w-5 h-5 text-brand-electric mr-2" />
                   Performance Breakdown
                 </h4>
                 <div className="grid sm:grid-cols-2 gap-6">
@@ -63,7 +63,7 @@ export default function DemoReport() {
                       <div className="w-full bg-gray-100 rounded-full h-2.5 overflow-hidden">
                         <div
                           className={`h-full rounded-full ${
-                            score.color === 'teal' ? 'bg-teal-500' : 'bg-blue-500'
+                            score.color === 'teal' ? 'bg-brand-electric' : 'bg-blue-500'
                           }`}
                           style={{ width: `${score.value * 10}%` }}
                         ></div>
@@ -74,15 +74,15 @@ export default function DemoReport() {
               </div>
 
               <div className="grid md:grid-cols-2 gap-6">
-                <div className="bg-teal-50 rounded-xl p-6 border border-teal-100">
+                <div className="bg-blue-50 rounded-xl p-6 border border-blue-100">
                   <h4 className="text-base font-bold text-gray-900 mb-4 flex items-center">
-                    <Target className="w-4 h-4 text-teal-600 mr-2" />
+                    <Target className="w-4 h-4 text-brand-electric mr-2" />
                     Key Strengths
                   </h4>
                   <ul className="space-y-3">
                     {strengths.map((strength, index) => (
                       <li key={index} className="flex items-start">
-                        <span className="w-1.5 h-1.5 bg-teal-500 rounded-full mt-2 mr-3 flex-shrink-0"></span>
+                        <span className="w-1.5 h-1.5 bg-brand-electric rounded-full mt-2 mr-3 flex-shrink-0"></span>
                         <span className="text-sm text-gray-700">{strength}</span>
                       </li>
                     ))}

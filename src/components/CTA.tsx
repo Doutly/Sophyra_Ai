@@ -19,7 +19,7 @@ export default function CTA({ onStartMockTest }: CTAProps) {
               </p>
 
               <div className="space-y-4">
-                <button onClick={onStartMockTest} className="w-full sm:w-auto px-8 py-4 bg-teal-500 text-white text-base font-semibold rounded-lg hover:bg-teal-600 transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 flex items-center justify-center group">
+                <button onClick={onStartMockTest} className="w-full sm:w-auto px-8 py-4 bg-brand-electric text-white text-base font-semibold rounded-lg hover:bg-brand-electric-dark transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 flex items-center justify-center group">
                   <span>Start Mock Test</span>
                   <ArrowRight className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" />
                 </button>
@@ -28,11 +28,11 @@ export default function CTA({ onStartMockTest }: CTAProps) {
 
               <div className="flex items-center space-x-8 pt-4">
                 <div className="flex items-center space-x-2">
-                  <Users className="w-5 h-5 text-teal-400" />
+                  <Users className="w-5 h-5 text-brand-electric-light" />
                   <span className="text-sm text-gray-300">5,000+ candidates</span>
                 </div>
                 <div className="flex items-center space-x-2">
-                  <Building2 className="w-5 h-5 text-teal-400" />
+                  <Building2 className="w-5 h-5 text-brand-electric-light" />
                   <span className="text-sm text-gray-300">50+ universities</span>
                 </div>
               </div>
@@ -43,7 +43,7 @@ export default function CTA({ onStartMockTest }: CTAProps) {
                 <h3 className="text-xl font-bold text-white mb-6">Choose Your Plan</h3>
 
                 <div className="space-y-4">
-                  <div className="bg-gray-900 rounded-xl p-6 border-2 border-teal-500">
+                  <div className="bg-gray-900 rounded-xl p-6 border-2 border-brand-electric">
                     <div className="flex items-center justify-between mb-4">
                       <h4 className="text-lg font-bold text-white">Starter</h4>
                       <div className="text-right">
@@ -53,15 +53,15 @@ export default function CTA({ onStartMockTest }: CTAProps) {
                     </div>
                     <ul className="space-y-2">
                       <li className="flex items-center text-sm text-gray-300">
-                        <span className="w-1.5 h-1.5 bg-teal-400 rounded-full mr-3"></span>
+                        <span className="w-1.5 h-1.5 bg-brand-electric-light rounded-full mr-3"></span>
                         Unlimited mock interviews
                       </li>
                       <li className="flex items-center text-sm text-gray-300">
-                        <span className="w-1.5 h-1.5 bg-teal-400 rounded-full mr-3"></span>
+                        <span className="w-1.5 h-1.5 bg-brand-electric-light rounded-full mr-3"></span>
                         Detailed PDF reports
                       </li>
                       <li className="flex items-center text-sm text-gray-300">
-                        <span className="w-1.5 h-1.5 bg-teal-400 rounded-full mr-3"></span>
+                        <span className="w-1.5 h-1.5 bg-brand-electric-light rounded-full mr-3"></span>
                         Body language analysis
                       </li>
                     </ul>

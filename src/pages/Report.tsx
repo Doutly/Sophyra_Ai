@@ -115,7 +115,7 @@ export default function Report() {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
-          <div className="w-16 h-16 border-4 border-teal-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <div className="w-16 h-16 border-4 border-brand-electric border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
           <p className="text-gray-600">Loading your report...</p>
         </div>
       </div>
@@ -130,7 +130,7 @@ export default function Report() {
           <h2 className="text-2xl font-bold text-gray-900 mb-2">Report Not Found</h2>
           <button
             onClick={() => navigate('/dashboard')}
-            className="text-teal-600 hover:text-teal-700 font-medium"
+            className="text-brand-electric hover:text-brand-electric-dark font-medium"
           >
             Back to Dashboard
           </button>
@@ -147,7 +147,7 @@ export default function Report() {
         <div className="max-w-5xl mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 bg-teal-500 rounded-lg flex items-center justify-center">
+              <div className="w-10 h-10 bg-brand-electric rounded-lg flex items-center justify-center">
                 <Brain className="w-6 h-6 text-white" />
               </div>
               <span className="text-2xl font-bold text-gray-900">Sophyra AI</span>
@@ -165,7 +165,7 @@ export default function Report() {
 
       <div className="max-w-5xl mx-auto px-6 py-12">
         <div className="bg-white rounded-2xl shadow-lg border border-gray-200 overflow-hidden">
-          <div className="bg-gradient-to-br from-teal-500 to-teal-600 p-8 text-white">
+          <div className="bg-gradient-to-br from-brand-electric to-brand-electric-dark p-8 text-white">
             <div className="flex items-start justify-between mb-6">
               <div>
                 <h1 className="text-3xl font-bold mb-2">Interview Performance Report</h1>
@@ -202,7 +202,7 @@ export default function Report() {
               </button>
               <button
                 onClick={downloadPDF}
-                className="flex items-center space-x-2 px-4 py-2 text-white bg-teal-500 rounded-lg hover:bg-teal-600 transition-colors"
+                className="flex items-center space-x-2 px-4 py-2 text-white bg-brand-electric rounded-lg hover:bg-brand-electric-dark transition-colors"
               >
                 <Download className="w-4 h-4" />
                 <span className="text-sm font-medium">Download PDF</span>
@@ -211,7 +211,7 @@ export default function Report() {
 
             <div className="mb-12">
               <h2 className="text-2xl font-bold text-gray-900 mb-6 flex items-center">
-                <TrendingUp className="w-6 h-6 mr-2 text-teal-500" />
+                <TrendingUp className="w-6 h-6 mr-2 text-brand-electric" />
                 Performance Breakdown
               </h2>
               <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -223,7 +223,7 @@ export default function Report() {
                     </div>
                     <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
                       <div
-                        className="h-full bg-teal-500 transition-all"
+                        className="h-full bg-brand-electric transition-all"
                         style={{ width: `${(value / 10) * 100}%` }}
                       ></div>
                     </div>
@@ -266,7 +266,7 @@ export default function Report() {
 
             <div className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl p-8 mb-8">
               <h2 className="text-2xl font-bold text-gray-900 mb-6 flex items-center">
-                <Target className="w-6 h-6 mr-2 text-teal-500" />
+                <Target className="w-6 h-6 mr-2 text-brand-electric" />
                 Suggested Topics for Practice
               </h2>
               <div className="flex flex-wrap gap-3">
@@ -286,9 +286,9 @@ export default function Report() {
               <div className="grid md:grid-cols-2 gap-4">
                 <button
                   onClick={() => navigate('/interview/setup')}
-                  className="p-6 bg-teal-50 border-2 border-teal-200 rounded-xl text-left hover:border-teal-300 hover:shadow-md transition-all group"
+                  className="p-6 bg-blue-50 border-2 border-blue-200 rounded-xl text-left hover:border-blue-300 hover:shadow-md transition-all group"
                 >
-                  <h3 className="font-bold text-gray-900 mb-2 group-hover:text-teal-600">
+                  <h3 className="font-bold text-gray-900 mb-2 group-hover:text-brand-electric">
                     Practice Again
                   </h3>
                   <p className="text-sm text-gray-600">

@@ -100,7 +100,7 @@ export class ErrorBoundary extends Component<Props, State> {
             <div className="flex items-center justify-center space-x-4">
               <button
                 onClick={this.handleReset}
-                className="px-6 py-3 bg-teal-500 text-white font-semibold rounded-lg hover:bg-teal-600 transition-colors flex items-center space-x-2"
+                className="px-6 py-3 bg-brand-electric text-white font-semibold rounded-lg hover:bg-brand-electric-dark transition-colors flex items-center space-x-2"
               >
                 <RefreshCw className="w-5 h-5" />
                 <span>Try Again</span>

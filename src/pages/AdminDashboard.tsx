@@ -293,7 +293,7 @@ export default function AdminDashboard() {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
-          <div className="w-16 h-16 border-4 border-teal-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <div className="w-16 h-16 border-4 border-brand-electric border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
           <p className="text-gray-600">Loading admin dashboard...</p>
         </div>
       </div>
@@ -388,7 +388,7 @@ export default function AdminDashboard() {
             <div className="grid md:grid-cols-4 gap-6 mb-8">
           <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-200">
             <div className="flex items-center justify-between mb-2">
-              <Users className="w-8 h-8 text-teal-500" />
+              <Users className="w-8 h-8 text-brand-electric" />
               <span className="text-sm text-gray-500">Total</span>
             </div>
             <div className="text-3xl font-bold text-gray-900">{candidates.length}</div>
@@ -441,7 +441,7 @@ export default function AdminDashboard() {
               <h2 className="text-xl font-bold text-gray-900">Candidate List</h2>
               <button
                 onClick={exportData}
-                className="flex items-center space-x-2 px-4 py-2 bg-teal-500 text-white rounded-lg hover:bg-teal-600 transition-colors"
+                className="flex items-center space-x-2 px-4 py-2 bg-brand-electric text-white rounded-lg hover:bg-brand-electric-dark transition-colors"
               >
                 <Download className="w-4 h-4" />
                 <span className="text-sm font-medium">Export CSV</span>
@@ -456,7 +456,7 @@ export default function AdminDashboard() {
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   placeholder="Search candidates..."
-                  className="w-full pl-11 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                  className="w-full pl-11 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-electric focus:border-transparent"
                 />
               </div>
               <button className="flex items-center space-x-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
@@ -493,7 +493,7 @@ export default function AdminDashboard() {
                           {candidate.total_interviews}
                         </td>
                         <td className="py-4 px-4 text-center">
-                          <span className="px-3 py-1 bg-teal-50 text-teal-700 rounded-full text-sm font-medium">
+                          <span className="px-3 py-1 bg-blue-50 text-brand-electric-dark rounded-full text-sm font-medium">
                             {candidate.avg_score}
                           </span>
                         </td>
@@ -549,9 +549,9 @@ export default function AdminDashboard() {
                   <div className="text-sm text-gray-600 mb-1">Industry Average</div>
                   <div className="text-2xl font-bold text-gray-900">72</div>
                 </div>
-                <div className="p-4 bg-teal-50 rounded-lg">
-                  <div className="text-sm text-teal-700 mb-1">Your Cohort</div>
-                  <div className="text-2xl font-bold text-teal-700">
+                <div className="p-4 bg-blue-50 rounded-lg">
+                  <div className="text-sm text-brand-electric-dark mb-1">Your Cohort</div>
+                  <div className="text-2xl font-bold text-brand-electric-dark">
                     {candidates.length > 0
                       ? Math.round(candidates.reduce((sum, c) => sum + c.avg_score, 0) / candidates.length)
                       : 0}

@@ -122,8 +122,8 @@ export default function ResumeUploadParser({
       <div
         className={`
           border-2 border-dashed rounded-lg p-6 text-center transition-all
-          ${isDragging ? 'border-teal-500 bg-teal-50' : 'border-gray-300'}
-          ${parsing ? 'bg-gray-50' : 'hover:border-teal-400 cursor-pointer'}
+          ${isDragging ? 'border-brand-electric bg-blue-50' : 'border-gray-300'}
+          ${parsing ? 'bg-gray-50' : 'hover:border-brand-electric-light cursor-pointer'}
         `}
         onDrop={handleDrop}
         onDragOver={handleDragOver}
@@ -142,7 +142,7 @@ export default function ResumeUploadParser({
         {parsing ? (
           <div className="space-y-3">
             <div className="flex items-center justify-center space-x-2">
-              <div className="w-6 h-6 border-2 border-teal-500 border-t-transparent rounded-full animate-spin"></div>
+              <div className="w-6 h-6 border-2 border-brand-electric border-t-transparent rounded-full animate-spin"></div>
               <span className="text-sm font-medium text-gray-700">
                 Parsing resume...
               </span>

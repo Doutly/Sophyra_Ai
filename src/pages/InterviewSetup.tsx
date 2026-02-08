@@ -133,7 +133,7 @@ export default function InterviewSetup() {
         <div className="max-w-5xl mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 bg-teal-500 rounded-lg flex items-center justify-center">
+              <div className="w-10 h-10 bg-brand-electric rounded-lg flex items-center justify-center">
                 <Brain className="w-6 h-6 text-white" />
               </div>
               <span className="text-2xl font-bold text-gray-900">Sophyra AI</span>
@@ -174,7 +174,7 @@ export default function InterviewSetup() {
                   type="text"
                   value={formData.jobRole}
                   onChange={(e) => setFormData(prev => ({ ...prev, jobRole: e.target.value }))}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-electric focus:border-transparent"
                   placeholder="e.g., Product Manager"
                   required
                 />
@@ -187,7 +187,7 @@ export default function InterviewSetup() {
                 <select
                   value={formData.experienceLevel}
                   onChange={(e) => setFormData(prev => ({ ...prev, experienceLevel: e.target.value }))}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-electric focus:border-transparent"
                   required
                 >
                   <option value="fresher">Fresher</option>
@@ -207,7 +207,7 @@ export default function InterviewSetup() {
                   type="text"
                   value={formData.industry}
                   onChange={(e) => setFormData(prev => ({ ...prev, industry: e.target.value }))}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-electric focus:border-transparent"
                   placeholder="e.g., Technology, Healthcare"
                 />
               </div>
@@ -220,7 +220,7 @@ export default function InterviewSetup() {
                   type="text"
                   value={formData.companyName}
                   onChange={(e) => setFormData(prev => ({ ...prev, companyName: e.target.value }))}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-electric focus:border-transparent"
                   placeholder="e.g., Google, Microsoft"
                 />
               </div>
@@ -234,7 +234,7 @@ export default function InterviewSetup() {
                 value={formData.jobDescription}
                 onChange={(e) => setFormData(prev => ({ ...prev, jobDescription: e.target.value }))}
                 rows={8}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-electric focus:border-transparent"
                 placeholder="Paste the complete job description here..."
                 required
               />
@@ -304,7 +304,7 @@ export default function InterviewSetup() {
                     type="checkbox"
                     checked={consent.voiceAnalysis}
                     onChange={(e) => setConsent(prev => ({ ...prev, voiceAnalysis: e.target.checked }))}
-                    className="mt-1 w-5 h-5 text-teal-500 rounded border-gray-300 focus:ring-teal-500"
+                    className="mt-1 w-5 h-5 text-brand-electric rounded border-gray-300 focus:ring-brand-electric"
                   />
                   <div>
                     <p className="font-medium text-gray-900">Allow AI voice analysis</p>
@@ -319,7 +319,7 @@ export default function InterviewSetup() {
                     type="checkbox"
                     checked={consent.bodyLanguage}
                     onChange={(e) => setConsent(prev => ({ ...prev, bodyLanguage: e.target.checked }))}
-                    className="mt-1 w-5 h-5 text-teal-500 rounded border-gray-300 focus:ring-teal-500"
+                    className="mt-1 w-5 h-5 text-brand-electric rounded border-gray-300 focus:ring-brand-electric"
                   />
                   <div>
                     <p className="font-medium text-gray-900">Allow AI body language analysis</p>
@@ -334,7 +334,7 @@ export default function InterviewSetup() {
                     type="checkbox"
                     checked={consent.dataUsage}
                     onChange={(e) => setConsent(prev => ({ ...prev, dataUsage: e.target.checked }))}
-                    className="mt-1 w-5 h-5 text-teal-500 rounded border-gray-300 focus:ring-teal-500"
+                    className="mt-1 w-5 h-5 text-brand-electric rounded border-gray-300 focus:ring-brand-electric"
                     required
                   />
                   <div>
@@ -360,7 +360,7 @@ export default function InterviewSetup() {
               <button
                 type="submit"
                 disabled={loading || parsing}
-                className="px-8 py-3 bg-teal-500 text-white font-semibold rounded-lg hover:bg-teal-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
+                className="px-8 py-3 bg-brand-electric text-white font-semibold rounded-lg hover:bg-brand-electric-dark transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
               >
                 {loading ? (
                   <>
