@@ -79,7 +79,9 @@ export default function AdminDashboard() {
       const usersRef = collection(db, 'users');
       const candidatesQuery = query(usersRef, where('role', '==', 'candidate'));
 
-      const unsubscribeCandidates = onSnapshot(candidatesQuery, async (snapshot) => {
+      const unsubscribeCandidates = onSnapshot(
+        candidatesQuery,
+        async (snapshot) => {
         const candidatesData = await Promise.all(
           snapshot.docs.map(async (docSnap) => {
             const userData = docSnap.data();
@@ -136,24 +138,44 @@ export default function AdminDashboard() {
         }));
 
         setCohortMetrics(cohortMetricsData);
+      },
+      (error) => {
+        console.error('Error in candidates snapshot:', error);
+        setLoading(false);
       });
 
       const requestsRef = collection(db, 'mockInterviewRequests');
       const requestsQuery = query(requestsRef, orderBy('created_at', 'desc'));
 
-      const unsubscribeRequests = onSnapshot(requestsQuery, async (snapshot) => {
+      const unsubscribeRequests = onSnapshot(
+        requestsQuery,
+        async (snapshot) => {
         const requestsData = await Promise.all(
           snapshot.docs.map(async (docSnap) => {
             const requestData = docSnap.data();
 
-            const userQuery = query(collection(db, 'users'), where('__name__', '==', requestData.user_id));
-            const userSnapshot = await getDocs(userQuery);
-            const userData = userSnapshot.docs[0]?.data() || { name: 'Unknown', email: 'unknown@example.com' };
+            let userData = { name: 'Unknown', email: 'unknown@example.com' };
+
+            if (requestData.user_id && typeof requestData.user_id === 'string') {
+              try {
+                const userQuery = query(collection(db, 'users'), where('__name__', '==', requestData.user_id));
+                const userSnapshot = await getDocs(userQuery);
+                if (!userSnapshot.empty && userSnapshot.docs[0]?.data()) {
+                  const fetchedUserData = userSnapshot.docs[0].data();
+                  userData = {
+                    name: fetchedUserData.name || 'Unknown',
+                    email: fetchedUserData.email || 'unknown@example.com',
+                  };
+                }
+              } catch (error) {
+                console.error('Error fetching user data:', error);
+              }
+            }
 
             return {
               id: docSnap.id,
               ticket_number: requestData.ticket_number || '',
-              user_id: requestData.user_id,
+              user_id: requestData.user_id || '',
               job_role: requestData.job_role || '',
               company_name: requestData.company_name || null,
               experience_level: requestData.experience_level || '',
@@ -164,20 +186,23 @@ export default function AdminDashboard() {
               scheduled_date: requestData.scheduled_date || null,
               scheduled_time: requestData.scheduled_time || null,
               created_at: requestData.created_at || '',
-              users: {
-                name: userData.name || 'Unknown',
-                email: userData.email || 'unknown@example.com',
-              },
+              users: userData,
             };
           })
         );
 
         setMockRequests(requestsData);
+      },
+      (error) => {
+        console.error('Error in requests snapshot:', error);
+        setLoading(false);
       });
 
       const hrUsersQuery = query(usersRef, where('role', '==', 'hr'));
 
-      const unsubscribeHR = onSnapshot(hrUsersQuery, (snapshot) => {
+      const unsubscribeHR = onSnapshot(
+        hrUsersQuery,
+        (snapshot) => {
         const hrUsersData = snapshot.docs.map(docSnap => {
           const userData = docSnap.data();
           return {
@@ -192,6 +217,10 @@ export default function AdminDashboard() {
         });
 
         setHrUsers(hrUsersData);
+      },
+      (error) => {
+        console.error('Error in HR users snapshot:', error);
+        setLoading(false);
       });
 
       return () => {
@@ -201,6 +230,7 @@ export default function AdminDashboard() {
       };
     } catch (error) {
       console.error('Error loading admin data:', error);
+      setLoading(false);
     } finally {
       setLoading(false);
     }

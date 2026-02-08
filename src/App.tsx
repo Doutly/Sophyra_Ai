@@ -28,45 +28,55 @@ function App() {
             <Route
               path="/dashboard"
               element={
-                <ProtectedRoute allowedRoles={['candidate']}>
-                  <Dashboard />
-                </ProtectedRoute>
+                <ErrorBoundary>
+                  <ProtectedRoute allowedRoles={['candidate']}>
+                    <Dashboard />
+                  </ProtectedRoute>
+                </ErrorBoundary>
               }
             />
 
             <Route
               path="/profile"
               element={
-                <ProtectedRoute allowedRoles={['candidate']}>
-                  <Profile />
-                </ProtectedRoute>
+                <ErrorBoundary>
+                  <ProtectedRoute allowedRoles={['candidate']}>
+                    <Profile />
+                  </ProtectedRoute>
+                </ErrorBoundary>
               }
             />
 
             <Route
               path="/hr-dashboard"
               element={
-                <ProtectedRoute allowedRoles={['hr']} requireApproval={true}>
-                  <HRDashboard />
-                </ProtectedRoute>
+                <ErrorBoundary>
+                  <ProtectedRoute allowedRoles={['hr']} requireApproval={true}>
+                    <HRDashboard />
+                  </ProtectedRoute>
+                </ErrorBoundary>
               }
             />
 
             <Route
               path="/pending-approval"
               element={
-                <ProtectedRoute allowedRoles={['hr']}>
-                  <PendingApproval />
-                </ProtectedRoute>
+                <ErrorBoundary>
+                  <ProtectedRoute allowedRoles={['hr']}>
+                    <PendingApproval />
+                  </ProtectedRoute>
+                </ErrorBoundary>
               }
             />
 
             <Route
               path="/admin"
               element={
-                <ProtectedRoute allowedRoles={['admin']}>
-                  <AdminDashboard />
-                </ProtectedRoute>
+                <ErrorBoundary>
+                  <ProtectedRoute allowedRoles={['admin']}>
+                    <AdminDashboard />
+                  </ProtectedRoute>
+                </ErrorBoundary>
               }
             />
 

@@ -90,53 +90,83 @@ export default function Dashboard() {
 
     try {
       const userRef = doc(db, 'users', user.uid);
-      const unsubscribeUser = onSnapshot(userRef, (snapshot) => {
-        if (snapshot.exists()) {
-          setUserName(snapshot.data().name || '');
+      const unsubscribeUser = onSnapshot(
+        userRef,
+        (snapshot) => {
+          if (snapshot.exists()) {
+            setUserName(snapshot.data().name || '');
+          }
+        },
+        (error) => {
+          console.error('Error in user snapshot:', error);
+          setError('Failed to load user data. Please refresh the page.');
         }
-      });
+      );
 
       const sessionsQuery = query(
         collection(db, 'sessions'),
         where('userId', '==', user.uid)
       );
 
-      const unsubscribeSessions = onSnapshot(sessionsQuery, async (sessionsSnapshot) => {
-        const sessionIds = sessionsSnapshot.docs.map(d => d.id);
+      const unsubscribeSessions = onSnapshot(
+        sessionsQuery,
+        async (sessionsSnapshot) => {
+          try {
+            const sessionIds = sessionsSnapshot.docs.map(d => d.id);
 
-        if (sessionIds.length > 0) {
-          const reportsQuery = query(
-            collection(db, 'reports'),
-            where('sessionId', 'in', sessionIds.slice(0, 10)),
-            orderBy('createdAt', 'desc'),
-            firestoreLimit(10)
-          );
+            if (sessionIds.length > 0) {
+              const reportsQuery = query(
+                collection(db, 'reports'),
+                where('sessionId', 'in', sessionIds.slice(0, 10)),
+                orderBy('createdAt', 'desc'),
+                firestoreLimit(10)
+              );
 
-          onSnapshot(reportsQuery, async (reportsSnapshot) => {
-            const reportsWithSessions = await Promise.all(
-              reportsSnapshot.docs.map(async (reportDoc) => {
-                const reportData = reportDoc.data();
-                const sessionRef = doc(db, 'sessions', reportData.sessionId);
-                const sessionSnap = await getDoc(sessionRef);
-                const sessionData = sessionSnap.exists() ? sessionSnap.data() : null;
+              onSnapshot(
+                reportsQuery,
+                async (reportsSnapshot) => {
+                  try {
+                    const reportsWithSessions = await Promise.all(
+                      reportsSnapshot.docs.map(async (reportDoc) => {
+                        const reportData = reportDoc.data();
+                        const sessionRef = doc(db, 'sessions', reportData.sessionId);
+                        const sessionSnap = await getDoc(sessionRef);
+                        const sessionData = sessionSnap.exists() ? sessionSnap.data() : null;
 
-                return {
-                  id: reportDoc.id,
-                  session_id: reportData.sessionId,
-                  overall_score: reportData.overallScore,
-                  created_at: reportData.createdAt?.toDate().toISOString() || new Date().toISOString(),
-                  session: {
-                    role: sessionData?.role || '',
-                    company: sessionData?.company || null
+                        return {
+                          id: reportDoc.id,
+                          session_id: reportData.sessionId,
+                          overall_score: reportData.overallScore || 0,
+                          created_at: reportData.createdAt?.toDate()?.toISOString() || new Date().toISOString(),
+                          session: {
+                            role: sessionData?.role || '',
+                            company: sessionData?.company || null
+                          }
+                        };
+                      })
+                    );
+
+                    setReports(reportsWithSessions);
+                  } catch (error) {
+                    console.error('Error processing reports:', error);
                   }
-                };
-              })
-            );
-
-            setReports(reportsWithSessions);
-          });
+                },
+                (error) => {
+                  console.error('Error in reports snapshot:', error);
+                }
+              );
+            } else {
+              setReports([]);
+            }
+          } catch (error) {
+            console.error('Error processing sessions:', error);
+          }
+        },
+        (error) => {
+          console.error('Error in sessions snapshot:', error);
+          setError('Failed to load interview sessions. Please refresh the page.');
         }
-      });
+      );
 
       const tipsQuery = query(
         collection(db, 'tips'),
@@ -144,19 +174,25 @@ export default function Dashboard() {
         firestoreLimit(1)
       );
 
-      const unsubscribeTips = onSnapshot(tipsQuery, (tipsSnapshot) => {
-        if (!tipsSnapshot.empty) {
-          const tipData = tipsSnapshot.docs[0].data();
-          setTips({
-            id: tipsSnapshot.docs[0].id,
-            category: tipData.category || '',
-            identified_weaknesses: tipData.identifiedWeaknesses || [],
-            suggested_topics: tipData.suggestedTopics || []
-          });
-        } else {
-          setTips(null);
+      const unsubscribeTips = onSnapshot(
+        tipsQuery,
+        (tipsSnapshot) => {
+          if (!tipsSnapshot.empty) {
+            const tipData = tipsSnapshot.docs[0].data();
+            setTips({
+              id: tipsSnapshot.docs[0].id,
+              category: tipData.category || '',
+              identified_weaknesses: tipData.identifiedWeaknesses || [],
+              suggested_topics: tipData.suggestedTopics || []
+            });
+          } else {
+            setTips(null);
+          }
+        },
+        (error) => {
+          console.error('Error in tips snapshot:', error);
         }
-      });
+      );
 
       const requestsQuery = query(
         collection(db, 'mockInterviewRequests'),
@@ -165,25 +201,31 @@ export default function Dashboard() {
         firestoreLimit(5)
       );
 
-      const unsubscribeRequests = onSnapshot(requestsQuery, (requestsSnapshot) => {
-        const requestsData = requestsSnapshot.docs.map(d => {
-          const data = d.data();
-          return {
-            id: d.id,
-            ticket_number: data.ticket_number || '',
-            job_role: data.job_role || '',
-            company_name: data.company_name || null,
-            status: data.status || 'pending',
-            preferred_date: data.preferred_date || '',
-            preferred_time: data.preferred_time || '',
-            scheduled_date: data.scheduled_date || null,
-            scheduled_time: data.scheduled_time || null,
-            created_at: data.created_at || new Date().toISOString()
-          };
-        });
+      const unsubscribeRequests = onSnapshot(
+        requestsQuery,
+        (requestsSnapshot) => {
+          const requestsData = requestsSnapshot.docs.map(d => {
+            const data = d.data();
+            return {
+              id: d.id,
+              ticket_number: data.ticket_number || '',
+              job_role: data.job_role || '',
+              company_name: data.company_name || null,
+              status: data.status || 'pending',
+              preferred_date: data.preferred_date || '',
+              preferred_time: data.preferred_time || '',
+              scheduled_date: data.scheduled_date || null,
+              scheduled_time: data.scheduled_time || null,
+              created_at: data.created_at || new Date().toISOString()
+            };
+          });
 
-        setMockRequests(requestsData);
-      });
+          setMockRequests(requestsData);
+        },
+        (error) => {
+          console.error('Error in requests snapshot:', error);
+        }
+      );
 
       setLoading(false);
 

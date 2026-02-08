@@ -2,9 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { Mail, Lock, User, AlertCircle, UserCheck, Briefcase } from 'lucide-react';
-import { Database } from '../lib/database.types';
-
-type UserRole = Database['public']['Tables']['users']['Row']['role'];
+import { UserRole } from '../lib/firebase.types';
 
 export default function Auth() {
   const [searchParams] = useSearchParams();
@@ -16,7 +14,7 @@ export default function Auth() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [fullName, setFullName] = useState('');
-  const [selectedRole, setSelectedRole] = useState<UserRole>('student');
+  const [selectedRole, setSelectedRole] = useState<UserRole>('candidate');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [resetSent, setResetSent] = useState(false);

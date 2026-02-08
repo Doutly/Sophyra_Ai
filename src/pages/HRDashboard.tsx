@@ -57,19 +57,31 @@ export default function HRDashboard() {
     try {
       const requestsRef = collection(db, 'mockInterviewRequests');
 
-      const unsubscribe = onSnapshot(requestsRef, async (snapshot) => {
+      const unsubscribe = onSnapshot(
+        requestsRef,
+        async (snapshot) => {
         const allRequests = await Promise.all(
           snapshot.docs.map(async (docSnap) => {
             const data = docSnap.data();
 
-            const userQuery = query(collection(db, 'users'), where('__name__', '==', data.user_id));
-            const userSnapshot = await getDocs(userQuery);
-            const userData = userSnapshot.docs[0]?.data() || { name: 'Unknown', email: 'unknown@example.com' };
+            let userData = { name: 'Unknown', email: 'unknown@example.com' };
+
+            if (data.user_id && typeof data.user_id === 'string') {
+              try {
+                const userQuery = query(collection(db, 'users'), where('__name__', '==', data.user_id));
+                const userSnapshot = await getDocs(userQuery);
+                if (!userSnapshot.empty && userSnapshot.docs[0]?.data()) {
+                  userData = userSnapshot.docs[0].data() as { name: string; email: string };
+                }
+              } catch (error) {
+                console.error('Error fetching user data:', error);
+              }
+            }
 
             return {
               id: docSnap.id,
               ticket_number: data.ticket_number || '',
-              user_id: data.user_id,
+              user_id: data.user_id || '',
               job_role: data.job_role || '',
               company_name: data.company_name || null,
               experience_level: data.experience_level || '',
@@ -110,7 +122,13 @@ export default function HRDashboard() {
         setBookedInterviews(booked);
         setCompletedInterviews(completed);
         setLoading(false);
-      });
+      },
+      (error) => {
+        console.error('Error in tickets snapshot:', error);
+        setLoading(false);
+        alert('Failed to load tickets. Please refresh the page.');
+      }
+      );
 
       return unsubscribe;
     } catch (error) {

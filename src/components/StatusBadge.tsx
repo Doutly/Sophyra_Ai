@@ -1,5 +1,5 @@
 interface StatusBadgeProps {
-  status: 'pending' | 'approved' | 'rejected' | 'completed';
+  status: 'pending' | 'approved' | 'rejected' | 'completed' | 'booked';
   animate?: boolean;
   size?: 'sm' | 'md' | 'lg';
 }
@@ -35,6 +35,12 @@ export default function StatusBadge({ status, animate = false, size = 'md' }: St
       text: 'text-swiss-status-completed-text',
       label: 'Completed',
       icon: '★',
+    },
+    booked: {
+      bg: 'bg-green-100',
+      text: 'text-green-700',
+      label: 'Scheduled',
+      icon: '📅',
     },
   };
 

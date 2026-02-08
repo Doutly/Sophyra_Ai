@@ -1,8 +1,6 @@
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { Database } from '../lib/database.types';
-
-type UserRole = Database['public']['Tables']['users']['Row']['role'];
+import { UserRole } from '../lib/firebase.types';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
