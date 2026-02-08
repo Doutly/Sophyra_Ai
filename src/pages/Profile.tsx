@@ -34,7 +34,7 @@ export default function Profile() {
     loadProfile();
   }, [user, navigate]);
 
-  const loadProfile = async () => {
+  const loadProfile = async (retryCount = 0) => {
     if (!user) return;
 
     try {
@@ -47,16 +47,37 @@ export default function Profile() {
           name: data.name || '',
           email: data.email || user.email || '',
           bio: data.bio || '',
+          experienceLevel: data.experienceLevel || '',
+          industry: data.industry || '',
+          careerGoals: data.careerGoals || '',
+        });
+        setResumeUrl(data.resumeUrl || null);
+      } else {
+        setFormData({
+          name: user.displayName || '',
+          email: user.email || '',
+          bio: '',
           experienceLevel: '',
           industry: '',
           careerGoals: '',
         });
-        setResumeUrl(data.resumeUrl || null);
       }
+      setLoading(false);
     } catch (error) {
       console.error('Error loading profile:', error);
-    } finally {
-      setLoading(false);
+      if (retryCount < 3) {
+        setTimeout(() => loadProfile(retryCount + 1), 1000 * (retryCount + 1));
+      } else {
+        setFormData({
+          name: user.displayName || '',
+          email: user.email || '',
+          bio: '',
+          experienceLevel: '',
+          industry: '',
+          careerGoals: '',
+        });
+        setLoading(false);
+      }
     }
   };
 
@@ -103,6 +124,9 @@ export default function Profile() {
       await updateDoc(userDocRef, {
         name: formData.name,
         bio: formData.bio,
+        experienceLevel: formData.experienceLevel,
+        industry: formData.industry,
+        careerGoals: formData.careerGoals,
         resumeUrl: resumeUrl,
         updatedAt: Timestamp.now(),
       });
@@ -110,6 +134,7 @@ export default function Profile() {
       setSuccess('Profile updated successfully');
       setTimeout(() => setSuccess(''), 3000);
     } catch (err: any) {
+      console.error('Error updating profile:', err);
       setError(err.message || 'Failed to update profile');
     } finally {
       setSaving(false);

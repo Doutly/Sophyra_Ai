@@ -2,9 +2,25 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { db } from '../lib/firebase';
-import { collection, query, where, orderBy, limit as firestoreLimit, getDocs, doc, getDoc } from 'firebase/firestore';
+import { collection, query, where, orderBy, limit as firestoreLimit, getDocs, doc, getDoc, onSnapshot } from 'firebase/firestore';
 import { Play, FileText, Share2, Download, TrendingUp, Target, Lightbulb, LogOut, User as UserIcon, Ticket, Calendar, Clock, AlertCircle } from 'lucide-react';
 import StatusBadge from '../components/StatusBadge';
+
+const DEFAULT_TIPS = {
+  identified_weaknesses: [
+    'Maintain consistent eye contact and smile naturally',
+    'Use the STAR method for behavioral questions',
+    'Practice active listening and avoid interrupting',
+    'Prepare thoughtful questions for the interviewer',
+  ],
+  suggested_topics: [
+    'Company Research',
+    'Technical Preparation',
+    'Common Interview Questions',
+    'Salary Negotiation',
+    'Follow-up Etiquette',
+  ],
+};
 
 interface Report {
   id: string;
@@ -74,97 +90,112 @@ export default function Dashboard() {
 
     try {
       const userRef = doc(db, 'users', user.uid);
-      const userSnap = await getDoc(userRef);
-
-      if (userSnap.exists()) {
-        setUserName(userSnap.data().name || '');
-      }
+      const unsubscribeUser = onSnapshot(userRef, (snapshot) => {
+        if (snapshot.exists()) {
+          setUserName(snapshot.data().name || '');
+        }
+      });
 
       const sessionsQuery = query(
         collection(db, 'sessions'),
         where('userId', '==', user.uid)
       );
-      const sessionsSnapshot = await getDocs(sessionsQuery);
-      const sessionIds = sessionsSnapshot.docs.map(d => d.id);
 
-      if (sessionIds.length > 0) {
-        const reportsQuery = query(
-          collection(db, 'reports'),
-          where('sessionId', 'in', sessionIds.slice(0, 10)),
-          orderBy('createdAt', 'desc'),
-          firestoreLimit(10)
-        );
-        const reportsSnapshot = await getDocs(reportsQuery);
+      const unsubscribeSessions = onSnapshot(sessionsQuery, async (sessionsSnapshot) => {
+        const sessionIds = sessionsSnapshot.docs.map(d => d.id);
 
-        const reportsWithSessions = await Promise.all(
-          reportsSnapshot.docs.map(async (reportDoc) => {
-            const reportData = reportDoc.data();
-            const sessionRef = doc(db, 'sessions', reportData.sessionId);
-            const sessionSnap = await getDoc(sessionRef);
-            const sessionData = sessionSnap.exists() ? sessionSnap.data() : null;
+        if (sessionIds.length > 0) {
+          const reportsQuery = query(
+            collection(db, 'reports'),
+            where('sessionId', 'in', sessionIds.slice(0, 10)),
+            orderBy('createdAt', 'desc'),
+            firestoreLimit(10)
+          );
 
-            return {
-              id: reportDoc.id,
-              session_id: reportData.sessionId,
-              overall_score: reportData.overallScore,
-              created_at: reportData.createdAt?.toDate().toISOString() || new Date().toISOString(),
-              session: {
-                role: sessionData?.role || '',
-                company: sessionData?.company || null
-              }
-            };
-          })
-        );
+          onSnapshot(reportsQuery, async (reportsSnapshot) => {
+            const reportsWithSessions = await Promise.all(
+              reportsSnapshot.docs.map(async (reportDoc) => {
+                const reportData = reportDoc.data();
+                const sessionRef = doc(db, 'sessions', reportData.sessionId);
+                const sessionSnap = await getDoc(sessionRef);
+                const sessionData = sessionSnap.exists() ? sessionSnap.data() : null;
 
-        setReports(reportsWithSessions);
-      }
+                return {
+                  id: reportDoc.id,
+                  session_id: reportData.sessionId,
+                  overall_score: reportData.overallScore,
+                  created_at: reportData.createdAt?.toDate().toISOString() || new Date().toISOString(),
+                  session: {
+                    role: sessionData?.role || '',
+                    company: sessionData?.company || null
+                  }
+                };
+              })
+            );
+
+            setReports(reportsWithSessions);
+          });
+        }
+      });
 
       const tipsQuery = query(
         collection(db, 'tips'),
         where('userId', '==', user.uid),
         firestoreLimit(1)
       );
-      const tipsSnapshot = await getDocs(tipsQuery);
 
-      if (!tipsSnapshot.empty) {
-        const tipData = tipsSnapshot.docs[0].data();
-        setTips({
-          id: tipsSnapshot.docs[0].id,
-          category: tipData.category || '',
-          identified_weaknesses: tipData.identifiedWeaknesses || [],
-          suggested_topics: tipData.suggestedTopics || []
-        });
-      }
+      const unsubscribeTips = onSnapshot(tipsQuery, (tipsSnapshot) => {
+        if (!tipsSnapshot.empty) {
+          const tipData = tipsSnapshot.docs[0].data();
+          setTips({
+            id: tipsSnapshot.docs[0].id,
+            category: tipData.category || '',
+            identified_weaknesses: tipData.identifiedWeaknesses || [],
+            suggested_topics: tipData.suggestedTopics || []
+          });
+        } else {
+          setTips(null);
+        }
+      });
 
       const requestsQuery = query(
         collection(db, 'mockInterviewRequests'),
-        where('userId', '==', user.uid),
-        orderBy('createdAt', 'desc'),
+        where('user_id', '==', user.uid),
+        orderBy('created_at', 'desc'),
         firestoreLimit(5)
       );
-      const requestsSnapshot = await getDocs(requestsQuery);
 
-      const requestsData = requestsSnapshot.docs.map(d => {
-        const data = d.data();
-        return {
-          id: d.id,
-          ticket_number: data.ticketNumber,
-          job_role: data.jobRole,
-          company_name: data.companyName,
-          status: data.status,
-          preferred_date: data.preferredDate,
-          preferred_time: data.preferredTime,
-          scheduled_date: data.scheduledDate || null,
-          scheduled_time: data.scheduledTime || null,
-          created_at: data.createdAt?.toDate().toISOString() || new Date().toISOString()
-        };
+      const unsubscribeRequests = onSnapshot(requestsQuery, (requestsSnapshot) => {
+        const requestsData = requestsSnapshot.docs.map(d => {
+          const data = d.data();
+          return {
+            id: d.id,
+            ticket_number: data.ticket_number || '',
+            job_role: data.job_role || '',
+            company_name: data.company_name || null,
+            status: data.status || 'pending',
+            preferred_date: data.preferred_date || '',
+            preferred_time: data.preferred_time || '',
+            scheduled_date: data.scheduled_date || null,
+            scheduled_time: data.scheduled_time || null,
+            created_at: data.created_at || new Date().toISOString()
+          };
+        });
+
+        setMockRequests(requestsData);
       });
 
-      setMockRequests(requestsData);
+      setLoading(false);
+
+      return () => {
+        unsubscribeUser();
+        unsubscribeSessions();
+        unsubscribeTips();
+        unsubscribeRequests();
+      };
     } catch (err: any) {
       console.error('Error loading dashboard:', err);
       setError(err.message || 'Failed to load dashboard data. Please try again.');
-    } finally {
       setLoading(false);
     }
   };
@@ -432,43 +463,42 @@ export default function Dashboard() {
                 <Lightbulb className="w-5 h-5 text-yellow-500" />
               </div>
 
-              {tips ? (
-                <div className="space-y-3">
-                  {tips.identified_weaknesses && tips.identified_weaknesses.length > 0 && (
-                    <div>
-                      <h3 className="text-xs font-semibold text-gray-700 mb-1.5">Focus Areas</h3>
-                      <ul className="space-y-1.5">
-                        {tips.identified_weaknesses.slice(0, 2).map((weakness, idx) => (
-                          <li key={idx} className="text-xs text-gray-600 flex items-start">
-                            <span className="w-1 h-1 bg-brand-electric rounded-full mt-1.5 mr-2 flex-shrink-0"></span>
-                            {weakness}
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
+              <div className="space-y-3">
+                {!tips && (
+                  <div className="mb-2 px-2 py-1 bg-blue-50 border border-blue-200 rounded text-xs text-blue-700">
+                    General tips - Complete an interview for personalized recommendations
+                  </div>
+                )}
+                {(tips?.identified_weaknesses || DEFAULT_TIPS.identified_weaknesses).length > 0 && (
+                  <div>
+                    <h3 className="text-xs font-semibold text-gray-700 mb-1.5">Focus Areas</h3>
+                    <ul className="space-y-1.5">
+                      {(tips?.identified_weaknesses || DEFAULT_TIPS.identified_weaknesses).slice(0, 3).map((weakness, idx) => (
+                        <li key={idx} className="text-xs text-gray-600 flex items-start">
+                          <span className="w-1 h-1 bg-brand-electric rounded-full mt-1.5 mr-2 flex-shrink-0"></span>
+                          {weakness}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
 
-                  {tips.suggested_topics && tips.suggested_topics.length > 0 && (
-                    <div>
-                      <h3 className="text-xs font-semibold text-gray-700 mb-1.5">Topics</h3>
-                      <div className="flex flex-wrap gap-1.5">
-                        {tips.suggested_topics.slice(0, 3).map((topic, idx) => (
-                          <span
-                            key={idx}
-                            className="px-2 py-0.5 bg-brand-electric/10 text-brand-electric text-xs font-medium rounded-full"
-                          >
-                            {topic}
-                          </span>
-                        ))}
-                      </div>
+                {(tips?.suggested_topics || DEFAULT_TIPS.suggested_topics).length > 0 && (
+                  <div>
+                    <h3 className="text-xs font-semibold text-gray-700 mb-1.5">Preparation Topics</h3>
+                    <div className="flex flex-wrap gap-1.5">
+                      {(tips?.suggested_topics || DEFAULT_TIPS.suggested_topics).slice(0, 4).map((topic, idx) => (
+                        <span
+                          key={idx}
+                          className="px-2 py-0.5 bg-brand-electric/10 text-brand-electric text-xs font-medium rounded-full"
+                        >
+                          {topic}
+                        </span>
+                      ))}
                     </div>
-                  )}
-                </div>
-              ) : (
-                <div className="text-center py-6">
-                  <p className="text-xs text-gray-600">Complete an interview for tips</p>
-                </div>
-              )}
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </div>

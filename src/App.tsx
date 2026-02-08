@@ -28,7 +28,7 @@ function App() {
             <Route
               path="/dashboard"
               element={
-                <ProtectedRoute allowedRoles={['student']}>
+                <ProtectedRoute allowedRoles={['candidate']}>
                   <Dashboard />
                 </ProtectedRoute>
               }
@@ -37,7 +37,7 @@ function App() {
             <Route
               path="/profile"
               element={
-                <ProtectedRoute allowedRoles={['student']}>
+                <ProtectedRoute allowedRoles={['candidate']}>
                   <Profile />
                 </ProtectedRoute>
               }
@@ -73,7 +73,7 @@ function App() {
             <Route
               path="/interview/setup"
               element={
-                <ProtectedRoute allowedRoles={['student']}>
+                <ProtectedRoute allowedRoles={['candidate']}>
                   <InterviewSetup />
                 </ProtectedRoute>
               }
@@ -82,7 +82,7 @@ function App() {
             <Route
               path="/interview/:sessionId"
               element={
-                <ProtectedRoute allowedRoles={['student']}>
+                <ProtectedRoute allowedRoles={['candidate']}>
                   <InterviewRoomV2 />
                 </ProtectedRoute>
               }
@@ -91,7 +91,7 @@ function App() {
             <Route
               path="/interview/manual"
               element={
-                <ProtectedRoute allowedRoles={['student']}>
+                <ProtectedRoute allowedRoles={['candidate']}>
                   <ManualMockInterview />
                 </ProtectedRoute>
               }
@@ -100,7 +100,7 @@ function App() {
             <Route
               path="/report/:reportId"
               element={
-                <ProtectedRoute allowedRoles={['student']}>
+                <ProtectedRoute allowedRoles={['candidate']}>
                   <Report />
                 </ProtectedRoute>
               }

@@ -30,7 +30,7 @@ export default function Hero({ onStartMockTest, onSignIn }: HeroProps) {
               <span className="text-sm font-medium text-brand-electric-dark">Live AI HR Interviews</span>
             </div>
 
-            <h1 className="text-5xl sm:text-6xl lg:text-7xl font-bold leading-[1.1] tracking-tight text-gray-900">
+            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold leading-tight tracking-tight text-gray-900">
               Sophyra decides{' '}
               <span className="text-brand-electric">before the interviewer does</span>
             </h1>

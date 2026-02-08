@@ -37,7 +37,7 @@ export default function ProtectedRoute({
   }
 
   if (allowedRoles && role && !allowedRoles.includes(role)) {
-    if (role === 'student') return <Navigate to="/dashboard" replace />;
+    if (role === 'candidate') return <Navigate to="/dashboard" replace />;
     if (role === 'hr') return <Navigate to="/hr-dashboard" replace />;
     if (role === 'admin') return <Navigate to="/admin" replace />;
     return <Navigate to="/dashboard" replace />;

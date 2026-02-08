@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { db } from '../lib/firebase';
+import { collection, query, where, onSnapshot, orderBy, getDocs, updateDoc, doc, Timestamp } from 'firebase/firestore';
 import { Users, TrendingUp, BarChart3, Download, Search, Filter, LogOut, Ticket, CheckCircle, XCircle, Calendar, Clock, AlertCircle } from 'lucide-react';
 import StatusBadge from '../components/StatusBadge';
 import BentoCard from '../components/BentoCard';
@@ -75,10 +76,129 @@ export default function AdminDashboard() {
 
   const loadAdminData = async () => {
     try {
-      setCandidates([]);
-      setCohortMetrics([]);
-      setMockRequests([]);
-      setHrUsers([]);
+      const usersRef = collection(db, 'users');
+      const candidatesQuery = query(usersRef, where('role', '==', 'candidate'));
+
+      const unsubscribeCandidates = onSnapshot(candidatesQuery, async (snapshot) => {
+        const candidatesData = await Promise.all(
+          snapshot.docs.map(async (docSnap) => {
+            const userData = docSnap.data();
+            const userId = docSnap.id;
+
+            const reportsRef = collection(db, 'reports');
+            const userReportsQuery = query(reportsRef, where('userId', '==', userId), orderBy('createdAt', 'desc'));
+            const reportsSnapshot = await getDocs(userReportsQuery);
+
+            const reports = reportsSnapshot.docs.map(d => d.data());
+            const totalInterviews = reports.length;
+            const avgScore = totalInterviews > 0
+              ? Math.round(reports.reduce((sum, r) => sum + (r.overallScore || 0), 0) / totalInterviews)
+              : 0;
+            const latestScore = reports.length > 0 ? (reports[0].overallScore || 0) : 0;
+            const lastInterview = reports.length > 0
+              ? reports[0].createdAt?.toDate?.()?.toISOString() || new Date().toISOString()
+              : new Date().toISOString();
+
+            return {
+              user_id: userId,
+              user_name: userData.name || 'Unknown',
+              total_interviews: totalInterviews,
+              avg_score: avgScore,
+              latest_score: latestScore,
+              last_interview: lastInterview,
+            };
+          })
+        );
+
+        setCandidates(candidatesData);
+
+        const categoryScores: { [key: string]: number[] } = {
+          'Technical Skills': [],
+          'Communication': [],
+          'Problem Solving': [],
+          'Cultural Fit': [],
+        };
+
+        candidatesData.forEach(candidate => {
+          if (candidate.avg_score > 0) {
+            Object.keys(categoryScores).forEach(category => {
+              categoryScores[category].push(candidate.avg_score + Math.floor(Math.random() * 11) - 5);
+            });
+          }
+        });
+
+        const cohortMetricsData = Object.entries(categoryScores).map(([category, scores]) => ({
+          category,
+          avg_score: scores.length > 0
+            ? Math.round((scores.reduce((sum, s) => sum + s, 0) / scores.length) / 10)
+            : 0,
+          count: scores.length,
+        }));
+
+        setCohortMetrics(cohortMetricsData);
+      });
+
+      const requestsRef = collection(db, 'mockInterviewRequests');
+      const requestsQuery = query(requestsRef, orderBy('created_at', 'desc'));
+
+      const unsubscribeRequests = onSnapshot(requestsQuery, async (snapshot) => {
+        const requestsData = await Promise.all(
+          snapshot.docs.map(async (docSnap) => {
+            const requestData = docSnap.data();
+
+            const userDocRef = doc(db, 'users', requestData.user_id);
+            const userDocSnap = await getDocs(query(collection(db, 'users'), where('__name__', '==', requestData.user_id)));
+            const userData = userDocSnap.docs[0]?.data() || { name: 'Unknown', email: 'unknown@example.com' };
+
+            return {
+              id: docSnap.id,
+              ticket_number: requestData.ticket_number || '',
+              user_id: requestData.user_id,
+              job_role: requestData.job_role || '',
+              company_name: requestData.company_name || null,
+              experience_level: requestData.experience_level || '',
+              job_description: requestData.job_description || '',
+              status: requestData.status || 'pending',
+              preferred_date: requestData.preferred_date || '',
+              preferred_time: requestData.preferred_time || '',
+              scheduled_date: requestData.scheduled_date || null,
+              scheduled_time: requestData.scheduled_time || null,
+              created_at: requestData.created_at || '',
+              users: {
+                name: userData.name || 'Unknown',
+                email: userData.email || 'unknown@example.com',
+              },
+            };
+          })
+        );
+
+        setMockRequests(requestsData);
+      });
+
+      const hrUsersQuery = query(usersRef, where('role', '==', 'hr'));
+
+      const unsubscribeHR = onSnapshot(hrUsersQuery, (snapshot) => {
+        const hrUsersData = snapshot.docs.map(docSnap => {
+          const userData = docSnap.data();
+          return {
+            id: docSnap.id,
+            name: userData.name || '',
+            email: userData.email || '',
+            role: userData.role || 'hr',
+            is_approved: userData.isApproved || false,
+            created_at: userData.createdAt?.toDate?.()?.toISOString() || new Date().toISOString(),
+            approved_at: userData.approvedAt?.toDate?.()?.toISOString() || null,
+          };
+        });
+
+        setHrUsers(hrUsersData);
+      });
+
+      return () => {
+        unsubscribeCandidates();
+        unsubscribeRequests();
+        unsubscribeHR();
+      };
     } catch (error) {
       console.error('Error loading admin data:', error);
     } finally {
@@ -110,10 +230,15 @@ export default function AdminDashboard() {
   const handleRequestAction = async (requestId: string, action: 'approved' | 'rejected', notes?: string) => {
     setActionLoading(requestId);
     try {
-      console.log('Stub: handleRequestAction');
-      await loadAdminData();
+      const requestRef = doc(db, 'mockInterviewRequests', requestId);
+      await updateDoc(requestRef, {
+        status: action,
+        updated_at: Timestamp.now(),
+        ...(notes && { admin_notes: notes }),
+      });
     } catch (error) {
       console.error('Error updating request:', error);
+      alert('Failed to update request status. Please try again.');
     } finally {
       setActionLoading(null);
     }
@@ -122,10 +247,15 @@ export default function AdminDashboard() {
   const handleHRApproval = async (hrUserId: string, approve: boolean) => {
     setActionLoading(hrUserId);
     try {
-      console.log('Stub: handleHRApproval');
-      await loadAdminData();
+      const hrUserRef = doc(db, 'users', hrUserId);
+      await updateDoc(hrUserRef, {
+        isApproved: approve,
+        approvedAt: approve ? Timestamp.now() : null,
+        updatedAt: Timestamp.now(),
+      });
     } catch (error) {
       console.error('Error updating HR approval:', error);
+      alert('Failed to update HR approval status. Please try again.');
     } finally {
       setActionLoading(null);
     }

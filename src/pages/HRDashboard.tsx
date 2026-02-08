@@ -2,8 +2,8 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { db } from '../lib/firebase';
-import { collection, query, where, orderBy, getDocs, doc, updateDoc, serverTimestamp, getDoc } from 'firebase/firestore';
-import { LogOut, Ticket, Clock, Calendar, CheckCircle, XCircle, ExternalLink, User, Briefcase } from 'lucide-react';
+import { collection, query, where, orderBy, onSnapshot, doc, updateDoc, Timestamp } from 'firebase/firestore';
+import { LogOut, Ticket, Clock, Calendar, CheckCircle, XCircle, ExternalLink, User, Briefcase, Brain } from 'lucide-react';
 import StatusBadge from '../components/StatusBadge';
 
 interface MockInterviewRequest {
@@ -55,13 +55,68 @@ export default function HRDashboard() {
 
   const loadTickets = async () => {
     try {
-      setUnclaimedTickets([]);
-      setMyClaimedTickets([]);
-      setBookedInterviews([]);
-      setCompletedInterviews([]);
+      const requestsRef = collection(db, 'mockInterviewRequests');
+
+      const unsubscribe = onSnapshot(requestsRef, async (snapshot) => {
+        const allRequests = await Promise.all(
+          snapshot.docs.map(async (docSnap) => {
+            const data = docSnap.data();
+
+            const userQuery = query(collection(db, 'users'), where('__name__', '==', data.user_id));
+            const userSnapshot = await onSnapshot(userQuery, () => {});
+            const userData = (await import('firebase/firestore')).getDocs(userQuery).then(snap =>
+              snap.docs[0]?.data() || { name: 'Unknown', email: 'unknown@example.com' }
+            );
+
+            return {
+              id: docSnap.id,
+              ticket_number: data.ticket_number || '',
+              user_id: data.user_id,
+              job_role: data.job_role || '',
+              company_name: data.company_name || null,
+              experience_level: data.experience_level || '',
+              job_description: data.job_description || '',
+              status: data.status || 'pending',
+              booking_status: data.booking_status || 'unclaimed',
+              preferred_date: data.preferred_date || '',
+              preferred_time: data.preferred_time || '',
+              scheduled_date: data.scheduled_date || null,
+              scheduled_time: data.scheduled_time || null,
+              claimed_by: data.claimed_by || null,
+              claimed_at: data.claimed_at || null,
+              meeting_room_link: data.meeting_room_link || null,
+              created_at: data.created_at || '',
+              users: await userData,
+            };
+          })
+        );
+
+        const unclaimed = allRequests.filter(r =>
+          r.booking_status === 'unclaimed' && r.status === 'approved'
+        );
+
+        const myClaimed = allRequests.filter(r =>
+          r.booking_status === 'claimed' && r.claimed_by === user?.uid
+        );
+
+        const booked = allRequests.filter(r =>
+          r.booking_status === 'booked' && r.claimed_by === user?.uid
+        );
+
+        const completed = allRequests.filter(r =>
+          r.booking_status === 'completed' && r.claimed_by === user?.uid
+        );
+
+        setUnclaimedTickets(unclaimed);
+        setMyClaimedTickets(myClaimed);
+        setBookedInterviews(booked);
+        setCompletedInterviews(completed);
+        setLoading(false);
+      });
+
+      return unsubscribe;
     } catch (error) {
       console.error('Error loading tickets:', error);
-    } finally {
       setLoading(false);
     }
   };
@@ -69,22 +124,15 @@ export default function HRDashboard() {
   const handleClaimTicket = async (ticketId: string) => {
     setActionLoading(ticketId);
     try {
-      const { error } = await supabase
-        .from('mock_interview_requests')
-        .update({
-          claimed_by: user!.id,
-          claimed_at: new Date().toISOString(),
-          booking_status: 'claimed',
-        })
-        .eq('id', ticketId)
-        .eq('booking_status', 'unclaimed')
-        .is('claimed_by', null);
-
-      if (!error) {
-        await loadTickets();
-      }
+      const ticketRef = doc(db, 'mockInterviewRequests', ticketId);
+      await updateDoc(ticketRef, {
+        claimed_by: user!.uid,
+        claimed_at: new Date().toISOString(),
+        booking_status: 'claimed',
+      });
     } catch (error) {
       console.error('Error claiming ticket:', error);
+      alert('Failed to claim ticket. Please try again.');
     } finally {
       setActionLoading(null);
     }
@@ -93,21 +141,15 @@ export default function HRDashboard() {
   const handleReleaseTicket = async (ticketId: string) => {
     setActionLoading(ticketId);
     try {
-      const { error } = await supabase
-        .from('mock_interview_requests')
-        .update({
-          claimed_by: null,
-          claimed_at: null,
-          booking_status: 'unclaimed',
-        })
-        .eq('id', ticketId)
-        .eq('claimed_by', user!.id);
-
-      if (!error) {
-        await loadTickets();
-      }
+      const ticketRef = doc(db, 'mockInterviewRequests', ticketId);
+      await updateDoc(ticketRef, {
+        claimed_by: null,
+        claimed_at: null,
+        booking_status: 'unclaimed',
+      });
     } catch (error) {
       console.error('Error releasing ticket:', error);
+      alert('Failed to release ticket. Please try again.');
     } finally {
       setActionLoading(null);
     }
@@ -127,23 +169,19 @@ export default function HRDashboard() {
     try {
       const meetingLink = `https://meet.sophyra.ai/${selectedTicket.ticket_number}`;
 
-      const { error } = await supabase
-        .from('mock_interview_requests')
-        .update({
-          scheduled_date: bookingDate,
-          scheduled_time: bookingTime,
-          meeting_room_link: meetingLink,
-          booking_status: 'booked',
-        })
-        .eq('id', selectedTicket.id);
+      const ticketRef = doc(db, 'mockInterviewRequests', selectedTicket.id);
+      await updateDoc(ticketRef, {
+        scheduled_date: bookingDate,
+        scheduled_time: bookingTime,
+        meeting_room_link: meetingLink,
+        booking_status: 'booked',
+      });
 
-      if (!error) {
-        setShowBookingModal(false);
-        setSelectedTicket(null);
-        await loadTickets();
-      }
+      setShowBookingModal(false);
+      setSelectedTicket(null);
     } catch (error) {
       console.error('Error booking interview:', error);
+      alert('Failed to book interview. Please try again.');
     } finally {
       setActionLoading(null);
     }
@@ -152,19 +190,14 @@ export default function HRDashboard() {
   const handleMarkCompleted = async (ticketId: string) => {
     setActionLoading(ticketId);
     try {
-      const { error } = await supabase
-        .from('mock_interview_requests')
-        .update({
-          booking_status: 'completed',
-          status: 'completed',
-        })
-        .eq('id', ticketId);
-
-      if (!error) {
-        await loadTickets();
-      }
+      const ticketRef = doc(db, 'mockInterviewRequests', ticketId);
+      await updateDoc(ticketRef, {
+        booking_status: 'completed',
+        status: 'completed',
+      });
     } catch (error) {
       console.error('Error marking as completed:', error);
+      alert('Failed to mark as completed. Please try again.');
     } finally {
       setActionLoading(null);
     }
