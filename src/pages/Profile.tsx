@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
-import { Brain, User, Mail, Briefcase, Target, Upload, Save, ArrowLeft, AlertCircle } from 'lucide-react';
+import { User, Mail, Briefcase, Target, Upload, Save, ArrowLeft, AlertCircle } from 'lucide-react';
 
 export default function Profile() {
   const navigate = useNavigate();

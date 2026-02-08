@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
-import { Brain, AlertCircle, FileText, CheckCircle } from 'lucide-react';
+import { AlertCircle, FileText, CheckCircle } from 'lucide-react';
 import ResumeUploadParser from '../components/ResumeUploadParser';
 import { ParsedResume } from '../lib/resumeParser';
 

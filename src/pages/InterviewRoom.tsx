@@ -3,7 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
 import { generateQuestionWithGemini, evaluateAnswer } from '../lib/api';
-import { Brain, Mic, Video, VideoOff, Play, Square, Volume2, VolumeX, Power } from 'lucide-react';
+import { Mic, Video, VideoOff, Play, Square, Volume2, VolumeX, Power } from 'lucide-react';
 import { elevenLabs, conversationalVoiceConfig, professionalVoiceConfig } from '../lib/elevenLabs';
 import { ConversationalAI } from '../lib/conversationalAI';
 import VoiceAgentUI from '../components/VoiceAgentUI';

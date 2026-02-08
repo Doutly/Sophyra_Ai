@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
-import { Brain, Play, FileText, Share2, Download, TrendingUp, Target, Lightbulb, LogOut, User as UserIcon, Ticket, Calendar, Clock } from 'lucide-react';
+import { Play, FileText, Share2, Download, TrendingUp, Target, Lightbulb, LogOut, User as UserIcon, Ticket, Calendar, Clock, AlertCircle } from 'lucide-react';
 import StatusBadge from '../components/StatusBadge';
 
 interface Report {
@@ -43,6 +43,7 @@ export default function Dashboard() {
   const [tips, setTips] = useState<Tip | null>(null);
   const [mockRequests, setMockRequests] = useState<MockInterviewRequest[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [userName, setUserName] = useState('');
 
   useEffect(() => {
@@ -50,18 +51,37 @@ export default function Dashboard() {
       navigate('/auth?mode=signin');
       return;
     }
-    loadDashboardData();
+
+    const timeoutId = setTimeout(() => {
+      if (loading) {
+        setLoading(false);
+        setError('Loading took too long. Please try refreshing the page.');
+      }
+    }, 10000);
+
+    loadDashboardData().finally(() => {
+      clearTimeout(timeoutId);
+    });
+
+    return () => clearTimeout(timeoutId);
   }, [user, navigate]);
 
   const loadDashboardData = async () => {
     if (!user) return;
 
+    setError(null);
+
     try {
-      const { data: userData } = await supabase
+      const { data: userData, error: userError } = await supabase
         .from('users')
         .select('name')
         .eq('id', user.id)
         .maybeSingle();
+
+      if (userError) {
+        console.error('Error fetching user data:', userError);
+        throw userError;
+      }
 
       if (userData) {
         setUserName(userData.name);
@@ -117,8 +137,9 @@ export default function Dashboard() {
       if (requestsData) {
         setMockRequests(requestsData);
       }
-    } catch (error) {
-      console.error('Error loading dashboard:', error);
+    } catch (err: any) {
+      console.error('Error loading dashboard:', err);
+      setError(err.message || 'Failed to load dashboard data. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -142,6 +163,36 @@ export default function Dashboard() {
         <div className="text-center">
           <div className="w-16 h-16 border-4 border-brand-electric border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
           <p className="text-gray-600">Loading your dashboard...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center max-w-md mx-auto px-6">
+          <AlertCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">Something went wrong</h2>
+          <p className="text-gray-600 mb-6">{error}</p>
+          <div className="space-y-3">
+            <button
+              onClick={() => {
+                setLoading(true);
+                setError(null);
+                loadDashboardData();
+              }}
+              className="w-full px-6 py-3 bg-brand-electric text-white font-semibold rounded-lg hover:bg-brand-electric-dark transition-colors"
+            >
+              Retry
+            </button>
+            <button
+              onClick={() => navigate('/')}
+              className="w-full px-6 py-3 bg-gray-200 text-gray-700 font-semibold rounded-lg hover:bg-gray-300 transition-colors"
+            >
+              Go Home
+            </button>
+          </div>
         </div>
       </div>
     );
@@ -300,7 +351,7 @@ export default function Dashboard() {
             <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-200">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-lg font-bold text-gray-900">My Requests</h2>
-                <Ticket className="w-5 h-5 text-swiss-accent-teal" />
+                <Ticket className="w-5 h-5 text-brand-electric" />
               </div>
 
               {mockRequests.length === 0 ? (
@@ -309,7 +360,7 @@ export default function Dashboard() {
                   <p className="text-xs text-gray-600 mb-3">No requests yet</p>
                   <button
                     onClick={() => navigate('/interview/manual')}
-                    className="px-3 py-1.5 bg-swiss-accent-teal text-white text-xs font-medium rounded-lg hover:bg-swiss-accent-teal-dark transition-colors"
+                    className="px-3 py-1.5 bg-brand-electric text-white text-xs font-medium rounded-lg hover:bg-brand-electric-dark transition-colors"
                   >
                     Request Interview
                   </button>
@@ -319,7 +370,7 @@ export default function Dashboard() {
                   {mockRequests.slice(0, 3).map((request) => (
                     <div
                       key={request.id}
-                      className="border border-gray-200 rounded-lg p-3 hover:border-swiss-accent-teal hover:shadow-sm transition-all"
+                      className="border border-gray-200 rounded-lg p-3 hover:border-brand-electric hover:shadow-sm transition-all"
                     >
                       <div className="flex items-start justify-between mb-1">
                         <p className="text-sm font-medium text-gray-900 truncate flex-1 pr-2">{request.job_role}</p>
@@ -343,7 +394,7 @@ export default function Dashboard() {
                   ))}
 
                   {mockRequests.length > 3 && (
-                    <button className="w-full text-center text-sm text-swiss-accent-teal font-medium hover:underline py-1">
+                    <button className="w-full text-center text-sm text-brand-electric font-medium hover:underline py-1">
                       View All →
                     </button>
                   )}

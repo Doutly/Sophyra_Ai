@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
-import { Brain, Download, Share2, TrendingUp, AlertCircle, CheckCircle2, Target, ArrowLeft } from 'lucide-react';
+import { Download, Share2, TrendingUp, AlertCircle, CheckCircle2, Target, ArrowLeft } from 'lucide-react';
 
 interface Report {
   id: string;

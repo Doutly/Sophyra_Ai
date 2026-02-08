@@ -17,8 +17,8 @@ export default function BentoCard({
 
   const variantStyles = {
     default: 'bg-white border border-gray-200 shadow-swiss-sm hover:shadow-swiss-md',
-    featured: 'bg-gradient-to-br from-swiss-accent-teal-light to-white border border-swiss-accent-teal shadow-swiss-md hover:shadow-swiss-lg',
-    accent: 'bg-swiss-accent-teal-light border border-swiss-accent-teal shadow-swiss-sm hover:shadow-swiss-md',
+    featured: 'bg-gradient-to-br from-brand-electric/10 to-white border border-brand-electric shadow-swiss-md hover:shadow-swiss-lg',
+    accent: 'bg-brand-electric/10 border border-brand-electric shadow-swiss-sm hover:shadow-swiss-md',
   };
 
   const cursorStyle = onClick ? 'cursor-pointer' : '';

@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
-import { Brain, Users, TrendingUp, BarChart3, Download, Search, Filter, LogOut, Ticket, CheckCircle, XCircle, Calendar, Clock, AlertCircle } from 'lucide-react';
+import { Users, TrendingUp, BarChart3, Download, Search, Filter, LogOut, Ticket, CheckCircle, XCircle, Calendar, Clock, AlertCircle } from 'lucide-react';
 import StatusBadge from '../components/StatusBadge';
 import BentoCard from '../components/BentoCard';
 
@@ -335,7 +335,7 @@ export default function AdminDashboard() {
               onClick={() => setActiveTab('candidates')}
               className={`px-6 py-3 font-medium transition-all ${
                 activeTab === 'candidates'
-                  ? 'text-swiss-accent-teal border-b-2 border-swiss-accent-teal'
+                  ? 'text-brand-electric border-b-2 border-brand-electric'
                   : 'text-gray-600 hover:text-gray-900'
               }`}
             >
@@ -348,7 +348,7 @@ export default function AdminDashboard() {
               onClick={() => setActiveTab('requests')}
               className={`px-6 py-3 font-medium transition-all relative ${
                 activeTab === 'requests'
-                  ? 'text-swiss-accent-teal border-b-2 border-swiss-accent-teal'
+                  ? 'text-brand-electric border-b-2 border-brand-electric'
                   : 'text-gray-600 hover:text-gray-900'
               }`}
             >
@@ -366,7 +366,7 @@ export default function AdminDashboard() {
               onClick={() => setActiveTab('hr_approvals')}
               className={`px-6 py-3 font-medium transition-all relative ${
                 activeTab === 'hr_approvals'
-                  ? 'text-swiss-accent-teal border-b-2 border-swiss-accent-teal'
+                  ? 'text-brand-electric border-b-2 border-brand-electric'
                   : 'text-gray-600 hover:text-gray-900'
               }`}
             >
@@ -583,7 +583,7 @@ export default function AdminDashboard() {
             <div className="grid md:grid-cols-4 gap-6 mb-8">
               <BentoCard>
                 <div className="flex items-center justify-between mb-2">
-                  <Ticket className="w-8 h-8 text-swiss-accent-teal" />
+                  <Ticket className="w-8 h-8 text-brand-electric" />
                   <span className="text-sm text-gray-500">Total</span>
                 </div>
                 <div className="text-3xl font-bold text-gray-900">{requestStats.total}</div>
@@ -623,7 +623,7 @@ export default function AdminDashboard() {
                 <h2 className="text-xl font-bold text-gray-900">Interview Requests</h2>
                 <button
                   onClick={exportData}
-                  className="flex items-center space-x-2 px-4 py-2 bg-swiss-accent-teal text-white rounded-lg hover:bg-swiss-accent-teal-dark transition-colors"
+                  className="flex items-center space-x-2 px-4 py-2 bg-brand-electric text-white rounded-lg hover:bg-brand-electric-dark transition-colors"
                 >
                   <Download className="w-4 h-4" />
                   <span className="text-sm font-medium">Export</span>
@@ -638,13 +638,13 @@ export default function AdminDashboard() {
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     placeholder="Search by name, role, or ticket..."
-                    className="w-full pl-11 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-swiss-accent-teal focus:border-transparent"
+                    className="w-full pl-11 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-electric focus:border-transparent"
                   />
                 </div>
                 <select
                   value={statusFilter}
                   onChange={(e) => setStatusFilter(e.target.value)}
-                  className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-swiss-accent-teal focus:border-transparent"
+                  className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-electric focus:border-transparent"
                 >
                   <option value="all">All Status</option>
                   <option value="pending">Pending</option>
@@ -665,7 +665,7 @@ export default function AdminDashboard() {
                   filteredRequests.map((request) => (
                     <div
                       key={request.id}
-                      className="border border-gray-200 rounded-xl p-5 hover:border-swiss-accent-teal transition-all"
+                      className="border border-gray-200 rounded-xl p-5 hover:border-brand-electric transition-all"
                     >
                       <div className="flex items-start justify-between mb-3">
                         <div className="flex-1">
@@ -711,7 +711,7 @@ export default function AdminDashboard() {
                         )}
 
                         {request.status === 'approved' && !request.scheduled_date && (
-                          <div className="px-4 py-2 bg-swiss-accent-teal-light text-swiss-accent-teal text-sm font-medium rounded-lg flex items-center space-x-1">
+                          <div className="px-4 py-2 bg-brand-electric-light text-brand-electric text-sm font-medium rounded-lg flex items-center space-x-1">
                             <Calendar className="w-4 h-4" />
                             <span>Ready to Schedule</span>
                           </div>
@@ -720,7 +720,7 @@ export default function AdminDashboard() {
                         {request.scheduled_date && (
                           <div className="text-right">
                             <p className="text-xs text-gray-500 mb-1">Scheduled</p>
-                            <p className="text-sm font-semibold text-swiss-accent-teal">
+                            <p className="text-sm font-semibold text-brand-electric">
                               {new Date(request.scheduled_date).toLocaleDateString()}
                             </p>
                             <p className="text-xs text-gray-600">{request.scheduled_time}</p>
@@ -729,7 +729,7 @@ export default function AdminDashboard() {
                       </div>
 
                       <details className="mt-3 pt-3 border-t border-gray-200">
-                        <summary className="text-sm text-swiss-accent-teal font-medium cursor-pointer hover:underline">
+                        <summary className="text-sm text-brand-electric font-medium cursor-pointer hover:underline">
                           View Job Description
                         </summary>
                         <div className="mt-3 p-3 bg-gray-50 rounded-lg">
@@ -749,7 +749,7 @@ export default function AdminDashboard() {
             <div className="grid md:grid-cols-3 gap-6 mb-8">
               <BentoCard>
                 <div className="flex items-center justify-between mb-2">
-                  <Users className="w-8 h-8 text-swiss-accent-teal" />
+                  <Users className="w-8 h-8 text-brand-electric" />
                   <span className="text-sm text-gray-500">Total</span>
                 </div>
                 <div className="text-3xl font-bold text-gray-900">{hrUsers.length}</div>
@@ -788,7 +788,7 @@ export default function AdminDashboard() {
                   hrUsers.filter(h => !h.is_approved).map((hr) => (
                     <div
                       key={hr.id}
-                      className="border border-gray-200 rounded-xl p-5 hover:border-swiss-accent-teal transition-all"
+                      className="border border-gray-200 rounded-xl p-5 hover:border-brand-electric transition-all"
                     >
                       <div className="flex items-start justify-between">
                         <div className="flex-1">

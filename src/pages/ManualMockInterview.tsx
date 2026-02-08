@@ -87,34 +87,34 @@ export default function ManualMockInterview() {
                 Your mock interview request has been received and is now under review
               </p>
 
-              <div className="bg-white border-2 border-swiss-accent-teal rounded-lg p-6 mb-8 inline-block">
+              <div className="bg-white border-2 border-brand-electric rounded-lg p-6 mb-8 inline-block">
                 <p className="text-sm text-gray-500 mb-2">Your Ticket Number</p>
                 <div className="flex items-center space-x-3">
-                  <span className="text-2xl font-bold text-swiss-accent-teal">{ticketNumber}</span>
+                  <span className="text-2xl font-bold text-brand-electric">{ticketNumber}</span>
                   <button
                     onClick={copyTicketNumber}
-                    className="p-2 hover:bg-swiss-accent-teal-light rounded-lg transition-colors"
+                    className="p-2 hover:bg-brand-electric-light rounded-lg transition-colors"
                   >
-                    <Copy className="w-5 h-5 text-swiss-accent-teal" />
+                    <Copy className="w-5 h-5 text-brand-electric" />
                   </button>
                 </div>
               </div>
 
               <BentoGrid columns={3} gap="sm" className="mb-8">
                 <BentoCard className="text-center">
-                  <Calendar className="w-8 h-8 text-swiss-accent-teal mx-auto mb-2" />
+                  <Calendar className="w-8 h-8 text-brand-electric mx-auto mb-2" />
                   <p className="text-sm font-medium text-gray-700">Review Time</p>
                   <p className="text-xs text-gray-500">24-48 hours</p>
                 </BentoCard>
 
                 <BentoCard className="text-center">
-                  <FileText className="w-8 h-8 text-swiss-accent-teal mx-auto mb-2" />
+                  <FileText className="w-8 h-8 text-brand-electric mx-auto mb-2" />
                   <p className="text-sm font-medium text-gray-700">Status</p>
                   <p className="text-xs text-gray-500">Pending Review</p>
                 </BentoCard>
 
                 <BentoCard className="text-center">
-                  <Briefcase className="w-8 h-8 text-swiss-accent-teal mx-auto mb-2" />
+                  <Briefcase className="w-8 h-8 text-brand-electric mx-auto mb-2" />
                   <p className="text-sm font-medium text-gray-700">Role</p>
                   <p className="text-xs text-gray-500">{formData.jobRole}</p>
                 </BentoCard>
@@ -123,7 +123,7 @@ export default function ManualMockInterview() {
               <div className="space-y-3">
                 <button
                   onClick={() => navigate('/dashboard')}
-                  className="w-full px-6 py-3 bg-swiss-accent-teal text-white font-semibold rounded-lg hover:bg-swiss-accent-teal-dark transition-all"
+                  className="w-full px-6 py-3 bg-brand-electric text-white font-semibold rounded-lg hover:bg-brand-electric-dark transition-all"
                 >
                   Return to Dashboard
                 </button>
@@ -175,7 +175,7 @@ export default function ManualMockInterview() {
           <BentoGrid columns={1} gap="md">
             <BentoCard>
               <h2 className="text-xl font-bold text-gray-900 mb-6 flex items-center">
-                <Briefcase className="w-5 h-5 text-swiss-accent-teal mr-2" />
+                <Briefcase className="w-5 h-5 text-brand-electric mr-2" />
                 Position Details
               </h2>
 
@@ -191,7 +191,7 @@ export default function ManualMockInterview() {
                     onChange={handleChange}
                     required
                     placeholder="e.g., Software Engineer, Data Analyst"
-                    className="w-full px-4 py-3 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-swiss-accent-teal focus:border-transparent placeholder-gray-400 transition-all"
+                    className="w-full px-4 py-3 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-electric focus:border-transparent placeholder-gray-400 transition-all"
                   />
                 </div>
 
@@ -206,7 +206,7 @@ export default function ManualMockInterview() {
                       value={formData.companyName}
                       onChange={handleChange}
                       placeholder="e.g., Google, Microsoft"
-                      className="w-full px-4 py-3 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-swiss-accent-teal focus:border-transparent placeholder-gray-400 transition-all"
+                      className="w-full px-4 py-3 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-electric focus:border-transparent placeholder-gray-400 transition-all"
                     />
                   </div>
 
@@ -219,7 +219,7 @@ export default function ManualMockInterview() {
                       value={formData.experienceLevel}
                       onChange={handleChange}
                       required
-                      className="w-full px-4 py-3 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-swiss-accent-teal focus:border-transparent transition-all"
+                      className="w-full px-4 py-3 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-electric focus:border-transparent transition-all"
                     >
                       <option value="fresher">Fresher (0-2 years)</option>
                       <option value="mid">Mid-Level (2-5 years)</option>
@@ -232,7 +232,7 @@ export default function ManualMockInterview() {
 
             <BentoCard>
               <h2 className="text-xl font-bold text-gray-900 mb-6 flex items-center">
-                <FileText className="w-5 h-5 text-swiss-accent-teal mr-2" />
+                <FileText className="w-5 h-5 text-brand-electric mr-2" />
                 Job Description
               </h2>
 
@@ -247,7 +247,7 @@ export default function ManualMockInterview() {
                   required
                   rows={8}
                   placeholder="Paste the complete job description here..."
-                  className="w-full px-4 py-3 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-swiss-accent-teal focus:border-transparent placeholder-gray-400 resize-none transition-all"
+                  className="w-full px-4 py-3 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-electric focus:border-transparent placeholder-gray-400 resize-none transition-all"
                 />
                 <p className="text-xs text-gray-500 mt-2">
                   Include responsibilities, requirements, and qualifications for best results
@@ -257,7 +257,7 @@ export default function ManualMockInterview() {
 
             <BentoCard>
               <h2 className="text-xl font-bold text-gray-900 mb-6 flex items-center">
-                <Clock className="w-5 h-5 text-swiss-accent-teal mr-2" />
+                <Clock className="w-5 h-5 text-brand-electric mr-2" />
                 Scheduling Preferences
               </h2>
 
@@ -274,7 +274,7 @@ export default function ManualMockInterview() {
                       onChange={handleChange}
                       required
                       min={new Date().toISOString().split('T')[0]}
-                      className="w-full px-4 py-3 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-swiss-accent-teal focus:border-transparent transition-all"
+                      className="w-full px-4 py-3 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-electric focus:border-transparent transition-all"
                     />
                   </div>
 
@@ -288,7 +288,7 @@ export default function ManualMockInterview() {
                       value={formData.preferredTime}
                       onChange={handleChange}
                       required
-                      className="w-full px-4 py-3 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-swiss-accent-teal focus:border-transparent transition-all"
+                      className="w-full px-4 py-3 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-electric focus:border-transparent transition-all"
                     />
                   </div>
                 </div>
@@ -303,7 +303,7 @@ export default function ManualMockInterview() {
                     onChange={handleChange}
                     rows={4}
                     placeholder="Any specific areas you'd like to focus on or additional information..."
-                    className="w-full px-4 py-3 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-swiss-accent-teal focus:border-transparent placeholder-gray-400 resize-none transition-all"
+                    className="w-full px-4 py-3 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-electric focus:border-transparent placeholder-gray-400 resize-none transition-all"
                   />
                 </div>
               </div>
@@ -319,7 +319,7 @@ export default function ManualMockInterview() {
               <button
                 type="submit"
                 disabled={submitting}
-                className="w-full py-4 bg-swiss-accent-teal text-white font-semibold rounded-lg hover:bg-swiss-accent-teal-dark transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2 shadow-swiss-md"
+                className="w-full py-4 bg-brand-electric text-white font-semibold rounded-lg hover:bg-brand-electric-dark transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2 shadow-swiss-md"
               >
                 {submitting ? (
                   <>

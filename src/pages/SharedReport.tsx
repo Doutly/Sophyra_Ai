@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
-import { Brain, TrendingUp, AlertCircle, CheckCircle2, Target, ExternalLink } from 'lucide-react';
+import { TrendingUp, AlertCircle, CheckCircle2, Target, ExternalLink } from 'lucide-react';
 
 interface SharedReportData {
   id: string;

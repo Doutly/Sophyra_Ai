@@ -27,26 +27,37 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [role, setRole] = useState<UserRole | null>(null);
   const [isApproved, setIsApproved] = useState<boolean | null>(null);
 
-  const fetchUserData = async (userId: string) => {
-    try {
-      const { data, error } = await supabase
-        .from('users')
-        .select('role, is_approved')
-        .eq('id', userId)
-        .maybeSingle();
+  const fetchUserData = async (userId: string, retries = 5, delay = 200) => {
+    for (let i = 0; i < retries; i++) {
+      try {
+        const { data, error } = await supabase
+          .from('users')
+          .select('role, is_approved')
+          .eq('id', userId)
+          .maybeSingle();
 
-      if (data && !error) {
-        setRole(data.role);
-        setIsApproved(data.is_approved);
-      } else {
-        setRole(null);
-        setIsApproved(null);
+        if (data && !error) {
+          setRole(data.role);
+          setIsApproved(data.is_approved);
+          return;
+        }
+
+        if (i < retries - 1) {
+          await new Promise(resolve => setTimeout(resolve, delay * Math.pow(2, i)));
+        }
+      } catch (error) {
+        console.error(`Error fetching user data (attempt ${i + 1}/${retries}):`, error);
+        if (i === retries - 1) {
+          setRole(null);
+          setIsApproved(null);
+        } else {
+          await new Promise(resolve => setTimeout(resolve, delay * Math.pow(2, i)));
+        }
       }
-    } catch (error) {
-      console.error('Error fetching user data:', error);
-      setRole(null);
-      setIsApproved(null);
     }
+
+    setRole(null);
+    setIsApproved(null);
   };
 
   const refreshUserData = async () => {
@@ -80,29 +91,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const signUp = async (email: string, password: string, fullName: string, userRole: UserRole = 'student') => {
+    const isApproved = userRole === 'student' || userRole === 'admin';
+
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
         data: {
           full_name: fullName,
+          role: userRole,
+          is_approved: isApproved,
         },
       },
     });
 
     if (!error && data.user) {
-      const isApproved = userRole === 'student' || userRole === 'admin';
-
-      await supabase.from('users').insert({
-        id: data.user.id,
-        email: data.user.email!,
-        name: fullName,
-        role: userRole,
-        is_approved: isApproved,
-      });
-
-      setRole(userRole);
-      setIsApproved(isApproved);
+      await fetchUserData(data.user.id);
     }
 
     return { error };

@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
-import { Brain, LogOut, Ticket, Clock, Calendar, CheckCircle, XCircle, ExternalLink, User, Briefcase } from 'lucide-react';
+import { LogOut, Ticket, Clock, Calendar, CheckCircle, XCircle, ExternalLink, User, Briefcase } from 'lucide-react';
 import StatusBadge from '../components/StatusBadge';
 
 interface MockInterviewRequest {
