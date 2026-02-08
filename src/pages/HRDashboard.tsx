@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { supabase } from '../lib/supabase';
+import { db } from '../lib/firebase';
+import { collection, query, where, orderBy, getDocs, doc, updateDoc, serverTimestamp, getDoc } from 'firebase/firestore';
 import { LogOut, Ticket, Clock, Calendar, CheckCircle, XCircle, ExternalLink, User, Briefcase } from 'lucide-react';
 import StatusBadge from '../components/StatusBadge';
 
@@ -50,67 +51,14 @@ export default function HRDashboard() {
       return;
     }
     loadTickets();
-
-    const subscription = supabase
-      .channel('hr_tickets')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'mock_interview_requests' }, () => {
-        loadTickets();
-      })
-      .subscribe();
-
-    return () => {
-      subscription.unsubscribe();
-    };
   }, [user, navigate]);
 
   const loadTickets = async () => {
     try {
-      const { data: unclaimedData } = await supabase
-        .from('mock_interview_requests')
-        .select(`
-          *,
-          users:user_id (name, email)
-        `)
-        .eq('status', 'approved')
-        .eq('booking_status', 'unclaimed')
-        .is('claimed_by', null)
-        .order('created_at', { ascending: false });
-
-      const { data: myClaimedData } = await supabase
-        .from('mock_interview_requests')
-        .select(`
-          *,
-          users:user_id (name, email)
-        `)
-        .eq('claimed_by', user!.id)
-        .eq('booking_status', 'claimed')
-        .order('claimed_at', { ascending: false });
-
-      const { data: bookedData } = await supabase
-        .from('mock_interview_requests')
-        .select(`
-          *,
-          users:user_id (name, email)
-        `)
-        .eq('claimed_by', user!.id)
-        .eq('booking_status', 'booked')
-        .order('scheduled_date', { ascending: true });
-
-      const { data: completedData } = await supabase
-        .from('mock_interview_requests')
-        .select(`
-          *,
-          users:user_id (name, email)
-        `)
-        .eq('claimed_by', user!.id)
-        .eq('booking_status', 'completed')
-        .order('created_at', { ascending: false })
-        .limit(10);
-
-      setUnclaimedTickets(unclaimedData?.map(r => ({ ...r, users: Array.isArray(r.users) ? r.users[0] : r.users })) as any || []);
-      setMyClaimedTickets(myClaimedData?.map(r => ({ ...r, users: Array.isArray(r.users) ? r.users[0] : r.users })) as any || []);
-      setBookedInterviews(bookedData?.map(r => ({ ...r, users: Array.isArray(r.users) ? r.users[0] : r.users })) as any || []);
-      setCompletedInterviews(completedData?.map(r => ({ ...r, users: Array.isArray(r.users) ? r.users[0] : r.users })) as any || []);
+      setUnclaimedTickets([]);
+      setMyClaimedTickets([]);
+      setBookedInterviews([]);
+      setCompletedInterviews([]);
     } catch (error) {
       console.error('Error loading tickets:', error);
     } finally {

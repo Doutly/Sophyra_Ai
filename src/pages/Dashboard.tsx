@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { supabase } from '../lib/supabase';
+import { db } from '../lib/firebase';
+import { collection, query, where, orderBy, limit as firestoreLimit, getDocs, doc, getDoc } from 'firebase/firestore';
 import { Play, FileText, Share2, Download, TrendingUp, Target, Lightbulb, LogOut, User as UserIcon, Ticket, Calendar, Clock, AlertCircle } from 'lucide-react';
 import StatusBadge from '../components/StatusBadge';
 
@@ -72,71 +73,94 @@ export default function Dashboard() {
     setError(null);
 
     try {
-      const { data: userData, error: userError } = await supabase
-        .from('users')
-        .select('name')
-        .eq('id', user.id)
-        .maybeSingle();
+      const userRef = doc(db, 'users', user.uid);
+      const userSnap = await getDoc(userRef);
 
-      if (userError) {
-        console.error('Error fetching user data:', userError);
-        throw userError;
+      if (userSnap.exists()) {
+        setUserName(userSnap.data().name || '');
       }
 
-      if (userData) {
-        setUserName(userData.name);
+      const sessionsQuery = query(
+        collection(db, 'sessions'),
+        where('userId', '==', user.uid)
+      );
+      const sessionsSnapshot = await getDocs(sessionsQuery);
+      const sessionIds = sessionsSnapshot.docs.map(d => d.id);
+
+      if (sessionIds.length > 0) {
+        const reportsQuery = query(
+          collection(db, 'reports'),
+          where('sessionId', 'in', sessionIds.slice(0, 10)),
+          orderBy('createdAt', 'desc'),
+          firestoreLimit(10)
+        );
+        const reportsSnapshot = await getDocs(reportsQuery);
+
+        const reportsWithSessions = await Promise.all(
+          reportsSnapshot.docs.map(async (reportDoc) => {
+            const reportData = reportDoc.data();
+            const sessionRef = doc(db, 'sessions', reportData.sessionId);
+            const sessionSnap = await getDoc(sessionRef);
+            const sessionData = sessionSnap.exists() ? sessionSnap.data() : null;
+
+            return {
+              id: reportDoc.id,
+              session_id: reportData.sessionId,
+              overall_score: reportData.overallScore,
+              created_at: reportData.createdAt?.toDate().toISOString() || new Date().toISOString(),
+              session: {
+                role: sessionData?.role || '',
+                company: sessionData?.company || null
+              }
+            };
+          })
+        );
+
+        setReports(reportsWithSessions);
       }
 
-      const { data: sessionsData } = await supabase
-        .from('sessions')
-        .select('id')
-        .eq('user_id', user.id);
+      const tipsQuery = query(
+        collection(db, 'tips'),
+        where('userId', '==', user.uid),
+        firestoreLimit(1)
+      );
+      const tipsSnapshot = await getDocs(tipsQuery);
 
-      const sessionIds = sessionsData?.map(s => s.id) || [];
-
-      const { data: reportsData } = await supabase
-        .from('reports')
-        .select(`
-          id,
-          session_id,
-          overall_score,
-          created_at,
-          sessions:session_id (
-            role,
-            company
-          )
-        `)
-        .in('session_id', sessionIds.length > 0 ? sessionIds : ['00000000-0000-0000-0000-000000000000'])
-        .order('created_at', { ascending: false })
-        .limit(10);
-
-      if (reportsData) {
-        setReports(reportsData.map(r => ({
-          ...r,
-          session: Array.isArray(r.sessions) ? r.sessions[0] : r.sessions
-        })) as any);
+      if (!tipsSnapshot.empty) {
+        const tipData = tipsSnapshot.docs[0].data();
+        setTips({
+          id: tipsSnapshot.docs[0].id,
+          category: tipData.category || '',
+          identified_weaknesses: tipData.identifiedWeaknesses || [],
+          suggested_topics: tipData.suggestedTopics || []
+        });
       }
 
-      const { data: tipsData } = await supabase
-        .from('tips')
-        .select('*')
-        .eq('user_id', user.id)
-        .maybeSingle();
+      const requestsQuery = query(
+        collection(db, 'mockInterviewRequests'),
+        where('userId', '==', user.uid),
+        orderBy('createdAt', 'desc'),
+        firestoreLimit(5)
+      );
+      const requestsSnapshot = await getDocs(requestsQuery);
 
-      if (tipsData) {
-        setTips(tipsData);
-      }
+      const requestsData = requestsSnapshot.docs.map(d => {
+        const data = d.data();
+        return {
+          id: d.id,
+          ticket_number: data.ticketNumber,
+          job_role: data.jobRole,
+          company_name: data.companyName,
+          status: data.status,
+          preferred_date: data.preferredDate,
+          preferred_time: data.preferredTime,
+          scheduled_date: data.scheduledDate || null,
+          scheduled_time: data.scheduledTime || null,
+          created_at: data.createdAt?.toDate().toISOString() || new Date().toISOString()
+        };
+      });
 
-      const { data: requestsData } = await supabase
-        .from('mock_interview_requests')
-        .select('id, ticket_number, job_role, company_name, status, preferred_date, preferred_time, scheduled_date, scheduled_time, created_at')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false })
-        .limit(5);
-
-      if (requestsData) {
-        setMockRequests(requestsData);
-      }
+      setMockRequests(requestsData);
     } catch (err: any) {
       console.error('Error loading dashboard:', err);
       setError(err.message || 'Failed to load dashboard data. Please try again.');

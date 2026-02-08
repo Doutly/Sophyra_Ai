@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { supabase } from '../lib/supabase';
+import { db } from '../lib/firebase';
 import { Users, TrendingUp, BarChart3, Download, Search, Filter, LogOut, Ticket, CheckCircle, XCircle, Calendar, Clock, AlertCircle } from 'lucide-react';
 import StatusBadge from '../components/StatusBadge';
 import BentoCard from '../components/BentoCard';
@@ -75,111 +75,10 @@ export default function AdminDashboard() {
 
   const loadAdminData = async () => {
     try {
-      const { data: reportsData } = await supabase
-        .from('reports')
-        .select(`
-          overall_score,
-          performance_breakdown,
-          created_at,
-          sessions!inner (
-            user_id,
-            role,
-            experience_level,
-            users!inner (
-              name
-            )
-          )
-        `);
-
-      if (reportsData) {
-        const candidateMap = new Map<string, any>();
-
-        reportsData.forEach((report: any) => {
-          const userId = report.sessions.user_id;
-          const userName = report.sessions.users.name;
-
-          if (!candidateMap.has(userId)) {
-            candidateMap.set(userId, {
-              user_id: userId,
-              user_name: userName,
-              total_interviews: 0,
-              scores: [],
-              last_interview: report.created_at,
-            });
-          }
-
-          const candidate = candidateMap.get(userId);
-          candidate.total_interviews++;
-          candidate.scores.push(report.overall_score);
-          if (new Date(report.created_at) > new Date(candidate.last_interview)) {
-            candidate.last_interview = report.created_at;
-          }
-        });
-
-        const candidateStats: CandidateStats[] = Array.from(candidateMap.values()).map(c => ({
-          user_id: c.user_id,
-          user_name: c.user_name,
-          total_interviews: c.total_interviews,
-          avg_score: Math.round(c.scores.reduce((a: number, b: number) => a + b, 0) / c.scores.length),
-          latest_score: c.scores[c.scores.length - 1],
-          last_interview: c.last_interview,
-        }));
-
-        setCandidates(candidateStats);
-
-        const metrics: CohortMetric[] = [
-          {
-            category: 'Clarity',
-            avg_score: 7.5,
-            count: reportsData.length,
-          },
-          {
-            category: 'Confidence',
-            avg_score: 7.8,
-            count: reportsData.length,
-          },
-          {
-            category: 'Relevance',
-            avg_score: 7.2,
-            count: reportsData.length,
-          },
-          {
-            category: 'Professionalism',
-            avg_score: 8.1,
-            count: reportsData.length,
-          },
-        ];
-
-        setCohortMetrics(metrics);
-      }
-
-      const { data: requestsData } = await supabase
-        .from('mock_interview_requests')
-        .select(`
-          *,
-          users:user_id (
-            name,
-            email
-          )
-        `)
-        .order('created_at', { ascending: false });
-
-      if (requestsData) {
-        setMockRequests(requestsData.map(r => ({
-          ...r,
-          users: Array.isArray(r.users) ? r.users[0] : r.users
-        })) as any);
-      }
-
-      const { data: hrUsersData } = await supabase
-        .from('users')
-        .select('*')
-        .eq('role', 'hr')
-        .order('created_at', { ascending: false });
-
-      if (hrUsersData) {
-        setHrUsers(hrUsersData as any);
-      }
+      setCandidates([]);
+      setCohortMetrics([]);
+      setMockRequests([]);
+      setHrUsers([]);
     } catch (error) {
       console.error('Error loading admin data:', error);
     } finally {
@@ -211,25 +110,7 @@ export default function AdminDashboard() {
   const handleRequestAction = async (requestId: string, action: 'approved' | 'rejected', notes?: string) => {
     setActionLoading(requestId);
     try {
-      const { error } = await supabase
-        .from('mock_interview_requests')
-        .update({
-          status: action,
-          admin_notes: notes || null,
-        })
-        .eq('id', requestId);
-
-      if (error) throw error;
-
-      await supabase
-        .from('admin_actions')
-        .insert({
-          admin_id: user!.id,
-          action_type: action,
-          request_id: requestId,
-          notes: notes || null,
-        });
-
+      console.log('Stub: handleRequestAction');
       await loadAdminData();
     } catch (error) {
       console.error('Error updating request:', error);
@@ -241,26 +122,7 @@ export default function AdminDashboard() {
   const handleHRApproval = async (hrUserId: string, approve: boolean) => {
     setActionLoading(hrUserId);
     try {
-      if (approve) {
-        const { error } = await supabase
-          .from('users')
-          .update({
-            is_approved: true,
-            approved_by: user!.id,
-            approved_at: new Date().toISOString(),
-          })
-          .eq('id', hrUserId);
-
-        if (error) throw error;
-      } else {
-        const { error } = await supabase
-          .from('users')
-          .delete()
-          .eq('id', hrUserId);
-
-        if (error) throw error;
-      }
-
+      console.log('Stub: handleHRApproval');
       await loadAdminData();
     } catch (error) {
       console.error('Error updating HR approval:', error);

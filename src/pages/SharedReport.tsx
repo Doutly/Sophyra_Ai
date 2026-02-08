@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { supabase } from '../lib/supabase';
-import { TrendingUp, AlertCircle, CheckCircle2, Target, ExternalLink } from 'lucide-react';
+import { db } from '../lib/firebase';
+import { doc, getDoc, updateDoc, increment } from 'firebase/firestore';
+import { TrendingUp, AlertCircle, CheckCircle2, Target, ExternalLink, Brain } from 'lucide-react';
 
 interface SharedReportData {
   id: string;
@@ -44,52 +45,63 @@ export default function SharedReport() {
     }
 
     try {
-      const { data: shareData, error: shareError } = await supabase
-        .from('shares')
-        .select('report_id, expires_at, view_count')
-        .eq('share_token', shareToken)
-        .maybeSingle();
+      const shareRef = doc(db, 'shares', shareToken);
+      const shareSnap = await getDoc(shareRef);
 
-      if (shareError || !shareData) {
+      if (!shareSnap.exists()) {
         setError('Share link not found');
         setLoading(false);
         return;
       }
 
-      if (shareData.expires_at && new Date(shareData.expires_at) < new Date()) {
+      const shareData = shareSnap.data();
+
+      if (shareData.expiresAt && shareData.expiresAt.toDate() < new Date()) {
         setError('This share link has expired');
         setLoading(false);
         return;
       }
 
-      await supabase
-        .from('shares')
-        .update({ view_count: (shareData.view_count || 0) + 1 })
-        .eq('share_token', shareToken);
+      await updateDoc(shareRef, {
+        viewCount: increment(1)
+      });
 
-      const { data: reportData, error: reportError } = await supabase
-        .from('reports')
-        .select(`
-          *,
-          sessions:session_id (
-            role,
-            company,
-            experience_level
-          )
-        `)
-        .eq('id', shareData.report_id)
-        .maybeSingle();
+      const reportRef = doc(db, 'reports', shareData.reportId);
+      const reportSnap = await getDoc(reportRef);
 
-      if (reportError || !reportData) {
+      if (!reportSnap.exists()) {
         setError('Report not found');
         setLoading(false);
         return;
       }
 
+      const reportData = reportSnap.data();
+
+      const sessionRef = doc(db, 'sessions', reportData.sessionId);
+      const sessionSnap = await getDoc(sessionRef);
+
+      if (!sessionSnap.exists()) {
+        setError('Session not found');
+        setLoading(false);
+        return;
+      }
+
+      const sessionData = sessionSnap.data();
+
       setReport({
-        ...reportData,
-        sessions: Array.isArray(reportData.sessions) ? reportData.sessions[0] : reportData.sessions
-      } as any);
+        id: reportSnap.id,
+        overall_score: reportData.overallScore,
+        performance_breakdown: reportData.performanceBreakdown,
+        strengths: reportData.strengths,
+        gaps: reportData.gaps,
+        suggested_topics: reportData.suggestedTopics,
+        created_at: reportData.createdAt?.toDate().toISOString() || new Date().toISOString(),
+        sessions: {
+          role: sessionData.role,
+          company: sessionData.company || null,
+          experience_level: sessionData.experienceLevel
+        }
+      });
     } catch (err) {
       console.error('Error loading shared report:', err);
       setError('Failed to load report');

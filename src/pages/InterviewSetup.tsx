@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { supabase } from '../lib/supabase';
-import { AlertCircle, FileText, CheckCircle } from 'lucide-react';
+import { db } from '../lib/firebase';
+import { collection, addDoc, query, where, orderBy, limit, getDocs, serverTimestamp } from 'firebase/firestore';
+import { AlertCircle, FileText, CheckCircle, Brain } from 'lucide-react';
 import ResumeUploadParser from '../components/ResumeUploadParser';
 import { ParsedResume } from '../lib/resumeParser';
 
@@ -42,27 +43,22 @@ export default function InterviewSetup() {
     setError('');
 
     try {
-      const { error: saveError } = await supabase
-        .from('resume_data')
-        .insert({
-          user_id: user!.id,
-          name: parsed.name,
-          email: parsed.email,
-          phone: parsed.phone,
-          skills: parsed.skills,
-          experience: parsed.experience,
-          education: parsed.education,
-          summary: parsed.summary,
-          linked_in: parsed.linkedIn || '',
-          github: parsed.github || '',
-          website: parsed.website || '',
-          file_name: file.name,
-          file_size: file.size,
-        });
-
-      if (saveError) {
-        console.error('Failed to save resume data:', saveError);
-      }
+      await addDoc(collection(db, 'resumeData'), {
+        userId: user!.uid,
+        name: parsed.name,
+        email: parsed.email,
+        phone: parsed.phone,
+        skills: parsed.skills,
+        experience: parsed.experience,
+        education: parsed.education,
+        summary: parsed.summary,
+        linkedIn: parsed.linkedIn || '',
+        github: parsed.github || '',
+        website: parsed.website || '',
+        fileName: file.name,
+        fileSize: file.size,
+        createdAt: serverTimestamp(),
+      });
     } catch (saveErr: any) {
       console.error('Failed to save resume:', saveErr);
     }
@@ -92,34 +88,32 @@ export default function InterviewSetup() {
     try {
       let resumeDataId = null;
       if (parsedData) {
-        const { data: resumeRecord } = await supabase
-          .from('resume_data')
-          .select('id')
-          .eq('user_id', user!.id)
-          .order('created_at', { ascending: false })
-          .limit(1)
-          .maybeSingle();
-        resumeDataId = resumeRecord?.id || null;
+        const q = query(
+          collection(db, 'resumeData'),
+          where('userId', '==', user!.uid),
+          orderBy('createdAt', 'desc'),
+          limit(1)
+        );
+        const querySnapshot = await getDocs(q);
+        if (!querySnapshot.empty) {
+          resumeDataId = querySnapshot.docs[0].id;
+        }
       }
 
-      const { data: sessionData, error: sessionError } = await supabase
-        .from('sessions')
-        .insert({
-          user_id: user!.id,
-          role: formData.jobRole,
-          experience_level: formData.experienceLevel,
-          industry: formData.industry || null,
-          company: formData.companyName || null,
-          jd_text: formData.jobDescription,
-          resume_summary: parsedData?.summary || null,
-          resume_data_id: resumeDataId,
-        })
-        .select()
-        .single();
+      const sessionRef = await addDoc(collection(db, 'sessions'), {
+        userId: user!.uid,
+        role: formData.jobRole,
+        experienceLevel: formData.experienceLevel,
+        industry: formData.industry || null,
+        company: formData.companyName || null,
+        jdText: formData.jobDescription,
+        resumeSummary: parsedData?.summary || null,
+        resumeDataId: resumeDataId,
+        status: 'pending',
+        createdAt: serverTimestamp(),
+      });
 
-      if (sessionError) throw sessionError;
-
-      navigate(`/interview/${sessionData.id}`);
+      navigate(`/interview/${sessionRef.id}`);
     } catch (err: any) {
       setError(err.message || 'Failed to create interview session');
     } finally {

@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { supabase } from '../lib/supabase';
+import { db } from '../lib/firebase';
+import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { Briefcase, Clock, FileText, Send, Loader, ArrowLeft, CheckCircle, Copy, Calendar } from 'lucide-react';
 import BentoCard from '../components/BentoCard';
 import BentoGrid from '../components/BentoGrid';
@@ -31,24 +32,23 @@ export default function ManualMockInterview() {
     setError('');
 
     try {
-      const { data: request, error: requestError } = await supabase
-        .from('mock_interview_requests')
-        .insert({
-          user_id: user!.id,
-          job_role: formData.jobRole,
-          company_name: formData.companyName,
-          experience_level: formData.experienceLevel,
-          job_description: formData.jobDescription,
-          preferred_date: formData.preferredDate,
-          preferred_time: formData.preferredTime,
-          additional_notes: formData.additionalNotes,
-        })
-        .select()
-        .single();
+      const generatedTicketNumber = `MIR-${Date.now()}-${Math.random().toString(36).substr(2, 5).toUpperCase()}`;
 
-      if (requestError) throw requestError;
+      await addDoc(collection(db, 'mockInterviewRequests'), {
+        userId: user!.uid,
+        jobRole: formData.jobRole,
+        companyName: formData.companyName,
+        experienceLevel: formData.experienceLevel,
+        jobDescription: formData.jobDescription,
+        preferredDate: formData.preferredDate,
+        preferredTime: formData.preferredTime,
+        additionalNotes: formData.additionalNotes,
+        ticketNumber: generatedTicketNumber,
+        status: 'pending',
+        createdAt: serverTimestamp(),
+      });
 
-      setTicketNumber(request.ticket_number);
+      setTicketNumber(generatedTicketNumber);
       setSuccess(true);
     } catch (err: any) {
       console.error('Error submitting request:', err);

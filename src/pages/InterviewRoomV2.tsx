@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { supabase } from '../lib/supabase';
+import { db } from '../lib/firebase';
+import { doc, getDoc } from 'firebase/firestore';
 import { Power, Phone, PhoneOff } from 'lucide-react';
 import { createInterviewAgent, ElevenLabsInterviewAgent, InterviewContext } from '../lib/elevenLabsAgent';
 
@@ -33,14 +34,14 @@ export default function InterviewRoomV2() {
 
   const loadSession = async () => {
     try {
-      const { data, error } = await supabase
-        .from('sessions')
-        .select('*')
-        .eq('id', sessionId!)
-        .single();
+      const sessionRef = doc(db, 'sessions', sessionId!);
+      const sessionSnap = await getDoc(sessionRef);
 
-      if (error) throw error;
+      if (!sessionSnap.exists()) {
+        throw new Error('Session not found');
+      }
 
+      const data = sessionSnap.data();
       setSession(data);
 
       await initializeAgent(data);

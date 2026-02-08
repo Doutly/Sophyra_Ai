@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { supabase } from '../lib/supabase';
+import { db } from '../lib/firebase';
+import { doc, getDoc, collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { Download, Share2, TrendingUp, AlertCircle, CheckCircle2, Target, ArrowLeft } from 'lucide-react';
 
 interface Report {
@@ -48,28 +49,41 @@ export default function Report() {
     if (!reportId) return;
 
     try {
-      const { data, error } = await supabase
-        .from('reports')
-        .select(`
-          *,
-          sessions:session_id (
-            role,
-            company,
-            experience_level
-          )
-        `)
-        .eq('id', reportId)
-        .maybeSingle();
+      const reportRef = doc(db, 'reports', reportId);
+      const reportSnap = await getDoc(reportRef);
 
-      if (error || !data) {
+      if (!reportSnap.exists()) {
         navigate('/dashboard');
         return;
       }
 
+      const reportData = reportSnap.data();
+
+      const sessionRef = doc(db, 'sessions', reportData.sessionId);
+      const sessionSnap = await getDoc(sessionRef);
+
+      if (!sessionSnap.exists()) {
+        navigate('/dashboard');
+        return;
+      }
+
+      const sessionData = sessionSnap.data();
+
       setReport({
-        ...data,
-        sessions: Array.isArray(data.sessions) ? data.sessions[0] : data.sessions
-      } as any);
+        id: reportSnap.id,
+        session_id: reportData.sessionId,
+        overall_score: reportData.overallScore,
+        performance_breakdown: reportData.performanceBreakdown,
+        strengths: reportData.strengths,
+        gaps: reportData.gaps,
+        suggested_topics: reportData.suggestedTopics,
+        created_at: reportData.createdAt?.toDate().toISOString() || new Date().toISOString(),
+        sessions: {
+          role: sessionData.role,
+          company: sessionData.company || null,
+          experience_level: sessionData.experienceLevel
+        }
+      });
     } catch (error) {
       console.error('Error loading report:', error);
       navigate('/dashboard');
@@ -87,11 +101,14 @@ export default function Report() {
 
   const generateShareLink = async () => {
     try {
-      const shareToken = Math.random().toString(36).substring(7);
+      const shareToken = Math.random().toString(36).substring(7) + Date.now().toString(36);
 
-      await supabase.from('shares').insert({
-        report_id: reportId!,
-        share_token: shareToken,
+      await addDoc(collection(db, 'shares'), {
+        reportId: reportId!,
+        shareToken: shareToken,
+        viewCount: 0,
+        createdAt: serverTimestamp(),
+        expiresAt: null
       });
 
       const link = `${window.location.origin}/shared/${shareToken}`;
