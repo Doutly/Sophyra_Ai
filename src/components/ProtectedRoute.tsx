@@ -32,7 +32,7 @@ export default function ProtectedRoute({
     return <Navigate to="/auth?mode=signin" replace />;
   }
 
-  if (user.email === 'mani@sophrya.ai') {
+  if (user.email === 'mani@sophyra.in') {
     return <>{children}</>;
   }
 

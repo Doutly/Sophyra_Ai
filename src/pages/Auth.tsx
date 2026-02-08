@@ -23,7 +23,7 @@ export default function Auth() {
 
   useEffect(() => {
     if (user && role) {
-      if (user.email === 'mani@sophrya.ai') {
+      if (user.email === 'mani@sophyra.in') {
         navigate('/admin');
       } else if (role === 'admin') {
         navigate('/admin');
@@ -85,10 +85,6 @@ export default function Auth() {
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center px-4">
       <div className="max-w-md w-full">
         <div className="text-center mb-8">
-          <div className="inline-flex items-center space-x-3 mb-4">
-            <img src="/lo.png" alt="Sophyra AI" className="w-12 h-12" />
-            <span className="text-3xl font-bold text-gray-900">Sophyra AI</span>
-          </div>
           <h2 className="text-2xl font-bold text-gray-900 mb-2">
             {authMode === 'signup' && 'Create your account'}
             {authMode === 'signin' && 'Welcome back'}

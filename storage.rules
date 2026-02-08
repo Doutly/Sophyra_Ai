@@ -1,0 +1,45 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    // Helper function to check if user is authenticated
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    // Helper function to check if file size is within limit (10MB)
+    function isValidSize() {
+      return request.resource.size < 10 * 1024 * 1024;
+    }
+
+    // Resume uploads
+    match /resumes/{userId}/{fileName} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated() &&
+                     request.auth.uid == userId &&
+                     isValidSize() &&
+                     (request.resource.contentType.matches('application/pdf') ||
+                      request.resource.contentType.matches('application/msword') ||
+                      request.resource.contentType.matches('application/vnd.openxmlformats-officedocument.wordprocessingml.document'));
+      allow delete: if isAuthenticated() && request.auth.uid == userId;
+    }
+
+    // Interview recordings
+    match /recordings/{userId}/{fileName} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated() &&
+                     request.auth.uid == userId &&
+                     isValidSize();
+      allow delete: if isAuthenticated() && request.auth.uid == userId;
+    }
+
+    // Profile pictures
+    match /profiles/{userId}/{fileName} {
+      allow read: if true; // Public read for profile pictures
+      allow write: if isAuthenticated() &&
+                     request.auth.uid == userId &&
+                     request.resource.size < 2 * 1024 * 1024 && // 2MB limit for profile pics
+                     request.resource.contentType.matches('image/.*');
+      allow delete: if isAuthenticated() && request.auth.uid == userId;
+    }
+  }
+}
