@@ -22,19 +22,24 @@ export default function Auth() {
   const [resetSent, setResetSent] = useState(false);
 
   useEffect(() => {
-    if (user && role) {
+    if (user) {
       if (user.email === 'mani@sophyra.in') {
         navigate('/admin');
-      } else if (role === 'admin') {
-        navigate('/admin');
-      } else if (role === 'hr') {
-        if (isApproved) {
-          navigate('/hr-dashboard');
+        return;
+      }
+
+      if (role) {
+        if (role === 'admin') {
+          navigate('/admin');
+        } else if (role === 'hr') {
+          if (isApproved) {
+            navigate('/hr-dashboard');
+          } else {
+            navigate('/pending-approval');
+          }
         } else {
-          navigate('/pending-approval');
+          navigate('/dashboard');
         }
-      } else {
-        navigate('/dashboard');
       }
     }
   }, [user, role, isApproved, navigate]);

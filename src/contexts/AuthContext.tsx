@@ -72,7 +72,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       setUser(firebaseUser);
       if (firebaseUser) {
-        await fetchUserData(firebaseUser.uid);
+        if (firebaseUser.email === 'mani@sophyra.in') {
+          setRole('admin');
+          setIsApproved(true);
+        } else {
+          await fetchUserData(firebaseUser.uid);
+        }
       } else {
         setRole(null);
         setIsApproved(null);
