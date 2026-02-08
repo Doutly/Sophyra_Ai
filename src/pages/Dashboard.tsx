@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
-import { Brain, Play, FileText, Share2, Download, TrendingUp, Target, Lightbulb, LogOut, User as UserIcon } from 'lucide-react';
+import { Brain, Play, FileText, Share2, Download, TrendingUp, Target, Lightbulb, LogOut, User as UserIcon, Ticket, Calendar, Clock } from 'lucide-react';
+import StatusBadge from '../components/StatusBadge';
 
 interface Report {
   id: string;
@@ -22,11 +23,25 @@ interface Tip {
   suggested_topics: string[];
 }
 
+interface MockInterviewRequest {
+  id: string;
+  ticket_number: string;
+  job_role: string;
+  company_name: string | null;
+  status: 'pending' | 'approved' | 'rejected' | 'completed';
+  preferred_date: string;
+  preferred_time: string;
+  scheduled_date: string | null;
+  scheduled_time: string | null;
+  created_at: string;
+}
+
 export default function Dashboard() {
   const navigate = useNavigate();
   const { user, signOut } = useAuth();
   const [reports, setReports] = useState<Report[]>([]);
   const [tips, setTips] = useState<Tip | null>(null);
+  const [mockRequests, setMockRequests] = useState<MockInterviewRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [userName, setUserName] = useState('');
 
@@ -90,6 +105,17 @@ export default function Dashboard() {
 
       if (tipsData) {
         setTips(tipsData);
+      }
+
+      const { data: requestsData } = await supabase
+        .from('mock_interview_requests')
+        .select('id, ticket_number, job_role, company_name, status, preferred_date, preferred_time, scheduled_date, scheduled_time, created_at')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(5);
+
+      if (requestsData) {
+        setMockRequests(requestsData);
       }
     } catch (error) {
       console.error('Error loading dashboard:', error);
@@ -307,6 +333,76 @@ export default function Dashboard() {
           </div>
 
           <div className="space-y-6">
+            <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-200">
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-xl font-bold text-gray-900">My Requests</h2>
+                <Ticket className="w-5 h-5 text-swiss-accent-teal" />
+              </div>
+
+              {mockRequests.length === 0 ? (
+                <div className="text-center py-8">
+                  <div className="w-16 h-16 bg-swiss-accent-teal-light rounded-full flex items-center justify-center mx-auto mb-4">
+                    <Ticket className="w-8 h-8 text-swiss-accent-teal" />
+                  </div>
+                  <p className="text-sm text-gray-600 mb-4">No requests yet</p>
+                  <button
+                    onClick={() => navigate('/interview/manual')}
+                    className="px-4 py-2 bg-swiss-accent-teal text-white text-sm font-medium rounded-lg hover:bg-swiss-accent-teal-dark transition-colors"
+                  >
+                    Request Interview
+                  </button>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {mockRequests.map((request) => (
+                    <div
+                      key={request.id}
+                      className="border border-gray-200 rounded-lg p-4 hover:border-swiss-accent-teal hover:shadow-sm transition-all cursor-pointer"
+                    >
+                      <div className="flex items-start justify-between mb-2">
+                        <div className="flex-1">
+                          <p className="text-sm font-semibold text-gray-900 mb-1">{request.job_role}</p>
+                          {request.company_name && (
+                            <p className="text-xs text-gray-500">{request.company_name}</p>
+                          )}
+                        </div>
+                        <StatusBadge status={request.status} size="sm" />
+                      </div>
+
+                      <div className="flex items-center text-xs text-gray-500 space-x-3">
+                        <div className="flex items-center space-x-1">
+                          <Calendar className="w-3 h-3" />
+                          <span>{new Date(request.preferred_date).toLocaleDateString()}</span>
+                        </div>
+                        <div className="flex items-center space-x-1">
+                          <Ticket className="w-3 h-3" />
+                          <span>{request.ticket_number}</span>
+                        </div>
+                      </div>
+
+                      {request.status === 'approved' && request.scheduled_date && (
+                        <div className="mt-2 pt-2 border-t border-gray-200">
+                          <p className="text-xs text-green-600 font-medium flex items-center">
+                            <Clock className="w-3 h-3 mr-1" />
+                            Scheduled: {new Date(request.scheduled_date).toLocaleDateString()} at {request.scheduled_time}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+
+                  {mockRequests.length >= 5 && (
+                    <button
+                      onClick={() => navigate('/my-requests')}
+                      className="w-full text-center text-sm text-swiss-accent-teal font-medium hover:underline"
+                    >
+                      View All Requests →
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
+
             <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-200">
               <div className="flex items-center justify-between mb-6">
                 <h2 className="text-xl font-bold text-gray-900">HR Tips</h2>

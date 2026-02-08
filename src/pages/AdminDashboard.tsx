@@ -2,7 +2,9 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
-import { Brain, Users, TrendingUp, BarChart3, Download, Search, Filter, LogOut } from 'lucide-react';
+import { Brain, Users, TrendingUp, BarChart3, Download, Search, Filter, LogOut, Ticket, CheckCircle, XCircle, Calendar, Clock, AlertCircle } from 'lucide-react';
+import StatusBadge from '../components/StatusBadge';
+import BentoCard from '../components/BentoCard';
 
 interface CandidateStats {
   user_id: string;
@@ -19,14 +21,38 @@ interface CohortMetric {
   count: number;
 }
 
+interface MockInterviewRequest {
+  id: string;
+  ticket_number: string;
+  user_id: string;
+  job_role: string;
+  company_name: string | null;
+  experience_level: string;
+  job_description: string;
+  status: 'pending' | 'approved' | 'rejected' | 'completed';
+  preferred_date: string;
+  preferred_time: string;
+  scheduled_date: string | null;
+  scheduled_time: string | null;
+  created_at: string;
+  users: {
+    name: string;
+    email: string;
+  };
+}
+
 export default function AdminDashboard() {
   const navigate = useNavigate();
   const { user, signOut } = useAuth();
 
+  const [activeTab, setActiveTab] = useState<'candidates' | 'requests'>('candidates');
   const [candidates, setCandidates] = useState<CandidateStats[]>([]);
   const [cohortMetrics, setCohortMetrics] = useState<CohortMetric[]>([]);
+  const [mockRequests, setMockRequests] = useState<MockInterviewRequest[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState<string>('all');
   const [loading, setLoading] = useState(true);
+  const [actionLoading, setActionLoading] = useState<string | null>(null);
 
   useEffect(() => {
     if (!user) {
@@ -115,6 +141,24 @@ export default function AdminDashboard() {
 
         setCohortMetrics(metrics);
       }
+
+      const { data: requestsData } = await supabase
+        .from('mock_interview_requests')
+        .select(`
+          *,
+          users:user_id (
+            name,
+            email
+          )
+        `)
+        .order('created_at', { ascending: false });
+
+      if (requestsData) {
+        setMockRequests(requestsData.map(r => ({
+          ...r,
+          users: Array.isArray(r.users) ? r.users[0] : r.users
+        })) as any);
+      }
     } catch (error) {
       console.error('Error loading admin data:', error);
     } finally {
@@ -143,9 +187,55 @@ export default function AdminDashboard() {
     a.click();
   };
 
+  const handleRequestAction = async (requestId: string, action: 'approved' | 'rejected', notes?: string) => {
+    setActionLoading(requestId);
+    try {
+      const { error } = await supabase
+        .from('mock_interview_requests')
+        .update({
+          status: action,
+          admin_notes: notes || null,
+        })
+        .eq('id', requestId);
+
+      if (error) throw error;
+
+      await supabase
+        .from('admin_actions')
+        .insert({
+          admin_id: user!.id,
+          action_type: action,
+          request_id: requestId,
+          notes: notes || null,
+        });
+
+      await loadAdminData();
+    } catch (error) {
+      console.error('Error updating request:', error);
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
   const filteredCandidates = candidates.filter(c =>
     c.user_name.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  const filteredRequests = mockRequests.filter(r => {
+    const matchesSearch =
+      r.job_role.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      r.users.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      r.ticket_number.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesStatus = statusFilter === 'all' || r.status === statusFilter;
+    return matchesSearch && matchesStatus;
+  });
+
+  const requestStats = {
+    total: mockRequests.length,
+    pending: mockRequests.filter(r => r.status === 'pending').length,
+    approved: mockRequests.filter(r => r.status === 'approved').length,
+    rejected: mockRequests.filter(r => r.status === 'rejected').length,
+  };
 
   if (loading) {
     return (
@@ -189,9 +279,45 @@ export default function AdminDashboard() {
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">Admin Dashboard</h1>
           <p className="text-gray-600">Monitor candidate performance and cohort analytics</p>
+
+          <div className="mt-6 flex space-x-2 border-b border-gray-200">
+            <button
+              onClick={() => setActiveTab('candidates')}
+              className={`px-6 py-3 font-medium transition-all ${
+                activeTab === 'candidates'
+                  ? 'text-swiss-accent-teal border-b-2 border-swiss-accent-teal'
+                  : 'text-gray-600 hover:text-gray-900'
+              }`}
+            >
+              <div className="flex items-center space-x-2">
+                <Users className="w-4 h-4" />
+                <span>Candidates</span>
+              </div>
+            </button>
+            <button
+              onClick={() => setActiveTab('requests')}
+              className={`px-6 py-3 font-medium transition-all relative ${
+                activeTab === 'requests'
+                  ? 'text-swiss-accent-teal border-b-2 border-swiss-accent-teal'
+                  : 'text-gray-600 hover:text-gray-900'
+              }`}
+            >
+              <div className="flex items-center space-x-2">
+                <Ticket className="w-4 h-4" />
+                <span>Interview Requests</span>
+                {requestStats.pending > 0 && (
+                  <span className="ml-2 px-2 py-0.5 bg-red-500 text-white text-xs font-bold rounded-full">
+                    {requestStats.pending}
+                  </span>
+                )}
+              </div>
+            </button>
+          </div>
         </div>
 
-        <div className="grid md:grid-cols-4 gap-6 mb-8">
+        {activeTab === 'candidates' && (
+          <>
+            <div className="grid md:grid-cols-4 gap-6 mb-8">
           <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-200">
             <div className="flex items-center justify-between mb-2">
               <Users className="w-8 h-8 text-teal-500" />
@@ -381,6 +507,174 @@ export default function AdminDashboard() {
             </div>
           </div>
         </div>
+          </>
+        )}
+
+        {activeTab === 'requests' && (
+          <>
+            <div className="grid md:grid-cols-4 gap-6 mb-8">
+              <BentoCard>
+                <div className="flex items-center justify-between mb-2">
+                  <Ticket className="w-8 h-8 text-swiss-accent-teal" />
+                  <span className="text-sm text-gray-500">Total</span>
+                </div>
+                <div className="text-3xl font-bold text-gray-900">{requestStats.total}</div>
+                <div className="text-sm text-gray-600 mt-1">All Requests</div>
+              </BentoCard>
+
+              <BentoCard>
+                <div className="flex items-center justify-between mb-2">
+                  <AlertCircle className="w-8 h-8 text-yellow-500" />
+                  <span className="text-sm text-gray-500">Pending</span>
+                </div>
+                <div className="text-3xl font-bold text-gray-900">{requestStats.pending}</div>
+                <div className="text-sm text-gray-600 mt-1">Awaiting Review</div>
+              </BentoCard>
+
+              <BentoCard>
+                <div className="flex items-center justify-between mb-2">
+                  <CheckCircle className="w-8 h-8 text-green-500" />
+                  <span className="text-sm text-gray-500">Approved</span>
+                </div>
+                <div className="text-3xl font-bold text-gray-900">{requestStats.approved}</div>
+                <div className="text-sm text-gray-600 mt-1">Ready to Schedule</div>
+              </BentoCard>
+
+              <BentoCard>
+                <div className="flex items-center justify-between mb-2">
+                  <XCircle className="w-8 h-8 text-red-500" />
+                  <span className="text-sm text-gray-500">Rejected</span>
+                </div>
+                <div className="text-3xl font-bold text-gray-900">{requestStats.rejected}</div>
+                <div className="text-sm text-gray-600 mt-1">Not Suitable</div>
+              </BentoCard>
+            </div>
+
+            <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-200">
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-xl font-bold text-gray-900">Interview Requests</h2>
+                <button
+                  onClick={exportData}
+                  className="flex items-center space-x-2 px-4 py-2 bg-swiss-accent-teal text-white rounded-lg hover:bg-swiss-accent-teal-dark transition-colors"
+                >
+                  <Download className="w-4 h-4" />
+                  <span className="text-sm font-medium">Export</span>
+                </button>
+              </div>
+
+              <div className="flex items-center space-x-4 mb-6">
+                <div className="flex-1 relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                  <input
+                    type="text"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    placeholder="Search by name, role, or ticket..."
+                    className="w-full pl-11 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-swiss-accent-teal focus:border-transparent"
+                  />
+                </div>
+                <select
+                  value={statusFilter}
+                  onChange={(e) => setStatusFilter(e.target.value)}
+                  className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-swiss-accent-teal focus:border-transparent"
+                >
+                  <option value="all">All Status</option>
+                  <option value="pending">Pending</option>
+                  <option value="approved">Approved</option>
+                  <option value="rejected">Rejected</option>
+                  <option value="completed">Completed</option>
+                </select>
+              </div>
+
+              <div className="space-y-4">
+                {filteredRequests.length === 0 ? (
+                  <div className="text-center py-12">
+                    <Ticket className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                    <h3 className="text-lg font-semibold text-gray-900 mb-2">No requests found</h3>
+                    <p className="text-gray-600">Try adjusting your search or filters</p>
+                  </div>
+                ) : (
+                  filteredRequests.map((request) => (
+                    <div
+                      key={request.id}
+                      className="border border-gray-200 rounded-xl p-5 hover:border-swiss-accent-teal transition-all"
+                    >
+                      <div className="flex items-start justify-between mb-3">
+                        <div className="flex-1">
+                          <div className="flex items-center space-x-3 mb-2">
+                            <h3 className="font-semibold text-gray-900">{request.users.name}</h3>
+                            <StatusBadge status={request.status} size="sm" />
+                            <span className="text-xs text-gray-500 font-mono">{request.ticket_number}</span>
+                          </div>
+                          <div className="space-y-1">
+                            <p className="text-sm text-gray-700">
+                              <span className="font-medium">Role:</span> {request.job_role}
+                              {request.company_name && ` at ${request.company_name}`}
+                            </p>
+                            <p className="text-sm text-gray-600">
+                              <span className="font-medium">Experience:</span> {request.experience_level}
+                            </p>
+                            <p className="text-sm text-gray-600">
+                              <span className="font-medium">Preferred:</span>{' '}
+                              {new Date(request.preferred_date).toLocaleDateString()} at {request.preferred_time}
+                            </p>
+                          </div>
+                        </div>
+
+                        {request.status === 'pending' && (
+                          <div className="flex items-center space-x-2">
+                            <button
+                              onClick={() => handleRequestAction(request.id, 'approved')}
+                              disabled={actionLoading === request.id}
+                              className="px-4 py-2 bg-green-500 text-white text-sm font-medium rounded-lg hover:bg-green-600 transition-colors disabled:opacity-50 flex items-center space-x-1"
+                            >
+                              <CheckCircle className="w-4 h-4" />
+                              <span>Approve</span>
+                            </button>
+                            <button
+                              onClick={() => handleRequestAction(request.id, 'rejected')}
+                              disabled={actionLoading === request.id}
+                              className="px-4 py-2 bg-red-500 text-white text-sm font-medium rounded-lg hover:bg-red-600 transition-colors disabled:opacity-50 flex items-center space-x-1"
+                            >
+                              <XCircle className="w-4 h-4" />
+                              <span>Reject</span>
+                            </button>
+                          </div>
+                        )}
+
+                        {request.status === 'approved' && !request.scheduled_date && (
+                          <div className="px-4 py-2 bg-swiss-accent-teal-light text-swiss-accent-teal text-sm font-medium rounded-lg flex items-center space-x-1">
+                            <Calendar className="w-4 h-4" />
+                            <span>Ready to Schedule</span>
+                          </div>
+                        )}
+
+                        {request.scheduled_date && (
+                          <div className="text-right">
+                            <p className="text-xs text-gray-500 mb-1">Scheduled</p>
+                            <p className="text-sm font-semibold text-swiss-accent-teal">
+                              {new Date(request.scheduled_date).toLocaleDateString()}
+                            </p>
+                            <p className="text-xs text-gray-600">{request.scheduled_time}</p>
+                          </div>
+                        )}
+                      </div>
+
+                      <details className="mt-3 pt-3 border-t border-gray-200">
+                        <summary className="text-sm text-swiss-accent-teal font-medium cursor-pointer hover:underline">
+                          View Job Description
+                        </summary>
+                        <div className="mt-3 p-3 bg-gray-50 rounded-lg">
+                          <p className="text-sm text-gray-700 whitespace-pre-wrap">{request.job_description}</p>
+                        </div>
+                      </details>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          </>
+        )}
       </div>
     </div>
   );

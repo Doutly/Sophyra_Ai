@@ -225,6 +225,129 @@ export interface Database {
           created_at?: string
         }
       }
+      mock_interview_requests: {
+        Row: {
+          id: string
+          user_id: string
+          job_role: string
+          company_name: string | null
+          experience_level: 'fresher' | 'mid' | 'senior'
+          job_description: string
+          preferred_date: string
+          preferred_time: string
+          additional_notes: string | null
+          status: 'pending' | 'approved' | 'rejected' | 'completed'
+          admin_notes: string | null
+          ticket_number: string | null
+          priority: 'normal' | 'high' | 'urgent'
+          scheduled_date: string | null
+          scheduled_time: string | null
+          assigned_admin_id: string | null
+          status_updated_at: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          job_role: string
+          company_name?: string | null
+          experience_level: 'fresher' | 'mid' | 'senior'
+          job_description: string
+          preferred_date: string
+          preferred_time: string
+          additional_notes?: string | null
+          status?: 'pending' | 'approved' | 'rejected' | 'completed'
+          admin_notes?: string | null
+          ticket_number?: string | null
+          priority?: 'normal' | 'high' | 'urgent'
+          scheduled_date?: string | null
+          scheduled_time?: string | null
+          assigned_admin_id?: string | null
+          status_updated_at?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          job_role?: string
+          company_name?: string | null
+          experience_level?: 'fresher' | 'mid' | 'senior'
+          job_description?: string
+          preferred_date?: string
+          preferred_time?: string
+          additional_notes?: string | null
+          status?: 'pending' | 'approved' | 'rejected' | 'completed'
+          admin_notes?: string | null
+          ticket_number?: string | null
+          priority?: 'normal' | 'high' | 'urgent'
+          scheduled_date?: string | null
+          scheduled_time?: string | null
+          assigned_admin_id?: string | null
+          status_updated_at?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      notifications: {
+        Row: {
+          id: string
+          user_id: string
+          type: 'request_created' | 'status_changed' | 'interview_scheduled' | 'reminder'
+          title: string
+          message: string
+          read_status: boolean
+          related_request_id: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          type: 'request_created' | 'status_changed' | 'interview_scheduled' | 'reminder'
+          title: string
+          message: string
+          read_status?: boolean
+          related_request_id?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          type?: 'request_created' | 'status_changed' | 'interview_scheduled' | 'reminder'
+          title?: string
+          message?: string
+          read_status?: boolean
+          related_request_id?: string | null
+          created_at?: string
+        }
+      }
+      admin_actions: {
+        Row: {
+          id: string
+          admin_id: string | null
+          action_type: 'approved' | 'rejected' | 'scheduled' | 'completed' | 'noted'
+          request_id: string
+          notes: string | null
+          timestamp: string
+        }
+        Insert: {
+          id?: string
+          admin_id?: string | null
+          action_type: 'approved' | 'rejected' | 'scheduled' | 'completed' | 'noted'
+          request_id: string
+          notes?: string | null
+          timestamp?: string
+        }
+        Update: {
+          id?: string
+          admin_id?: string | null
+          action_type?: 'approved' | 'rejected' | 'scheduled' | 'completed' | 'noted'
+          request_id?: string
+          notes?: string | null
+          timestamp?: string
+        }
+      }
     }
   }
 }
