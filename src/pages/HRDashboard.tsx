@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { db } from '../lib/firebase';
 import { collection, query, where, orderBy, onSnapshot, doc, updateDoc, Timestamp, getDocs } from 'firebase/firestore';
-import { LogOut, Ticket, Clock, Calendar, CheckCircle, XCircle, ExternalLink, User, Briefcase, Brain } from 'lucide-react';
+import { LogOut, Ticket, Clock, Calendar, CheckCircle, XCircle, ExternalLink, User, Briefcase, Brain, Download, FileText } from 'lucide-react';
 import StatusBadge from '../components/StatusBadge';
 
 interface MockInterviewRequest {
@@ -14,8 +14,10 @@ interface MockInterviewRequest {
   company_name: string | null;
   experience_level: string;
   job_description: string;
+  additional_notes: string;
   status: string;
   booking_status: string;
+  assigned_hr_id: string | null;
   preferred_date: string;
   preferred_time: string;
   scheduled_date: string | null;
@@ -24,6 +26,15 @@ interface MockInterviewRequest {
   claimed_at: string | null;
   meeting_room_link: string | null;
   created_at: string;
+  candidate_info: {
+    name: string;
+    email: string;
+    bio: string;
+    experience_level: string;
+    industry: string;
+    career_goals: string;
+    resume_url: string | null;
+  } | null;
   users: {
     name: string;
     email: string;
@@ -34,10 +45,12 @@ export default function HRDashboard() {
   const navigate = useNavigate();
   const { user, signOut } = useAuth();
 
+  const [assignedToMe, setAssignedToMe] = useState<MockInterviewRequest[]>([]);
   const [unclaimedTickets, setUnclaimedTickets] = useState<MockInterviewRequest[]>([]);
   const [myClaimedTickets, setMyClaimedTickets] = useState<MockInterviewRequest[]>([]);
   const [bookedInterviews, setBookedInterviews] = useState<MockInterviewRequest[]>([]);
   const [completedInterviews, setCompletedInterviews] = useState<MockInterviewRequest[]>([]);
+  const [activeTab, setActiveTab] = useState<'assigned' | 'pool' | 'claimed' | 'booked' | 'completed'>('assigned');
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [showBookingModal, setShowBookingModal] = useState(false);
@@ -86,8 +99,10 @@ export default function HRDashboard() {
               company_name: data.company_name || null,
               experience_level: data.experience_level || '',
               job_description: data.job_description || '',
+              additional_notes: data.additional_notes || '',
               status: data.status || 'pending',
               booking_status: data.booking_status || 'unclaimed',
+              assigned_hr_id: data.assigned_hr_id || null,
               preferred_date: data.preferred_date || '',
               preferred_time: data.preferred_time || '',
               scheduled_date: data.scheduled_date || null,
@@ -96,27 +111,41 @@ export default function HRDashboard() {
               claimed_at: data.claimed_at || null,
               meeting_room_link: data.meeting_room_link || null,
               created_at: data.created_at || '',
+              candidate_info: data.candidate_info || null,
               users: userData,
             };
           })
         );
 
-        const unclaimed = allRequests.filter(r =>
-          r.booking_status === 'unclaimed' && r.status === 'approved'
+        // Tickets assigned to me by admin (not claimed yet or already claimed by me)
+        const assigned = allRequests.filter(r =>
+          r.assigned_hr_id === user?.uid && r.status === 'approved' &&
+          (r.booking_status === 'unclaimed' || r.claimed_by === user?.uid)
         );
 
+        // Available pool (no assignment, unclaimed, approved)
+        const unclaimed = allRequests.filter(r =>
+          !r.assigned_hr_id &&
+          r.booking_status === 'unclaimed' &&
+          r.status === 'approved'
+        );
+
+        // My claimed tickets (claimed by me, not yet booked)
         const myClaimed = allRequests.filter(r =>
           r.booking_status === 'claimed' && r.claimed_by === user?.uid
         );
 
+        // Booked interviews (scheduled by me)
         const booked = allRequests.filter(r =>
           r.booking_status === 'booked' && r.claimed_by === user?.uid
         );
 
+        // Completed interviews (completed by me)
         const completed = allRequests.filter(r =>
           r.booking_status === 'completed' && r.claimed_by === user?.uid
         );
 
+        setAssignedToMe(assigned);
         setUnclaimedTickets(unclaimed);
         setMyClaimedTickets(myClaimed);
         setBookedInterviews(booked);
@@ -225,7 +254,8 @@ export default function HRDashboard() {
   };
 
   const stats = {
-    total: myClaimedTickets.length + bookedInterviews.length + completedInterviews.length,
+    assigned: assignedToMe.length,
+    available: unclaimedTickets.length,
     claimed: myClaimedTickets.length,
     booked: bookedInterviews.length,
     completed: completedInterviews.length,
@@ -275,14 +305,23 @@ export default function HRDashboard() {
           <p className="text-gray-600">Claim and manage mock interview requests</p>
         </div>
 
-        <div className="grid md:grid-cols-4 gap-6 mb-8">
+        <div className="grid md:grid-cols-5 gap-6 mb-8">
+          <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-200">
+            <div className="flex items-center justify-between mb-2">
+              <User className="w-8 h-8 text-purple-500" />
+              <span className="text-sm text-gray-500">Assigned</span>
+            </div>
+            <div className="text-3xl font-bold text-gray-900">{stats.assigned}</div>
+            <div className="text-sm text-gray-600 mt-1">To Me</div>
+          </div>
+
           <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-200">
             <div className="flex items-center justify-between mb-2">
               <Ticket className="w-8 h-8 text-brand-electric" />
               <span className="text-sm text-gray-500">Available</span>
             </div>
-            <div className="text-3xl font-bold text-gray-900">{unclaimedTickets.length}</div>
-            <div className="text-sm text-gray-600 mt-1">Unclaimed</div>
+            <div className="text-3xl font-bold text-gray-900">{stats.available}</div>
+            <div className="text-sm text-gray-600 mt-1">Pool</div>
           </div>
 
           <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-200">
@@ -306,183 +345,462 @@ export default function HRDashboard() {
           <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-200">
             <div className="flex items-center justify-between mb-2">
               <CheckCircle className="w-8 h-8 text-blue-500" />
-              <span className="text-sm text-gray-500">Total</span>
+              <span className="text-sm text-gray-500">Completed</span>
             </div>
-            <div className="text-3xl font-bold text-gray-900">{stats.total}</div>
-            <div className="text-sm text-gray-600 mt-1">All Time</div>
+            <div className="text-3xl font-bold text-gray-900">{stats.completed}</div>
+            <div className="text-sm text-gray-600 mt-1">Total Done</div>
           </div>
         </div>
 
-        <div className="grid lg:grid-cols-2 gap-6">
-          <div className="space-y-6">
-            <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-200">
+        <div className="mb-6 flex space-x-2 border-b border-gray-200">
+          <button
+            onClick={() => setActiveTab('assigned')}
+            className={`px-6 py-3 font-medium transition-all ${
+              activeTab === 'assigned'
+                ? 'text-brand-electric border-b-2 border-brand-electric'
+                : 'text-gray-600 hover:text-gray-900'
+            }`}
+          >
+            <div className="flex items-center space-x-2">
+              <User className="w-4 h-4" />
+              <span>Assigned to Me</span>
+              {stats.assigned > 0 && (
+                <span className="ml-2 px-2 py-0.5 bg-purple-100 text-purple-700 text-xs font-bold rounded-full">
+                  {stats.assigned}
+                </span>
+              )}
+            </div>
+          </button>
+          <button
+            onClick={() => setActiveTab('pool')}
+            className={`px-6 py-3 font-medium transition-all ${
+              activeTab === 'pool'
+                ? 'text-brand-electric border-b-2 border-brand-electric'
+                : 'text-gray-600 hover:text-gray-900'
+            }`}
+          >
+            <div className="flex items-center space-x-2">
+              <Ticket className="w-4 h-4" />
+              <span>Available Pool</span>
+              {stats.available > 0 && (
+                <span className="ml-2 px-2 py-0.5 bg-brand-electric-light text-brand-electric text-xs font-bold rounded-full">
+                  {stats.available}
+                </span>
+              )}
+            </div>
+          </button>
+          <button
+            onClick={() => setActiveTab('claimed')}
+            className={`px-6 py-3 font-medium transition-all ${
+              activeTab === 'claimed'
+                ? 'text-brand-electric border-b-2 border-brand-electric'
+                : 'text-gray-600 hover:text-gray-900'
+            }`}
+          >
+            <div className="flex items-center space-x-2">
+              <Clock className="w-4 h-4" />
+              <span>My Claimed</span>
+            </div>
+          </button>
+          <button
+            onClick={() => setActiveTab('booked')}
+            className={`px-6 py-3 font-medium transition-all ${
+              activeTab === 'booked'
+                ? 'text-brand-electric border-b-2 border-brand-electric'
+                : 'text-gray-600 hover:text-gray-900'
+            }`}
+          >
+            <div className="flex items-center space-x-2">
+              <Calendar className="w-4 h-4" />
+              <span>Scheduled</span>
+            </div>
+          </button>
+          <button
+            onClick={() => setActiveTab('completed')}
+            className={`px-6 py-3 font-medium transition-all ${
+              activeTab === 'completed'
+                ? 'text-brand-electric border-b-2 border-brand-electric'
+                : 'text-gray-600 hover:text-gray-900'
+            }`}
+          >
+            <div className="flex items-center space-x-2">
+              <CheckCircle className="w-4 h-4" />
+              <span>Completed</span>
+            </div>
+          </button>
+        </div>
+
+        <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-200">
+          {activeTab === 'assigned' && (
+            <div>
+              <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center space-x-2">
+                <User className="w-5 h-5 text-purple-500" />
+                <span>Tickets Assigned to Me</span>
+              </h2>
+              <div className="space-y-4">
+                {assignedToMe.length === 0 ? (
+                  <div className="text-center py-12">
+                    <User className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                    <h3 className="text-lg font-semibold text-gray-900 mb-2">No assigned tickets</h3>
+                    <p className="text-gray-600">Admin hasn't assigned any tickets to you yet</p>
+                  </div>
+                ) : (
+                  assignedToMe.map((ticket) => (
+                    <div key={ticket.id} className="border-2 border-purple-200 rounded-xl p-5 bg-purple-50/30">
+                      <div className="flex items-start justify-between mb-3">
+                        <div className="flex-1">
+                          <div className="flex items-center space-x-2 mb-2">
+                            <span className="px-2 py-1 bg-purple-100 text-purple-700 text-xs font-bold rounded">ADMIN ASSIGNED</span>
+                            <span className="text-xs text-gray-500 font-mono">{ticket.ticket_number}</span>
+                          </div>
+                          <h3 className="font-bold text-gray-900 text-lg">{ticket.candidate_info?.name || ticket.users.name}</h3>
+                          <p className="text-sm text-gray-600">{ticket.candidate_info?.email || ticket.users.email}</p>
+                        </div>
+                        {ticket.booking_status === 'unclaimed' && (
+                          <button
+                            onClick={() => handleClaimTicket(ticket.id)}
+                            disabled={actionLoading === ticket.id}
+                            className="px-4 py-2 bg-purple-500 text-white text-sm font-medium rounded-lg hover:bg-purple-600 transition-colors disabled:opacity-50"
+                          >
+                            Claim & Start
+                          </button>
+                        )}
+                      </div>
+                      <div className="grid md:grid-cols-2 gap-3 mb-3">
+                        <div className="flex items-center space-x-2 text-sm">
+                          <Briefcase className="w-4 h-4 text-gray-500" />
+                          <span className="text-gray-700">
+                            <span className="font-medium">{ticket.job_role}</span>
+                            {ticket.company_name && ` at ${ticket.company_name}`}
+                          </span>
+                        </div>
+                        <div className="text-sm text-gray-600">
+                          <span className="font-medium">Experience:</span> {ticket.experience_level}
+                        </div>
+                        <div className="flex items-center space-x-2 text-sm text-gray-600">
+                          <Calendar className="w-4 h-4" />
+                          <span>Preferred: {new Date(ticket.preferred_date).toLocaleDateString()} at {ticket.preferred_time}</span>
+                        </div>
+                      </div>
+                      {ticket.candidate_info && (
+                        <details className="mt-3 pt-3 border-t border-gray-200">
+                          <summary className="text-sm text-brand-electric font-medium cursor-pointer hover:underline">
+                            View Candidate Profile
+                          </summary>
+                          <div className="mt-3 space-y-2">
+                            {ticket.candidate_info.bio && (
+                              <p className="text-sm text-gray-700">{ticket.candidate_info.bio}</p>
+                            )}
+                            {ticket.candidate_info.industry && (
+                              <p className="text-sm text-gray-600">
+                                <span className="font-medium">Industry:</span> {ticket.candidate_info.industry}
+                              </p>
+                            )}
+                            {ticket.candidate_info.career_goals && (
+                              <p className="text-sm text-gray-600">
+                                <span className="font-medium">Career Goals:</span> {ticket.candidate_info.career_goals}
+                              </p>
+                            )}
+                            {ticket.candidate_info.resume_url && (
+                              <a
+                                href={ticket.candidate_info.resume_url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center text-sm text-brand-electric hover:underline"
+                              >
+                                <Download className="w-4 h-4 mr-1" />
+                                Download Resume
+                              </a>
+                            )}
+                            <details className="mt-2">
+                              <summary className="text-sm text-gray-700 font-medium cursor-pointer">Job Description</summary>
+                              <p className="text-sm text-gray-600 mt-2 whitespace-pre-wrap">{ticket.job_description}</p>
+                            </details>
+                          </div>
+                        </details>
+                      )}
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'pool' && (
+            <div>
               <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center space-x-2">
                 <Ticket className="w-5 h-5 text-brand-electric" />
-                <span>Unclaimed Tickets</span>
-                <span className="ml-auto px-2 py-1 bg-brand-electric/10 text-brand-electric text-xs font-bold rounded-full">
-                  {unclaimedTickets.length}
-                </span>
+                <span>Available Ticket Pool</span>
               </h2>
-              <div className="space-y-3 max-h-[600px] overflow-y-auto">
+              <div className="space-y-4">
                 {unclaimedTickets.length === 0 ? (
-                  <div className="text-center py-8 text-gray-500">
-                    <Ticket className="w-12 h-12 text-gray-300 mx-auto mb-2" />
-                    <p className="text-sm">No unclaimed tickets available</p>
+                  <div className="text-center py-12">
+                    <Ticket className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                    <h3 className="text-lg font-semibold text-gray-900 mb-2">No tickets available</h3>
+                    <p className="text-gray-600">Check back later for new interview requests</p>
                   </div>
                 ) : (
                   unclaimedTickets.map((ticket) => (
-                    <div key={ticket.id} className="border border-gray-200 rounded-lg p-4 hover:border-brand-electric transition-all">
-                      <div className="flex items-start justify-between mb-2">
-                        <div>
-                          <div className="flex items-center space-x-2 mb-1">
-                            <User className="w-4 h-4 text-gray-500" />
-                            <span className="font-semibold text-gray-900">{ticket.users.name}</span>
+                    <div key={ticket.id} className="border border-gray-200 rounded-xl p-5 hover:border-brand-electric transition-all">
+                      <div className="flex items-start justify-between mb-3">
+                        <div className="flex-1">
+                          <div className="flex items-center space-x-2 mb-2">
+                            <h3 className="font-bold text-gray-900">{ticket.candidate_info?.name || ticket.users.name}</h3>
+                            <span className="text-xs text-gray-500 font-mono">{ticket.ticket_number}</span>
                           </div>
-                          <p className="text-xs text-gray-500 font-mono">{ticket.ticket_number}</p>
+                          <p className="text-sm text-gray-600">{ticket.candidate_info?.email || ticket.users.email}</p>
                         </div>
                         <button
                           onClick={() => handleClaimTicket(ticket.id)}
                           disabled={actionLoading === ticket.id}
-                          className="px-3 py-1 bg-brand-electric text-white text-sm font-medium rounded-lg hover:bg-brand-electric-dark transition-colors disabled:opacity-50"
+                          className="px-4 py-2 bg-brand-electric text-white text-sm font-medium rounded-lg hover:bg-brand-electric-dark transition-colors disabled:opacity-50"
                         >
-                          Claim
+                          Claim Ticket
                         </button>
                       </div>
-                      <div className="space-y-1">
+                      <div className="space-y-2 mb-3">
                         <p className="text-sm text-gray-700">
                           <span className="font-medium">Role:</span> {ticket.job_role}
                           {ticket.company_name && ` at ${ticket.company_name}`}
                         </p>
                         <p className="text-sm text-gray-600">
-                          <span className="font-medium">Exp:</span> {ticket.experience_level}
+                          <span className="font-medium">Experience:</span> {ticket.experience_level}
                         </p>
                         <p className="text-sm text-gray-600">
                           <span className="font-medium">Preferred:</span> {new Date(ticket.preferred_date).toLocaleDateString()} at {ticket.preferred_time}
                         </p>
                       </div>
+                      {ticket.candidate_info && (
+                        <details className="mt-3 pt-3 border-t border-gray-200">
+                          <summary className="text-sm text-brand-electric font-medium cursor-pointer hover:underline">
+                            View Full Profile
+                          </summary>
+                          <div className="mt-3 space-y-2">
+                            {ticket.candidate_info.bio && (
+                              <p className="text-sm text-gray-700">{ticket.candidate_info.bio}</p>
+                            )}
+                            {ticket.candidate_info.industry && (
+                              <p className="text-sm text-gray-600">
+                                <span className="font-medium">Industry:</span> {ticket.candidate_info.industry}
+                              </p>
+                            )}
+                            {ticket.candidate_info.career_goals && (
+                              <p className="text-sm text-gray-600">
+                                <span className="font-medium">Career Goals:</span> {ticket.candidate_info.career_goals}
+                              </p>
+                            )}
+                            {ticket.candidate_info.resume_url && (
+                              <a
+                                href={ticket.candidate_info.resume_url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center text-sm text-brand-electric hover:underline"
+                              >
+                                <Download className="w-4 h-4 mr-1" />
+                                Download Resume
+                              </a>
+                            )}
+                            <details className="mt-2">
+                              <summary className="text-sm text-gray-700 font-medium cursor-pointer">Job Description</summary>
+                              <p className="text-sm text-gray-600 mt-2 whitespace-pre-wrap">{ticket.job_description}</p>
+                            </details>
+                          </div>
+                        </details>
+                      )}
                     </div>
                   ))
                 )}
               </div>
             </div>
+          )}
 
-            <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-200">
-              <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center space-x-2">
-                <CheckCircle className="w-5 h-5 text-blue-500" />
-                <span>Completed</span>
-              </h2>
-              <div className="space-y-3 max-h-[400px] overflow-y-auto">
-                {completedInterviews.length === 0 ? (
-                  <p className="text-center py-4 text-gray-500 text-sm">No completed interviews yet</p>
-                ) : (
-                  completedInterviews.map((ticket) => (
-                    <div key={ticket.id} className="border border-gray-200 rounded-lg p-3">
-                      <div className="flex items-center justify-between">
-                        <div className="flex-1">
-                          <p className="font-medium text-gray-900 text-sm">{ticket.users.name}</p>
-                          <p className="text-xs text-gray-600">{ticket.job_role}</p>
-                        </div>
-                        <span className="text-xs text-gray-500">{new Date(ticket.scheduled_date!).toLocaleDateString()}</span>
-                      </div>
-                    </div>
-                  ))
-                )}
-              </div>
-            </div>
-          </div>
-
-          <div className="space-y-6">
-            <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-200">
+          {activeTab === 'claimed' && (
+            <div>
               <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center space-x-2">
                 <Clock className="w-5 h-5 text-orange-500" />
                 <span>My Claimed Tickets</span>
               </h2>
-              <div className="space-y-3 max-h-[300px] overflow-y-auto">
+              <div className="space-y-4">
                 {myClaimedTickets.length === 0 ? (
-                  <p className="text-center py-4 text-gray-500 text-sm">No claimed tickets</p>
+                  <div className="text-center py-12">
+                    <Clock className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                    <h3 className="text-lg font-semibold text-gray-900 mb-2">No claimed tickets</h3>
+                    <p className="text-gray-600">Claim tickets from the pool or assigned section</p>
+                  </div>
                 ) : (
                   myClaimedTickets.map((ticket) => (
-                    <div key={ticket.id} className="border border-gray-200 rounded-lg p-4">
-                      <div className="flex items-start justify-between mb-2">
-                        <div>
-                          <p className="font-semibold text-gray-900">{ticket.users.name}</p>
-                          <p className="text-xs text-gray-500 font-mono">{ticket.ticket_number}</p>
+                    <div key={ticket.id} className="border border-orange-200 rounded-xl p-5 bg-orange-50/30">
+                      <div className="flex items-start justify-between mb-3">
+                        <div className="flex-1">
+                          <span className="text-xs text-gray-500 mb-1 block">Claimed on {new Date(ticket.claimed_at!).toLocaleDateString()}</span>
+                          <h3 className="font-bold text-gray-900">{ticket.candidate_info?.name || ticket.users.name}</h3>
+                          <p className="text-sm text-gray-600">{ticket.job_role}</p>
                         </div>
-                        <span className="text-xs text-gray-500">
-                          Claimed {new Date(ticket.claimed_at!).toLocaleDateString()}
-                        </span>
                       </div>
-                      <p className="text-sm text-gray-700 mb-3">{ticket.job_role}</p>
-                      <div className="flex space-x-2">
+                      <div className="flex space-x-2 mb-3">
                         <button
                           onClick={() => handleBookInterview(ticket)}
-                          className="flex-1 px-3 py-2 bg-green-500 text-white text-sm font-medium rounded-lg hover:bg-green-600 transition-colors"
+                          className="flex-1 px-4 py-2 bg-green-500 text-white text-sm font-medium rounded-lg hover:bg-green-600 transition-colors flex items-center justify-center space-x-2"
                         >
-                          Book Interview
+                          <Calendar className="w-4 h-4" />
+                          <span>Schedule Interview</span>
                         </button>
                         <button
                           onClick={() => handleReleaseTicket(ticket.id)}
                           disabled={actionLoading === ticket.id}
-                          className="px-3 py-2 bg-gray-100 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-200 transition-colors disabled:opacity-50"
+                          className="px-4 py-2 bg-gray-200 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-300 transition-colors disabled:opacity-50"
                         >
                           Release
                         </button>
                       </div>
+                      {ticket.candidate_info && (
+                        <details className="mt-3 pt-3 border-t border-gray-200">
+                          <summary className="text-sm text-brand-electric font-medium cursor-pointer hover:underline">
+                            View Details
+                          </summary>
+                          <div className="mt-3 space-y-2">
+                            <p className="text-sm text-gray-600">
+                              <span className="font-medium">Email:</span> {ticket.candidate_info.email}
+                            </p>
+                            <p className="text-sm text-gray-600">
+                              <span className="font-medium">Preferred Time:</span> {new Date(ticket.preferred_date).toLocaleDateString()} at {ticket.preferred_time}
+                            </p>
+                            {ticket.candidate_info.resume_url && (
+                              <a
+                                href={ticket.candidate_info.resume_url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center text-sm text-brand-electric hover:underline"
+                              >
+                                <Download className="w-4 h-4 mr-1" />
+                                Download Resume
+                              </a>
+                            )}
+                          </div>
+                        </details>
+                      )}
                     </div>
                   ))
                 )}
               </div>
             </div>
+          )}
 
-            <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-200">
+          {activeTab === 'booked' && (
+            <div>
               <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center space-x-2">
                 <Calendar className="w-5 h-5 text-green-500" />
-                <span>Booked Interviews</span>
+                <span>Scheduled Interviews</span>
               </h2>
-              <div className="space-y-3 max-h-[500px] overflow-y-auto">
+              <div className="space-y-4">
                 {bookedInterviews.length === 0 ? (
-                  <p className="text-center py-4 text-gray-500 text-sm">No upcoming interviews</p>
+                  <div className="text-center py-12">
+                    <Calendar className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                    <h3 className="text-lg font-semibold text-gray-900 mb-2">No scheduled interviews</h3>
+                    <p className="text-gray-600">Schedule interviews from your claimed tickets</p>
+                  </div>
                 ) : (
                   bookedInterviews.map((ticket) => (
-                    <div key={ticket.id} className="border border-green-200 bg-green-50 rounded-lg p-4">
-                      <div className="flex items-start justify-between mb-2">
-                        <div>
-                          <p className="font-semibold text-gray-900">{ticket.users.name}</p>
-                          <p className="text-xs text-gray-500 font-mono">{ticket.ticket_number}</p>
+                    <div key={ticket.id} className="border-2 border-green-200 bg-green-50/50 rounded-xl p-5">
+                      <div className="flex items-start justify-between mb-3">
+                        <div className="flex-1">
+                          <h3 className="font-bold text-gray-900">{ticket.candidate_info?.name || ticket.users.name}</h3>
+                          <p className="text-sm text-gray-600">{ticket.job_role}</p>
+                          <span className="text-xs text-gray-500 font-mono">{ticket.ticket_number}</span>
                         </div>
-                        <StatusBadge status="booked" size="sm" />
+                        <span className="px-3 py-1 bg-green-100 text-green-700 text-xs font-bold rounded-full">SCHEDULED</span>
                       </div>
-                      <p className="text-sm text-gray-700 mb-2">{ticket.job_role}</p>
-                      <div className="bg-white rounded p-3 mb-3">
-                        <div className="flex items-center space-x-2 text-sm mb-2">
-                          <Calendar className="w-4 h-4 text-brand-electric" />
-                          <span className="font-medium">{new Date(ticket.scheduled_date!).toLocaleDateString()}</span>
-                          <span className="text-gray-500">at</span>
-                          <span className="font-medium">{ticket.scheduled_time}</span>
+                      <div className="bg-white rounded-lg p-4 mb-3">
+                        <div className="flex items-center space-x-3 mb-3">
+                          <Calendar className="w-5 h-5 text-brand-electric" />
+                          <div>
+                            <p className="font-semibold text-gray-900">{new Date(ticket.scheduled_date!).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
+                            <p className="text-sm text-gray-600">at {ticket.scheduled_time}</p>
+                          </div>
                         </div>
                         <a
                           href={ticket.meeting_room_link!}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="flex items-center space-x-2 text-sm text-brand-electric hover:text-brand-electric-dark"
+                          className="flex items-center justify-center space-x-2 w-full px-4 py-2 bg-brand-electric text-white font-medium rounded-lg hover:bg-brand-electric-dark transition-colors"
                         >
                           <ExternalLink className="w-4 h-4" />
-                          <span className="font-medium">Join Meeting</span>
+                          <span>Join Interview Room</span>
                         </a>
                       </div>
-                      <button
-                        onClick={() => handleMarkCompleted(ticket.id)}
-                        disabled={actionLoading === ticket.id}
-                        className="w-full px-3 py-2 bg-blue-500 text-white text-sm font-medium rounded-lg hover:bg-blue-600 transition-colors disabled:opacity-50"
-                      >
-                        Mark as Completed
-                      </button>
+                      <div className="flex space-x-2">
+                        <button
+                          onClick={() => handleMarkCompleted(ticket.id)}
+                          disabled={actionLoading === ticket.id}
+                          className="flex-1 px-4 py-2 bg-blue-500 text-white text-sm font-medium rounded-lg hover:bg-blue-600 transition-colors disabled:opacity-50 flex items-center justify-center space-x-2"
+                        >
+                          <CheckCircle className="w-4 h-4" />
+                          <span>Mark Completed</span>
+                        </button>
+                      </div>
+                      {ticket.candidate_info && (
+                        <details className="mt-3 pt-3 border-t border-gray-200">
+                          <summary className="text-sm text-brand-electric font-medium cursor-pointer hover:underline">
+                            View Candidate Info
+                          </summary>
+                          <div className="mt-3 space-y-2">
+                            <p className="text-sm text-gray-600">
+                              <span className="font-medium">Email:</span> {ticket.candidate_info.email}
+                            </p>
+                            {ticket.candidate_info.resume_url && (
+                              <a
+                                href={ticket.candidate_info.resume_url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center text-sm text-brand-electric hover:underline"
+                              >
+                                <Download className="w-4 h-4 mr-1" />
+                                Download Resume
+                              </a>
+                            )}
+                          </div>
+                        </details>
+                      )}
                     </div>
                   ))
                 )}
               </div>
             </div>
-          </div>
+          )}
+
+          {activeTab === 'completed' && (
+            <div>
+              <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center space-x-2">
+                <CheckCircle className="w-5 h-5 text-blue-500" />
+                <span>Completed Interviews</span>
+              </h2>
+              <div className="space-y-4">
+                {completedInterviews.length === 0 ? (
+                  <div className="text-center py-12">
+                    <CheckCircle className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                    <h3 className="text-lg font-semibold text-gray-900 mb-2">No completed interviews yet</h3>
+                    <p className="text-gray-600">Your completed interviews will appear here</p>
+                  </div>
+                ) : (
+                  completedInterviews.map((ticket) => (
+                    <div key={ticket.id} className="border border-gray-200 rounded-xl p-5 bg-gray-50">
+                      <div className="flex items-start justify-between mb-2">
+                        <div className="flex-1">
+                          <h3 className="font-semibold text-gray-900">{ticket.candidate_info?.name || ticket.users.name}</h3>
+                          <p className="text-sm text-gray-600">{ticket.job_role}</p>
+                          <span className="text-xs text-gray-500 font-mono">{ticket.ticket_number}</span>
+                        </div>
+                        <span className="px-3 py-1 bg-blue-100 text-blue-700 text-xs font-bold rounded-full">COMPLETED</span>
+                      </div>
+                      <p className="text-sm text-gray-600 mt-2">
+                        <span className="font-medium">Completed on:</span> {ticket.scheduled_date ? new Date(ticket.scheduled_date).toLocaleDateString() : 'N/A'}
+                      </p>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          )}
         </div>
       </div>
 

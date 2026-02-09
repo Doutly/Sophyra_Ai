@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { db } from '../lib/firebase';
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp, doc, getDoc } from 'firebase/firestore';
 import { Briefcase, Clock, FileText, Send, Loader, ArrowLeft, CheckCircle, Copy, Calendar } from 'lucide-react';
 import BentoCard from '../components/BentoCard';
 import BentoGrid from '../components/BentoGrid';
@@ -32,20 +32,43 @@ export default function ManualMockInterview() {
     setError('');
 
     try {
+      // Fetch user profile data
+      const userDocRef = doc(db, 'users', user!.uid);
+      const userDoc = await getDoc(userDocRef);
+      const userData = userDoc.exists() ? userDoc.data() : {};
+
       const generatedTicketNumber = `MIR-${Date.now()}-${Math.random().toString(36).substr(2, 5).toUpperCase()}`;
 
+      // Create ticket with snake_case fields and candidate info
       await addDoc(collection(db, 'mockInterviewRequests'), {
-        userId: user!.uid,
-        jobRole: formData.jobRole,
-        companyName: formData.companyName,
-        experienceLevel: formData.experienceLevel,
-        jobDescription: formData.jobDescription,
-        preferredDate: formData.preferredDate,
-        preferredTime: formData.preferredTime,
-        additionalNotes: formData.additionalNotes,
-        ticketNumber: generatedTicketNumber,
+        user_id: user!.uid,
+        job_role: formData.jobRole,
+        company_name: formData.companyName,
+        experience_level: formData.experienceLevel,
+        job_description: formData.jobDescription,
+        preferred_date: formData.preferredDate,
+        preferred_time: formData.preferredTime,
+        additional_notes: formData.additionalNotes,
+        ticket_number: generatedTicketNumber,
         status: 'pending',
-        createdAt: serverTimestamp(),
+        booking_status: 'unclaimed',
+        assigned_hr_id: null,
+        claimed_by: null,
+        claimed_at: null,
+        scheduled_date: null,
+        scheduled_time: null,
+        meeting_room_link: null,
+        created_at: serverTimestamp(),
+        // Include candidate profile information
+        candidate_info: {
+          name: userData.name || user!.displayName || 'N/A',
+          email: userData.email || user!.email || 'N/A',
+          bio: userData.bio || '',
+          experience_level: userData.experienceLevel || '',
+          industry: userData.industry || '',
+          career_goals: userData.careerGoals || '',
+          resume_url: userData.resumeUrl || null,
+        },
       });
 
       setTicketNumber(generatedTicketNumber);

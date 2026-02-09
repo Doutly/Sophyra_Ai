@@ -31,15 +31,28 @@ interface MockInterviewRequest {
   experience_level: string;
   job_description: string;
   status: 'pending' | 'approved' | 'rejected' | 'completed';
+  booking_status: string;
+  assigned_hr_id: string | null;
+  claimed_by: string | null;
   preferred_date: string;
   preferred_time: string;
   scheduled_date: string | null;
   scheduled_time: string | null;
   created_at: string;
+  candidate_info: {
+    name: string;
+    email: string;
+    bio: string;
+    experience_level: string;
+    industry: string;
+    career_goals: string;
+    resume_url: string | null;
+  } | null;
   users: {
     name: string;
     email: string;
   };
+  assigned_hr_name?: string;
 }
 
 interface HRUser {
@@ -172,6 +185,20 @@ export default function AdminDashboard() {
               }
             }
 
+            // Fetch assigned HR name if exists
+            let assignedHrName = undefined;
+            if (requestData.assigned_hr_id && typeof requestData.assigned_hr_id === 'string') {
+              try {
+                const hrQuery = query(collection(db, 'users'), where('__name__', '==', requestData.assigned_hr_id));
+                const hrSnapshot = await getDocs(hrQuery);
+                if (!hrSnapshot.empty && hrSnapshot.docs[0]?.data()) {
+                  assignedHrName = hrSnapshot.docs[0].data().name || 'Unknown HR';
+                }
+              } catch (error) {
+                console.error('Error fetching HR data:', error);
+              }
+            }
+
             return {
               id: docSnap.id,
               ticket_number: requestData.ticket_number || '',
@@ -181,12 +208,17 @@ export default function AdminDashboard() {
               experience_level: requestData.experience_level || '',
               job_description: requestData.job_description || '',
               status: requestData.status || 'pending',
+              booking_status: requestData.booking_status || 'unclaimed',
+              assigned_hr_id: requestData.assigned_hr_id || null,
+              claimed_by: requestData.claimed_by || null,
               preferred_date: requestData.preferred_date || '',
               preferred_time: requestData.preferred_time || '',
               scheduled_date: requestData.scheduled_date || null,
               scheduled_time: requestData.scheduled_time || null,
               created_at: requestData.created_at || '',
+              candidate_info: requestData.candidate_info || null,
               users: userData,
+              assigned_hr_name: assignedHrName,
             };
           })
         );
@@ -286,6 +318,22 @@ export default function AdminDashboard() {
     } catch (error) {
       console.error('Error updating HR approval:', error);
       alert('Failed to update HR approval status. Please try again.');
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const handleAssignHR = async (requestId: string, hrId: string) => {
+    setActionLoading(requestId);
+    try {
+      const requestRef = doc(db, 'mockInterviewRequests', requestId);
+      await updateDoc(requestRef, {
+        assigned_hr_id: hrId || null,
+        updated_at: Timestamp.now(),
+      });
+    } catch (error) {
+      console.error('Error assigning HR:', error);
+      alert('Failed to assign HR. Please try again.');
     } finally {
       setActionLoading(null);
     }
@@ -692,11 +740,17 @@ export default function AdminDashboard() {
                       <div className="flex items-start justify-between mb-3">
                         <div className="flex-1">
                           <div className="flex items-center space-x-3 mb-2">
-                            <h3 className="font-semibold text-gray-900">{request.users.name}</h3>
+                            <h3 className="font-semibold text-gray-900">{request.candidate_info?.name || request.users.name}</h3>
                             <StatusBadge status={request.status} size="sm" />
                             <span className="text-xs text-gray-500 font-mono">{request.ticket_number}</span>
+                            {request.booking_status === 'claimed' && (
+                              <span className="px-2 py-0.5 bg-blue-100 text-blue-700 text-xs font-medium rounded">Claimed</span>
+                            )}
+                            {request.booking_status === 'booked' && (
+                              <span className="px-2 py-0.5 bg-green-100 text-green-700 text-xs font-medium rounded">Booked</span>
+                            )}
                           </div>
-                          <div className="space-y-1">
+                          <div className="space-y-1 mb-3">
                             <p className="text-sm text-gray-700">
                               <span className="font-medium">Role:</span> {request.job_role}
                               {request.company_name && ` at ${request.company_name}`}
@@ -708,7 +762,34 @@ export default function AdminDashboard() {
                               <span className="font-medium">Preferred:</span>{' '}
                               {new Date(request.preferred_date).toLocaleDateString()} at {request.preferred_time}
                             </p>
+                            {request.candidate_info?.email && (
+                              <p className="text-sm text-gray-600">
+                                <span className="font-medium">Email:</span> {request.candidate_info.email}
+                              </p>
+                            )}
                           </div>
+
+                          {request.status === 'approved' && (
+                            <div className="flex items-center space-x-2 mt-3">
+                              <label className="text-xs font-medium text-gray-600">Assign to HR:</label>
+                              <select
+                                value={request.assigned_hr_id || ''}
+                                onChange={(e) => handleAssignHR(request.id, e.target.value)}
+                                disabled={actionLoading === request.id}
+                                className="px-3 py-1 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-electric focus:border-transparent disabled:opacity-50"
+                              >
+                                <option value="">Unassigned (Pool)</option>
+                                {hrUsers.filter(h => h.is_approved).map((hr) => (
+                                  <option key={hr.id} value={hr.id}>{hr.name}</option>
+                                ))}
+                              </select>
+                              {request.assigned_hr_name && (
+                                <span className="text-xs text-gray-600">
+                                  (Currently: {request.assigned_hr_name})
+                                </span>
+                              )}
+                            </div>
+                          )}
                         </div>
 
                         {request.status === 'pending' && (
@@ -752,10 +833,42 @@ export default function AdminDashboard() {
 
                       <details className="mt-3 pt-3 border-t border-gray-200">
                         <summary className="text-sm text-brand-electric font-medium cursor-pointer hover:underline">
-                          View Job Description
+                          View Full Details
                         </summary>
-                        <div className="mt-3 p-3 bg-gray-50 rounded-lg">
-                          <p className="text-sm text-gray-700 whitespace-pre-wrap">{request.job_description}</p>
+                        <div className="mt-3 space-y-3">
+                          {request.candidate_info && (
+                            <div className="p-3 bg-blue-50 rounded-lg">
+                              <h4 className="text-sm font-semibold text-gray-900 mb-2">Candidate Profile</h4>
+                              {request.candidate_info.bio && (
+                                <p className="text-sm text-gray-700 mb-2">{request.candidate_info.bio}</p>
+                              )}
+                              {request.candidate_info.industry && (
+                                <p className="text-sm text-gray-600">
+                                  <span className="font-medium">Industry:</span> {request.candidate_info.industry}
+                                </p>
+                              )}
+                              {request.candidate_info.career_goals && (
+                                <p className="text-sm text-gray-600">
+                                  <span className="font-medium">Career Goals:</span> {request.candidate_info.career_goals}
+                                </p>
+                              )}
+                              {request.candidate_info.resume_url && (
+                                <a
+                                  href={request.candidate_info.resume_url}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="inline-flex items-center mt-2 text-sm text-brand-electric hover:underline"
+                                >
+                                  <Download className="w-4 h-4 mr-1" />
+                                  Download Resume
+                                </a>
+                              )}
+                            </div>
+                          )}
+                          <div className="p-3 bg-gray-50 rounded-lg">
+                            <h4 className="text-sm font-semibold text-gray-900 mb-2">Job Description</h4>
+                            <p className="text-sm text-gray-700 whitespace-pre-wrap">{request.job_description}</p>
+                          </div>
                         </div>
                       </details>
                     </div>

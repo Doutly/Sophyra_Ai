@@ -80,9 +80,24 @@ service cloud.firestore {
 
     // Mock interview requests
     match /mockInterviewRequests/{requestId} {
+      // Anyone authenticated can read requests
       allow read: if isAuthenticated();
-      allow create: if isAuthenticated() && request.resource.data.candidateId == request.auth.uid;
-      allow update: if isOwner(resource.data.candidateId) || isAdmin() || isHR();
+
+      // Candidates can create their own requests
+      allow create: if isAuthenticated() && request.resource.data.user_id == request.auth.uid;
+
+      // Candidates can update their own requests (if not yet approved)
+      // Admins can update any request (approve, reject, assign HR)
+      // HR can update requests they've claimed or that are assigned to them
+      allow update: if isOwner(resource.data.user_id) ||
+                       isAdmin() ||
+                       (isHR() && (
+                         resource.data.claimed_by == request.auth.uid ||
+                         resource.data.assigned_hr_id == request.auth.uid ||
+                         (!exists(/databases/$(database)/documents/mockInterviewRequests/$(requestId)) || resource.data.booking_status == 'unclaimed')
+                       ));
+
+      // Only admins can delete requests
       allow delete: if isAdmin();
     }
 
