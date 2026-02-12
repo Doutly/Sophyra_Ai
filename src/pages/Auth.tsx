@@ -153,12 +153,12 @@ export default function Auth() {
                       I am signing up as
                     </label>
                     <div className="space-y-3">
-                      <label className={`flex items-start p-4 border-2 rounded-lg cursor-pointer transition-all ${selectedRole === 'student' ? 'border-brand-electric bg-brand-electric/5' : 'border-gray-200 hover:border-gray-300'}`}>
+                      <label className={`flex items-start p-4 border-2 rounded-lg cursor-pointer transition-all ${selectedRole === 'candidate' ? 'border-brand-electric bg-brand-electric/5' : 'border-gray-200 hover:border-gray-300'}`}>
                         <input
                           type="radio"
                           name="role"
-                          value="student"
-                          checked={selectedRole === 'student'}
+                          value="candidate"
+                          checked={selectedRole === 'candidate'}
                           onChange={(e) => setSelectedRole(e.target.value as UserRole)}
                           className="mt-1 w-4 h-4 text-brand-electric focus:ring-brand-electric"
                         />

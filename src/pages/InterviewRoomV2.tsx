@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { db } from '../lib/firebase';
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, getDoc, updateDoc, Timestamp } from 'firebase/firestore';
 import { Power, Phone, PhoneOff } from 'lucide-react';
 import { createInterviewAgent, ElevenLabsInterviewAgent, InterviewContext } from '../lib/elevenLabsAgent';
 
@@ -84,15 +84,20 @@ export default function InterviewRoomV2() {
     }
   };
 
-  const handleCallStart = () => {
+  const handleCallStart = async () => {
     setCallActive(true);
     setCallStatus('active');
     console.log('Call started');
 
-    supabase
-      .from('sessions')
-      .update({ started_at: new Date().toISOString(), status: 'in_progress' })
-      .eq('id', sessionId!);
+    try {
+      const sessionRef = doc(db, 'sessions', sessionId!);
+      await updateDoc(sessionRef, {
+        started_at: Timestamp.now(),
+        status: 'in_progress',
+      });
+    } catch (error) {
+      console.error('Error updating session start:', error);
+    }
   };
 
   const handleCallEnd = async () => {
@@ -100,14 +105,16 @@ export default function InterviewRoomV2() {
     setCallStatus('ended');
     console.log('Call ended');
 
-    await supabase
-      .from('sessions')
-      .update({
-        ended_at: new Date().toISOString(),
+    try {
+      const sessionRef = doc(db, 'sessions', sessionId!);
+      await updateDoc(sessionRef, {
+        ended_at: Timestamp.now(),
         status: 'completed',
-        completed_at: new Date().toISOString(),
-      })
-      .eq('id', sessionId!);
+        completed_at: Timestamp.now(),
+      });
+    } catch (error) {
+      console.error('Error updating session end:', error);
+    }
 
     setTimeout(() => {
       navigate(`/report/${sessionId}`);
