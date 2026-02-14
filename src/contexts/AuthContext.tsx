@@ -39,7 +39,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         if (userDoc.exists()) {
           const userData = userDoc.data();
-          setRole(userData.role);
+          
+          // Handle legacy 'student' role by converting it to 'candidate'
+          let userRole = userData.role;
+          if (userRole === 'student') {
+            userRole = 'candidate';
+          }
+          
+          setRole(userRole);
           setIsApproved(userData.isApproved);
           return;
         }

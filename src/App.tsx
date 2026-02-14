@@ -14,6 +14,7 @@ import HRDashboard from './pages/HRDashboard';
 import PendingApproval from './pages/PendingApproval';
 import Profile from './pages/Profile';
 import SharedReport from './pages/SharedReport';
+import ElevenLabsTest from './pages/ElevenLabsTest';
 
 function App() {
   return (

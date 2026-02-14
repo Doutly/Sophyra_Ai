@@ -59,7 +59,7 @@ export default function Dashboard() {
   const [reports, setReports] = useState<Report[]>([]);
   const [tips, setTips] = useState<Tip | null>(null);
   const [mockRequests, setMockRequests] = useState<MockInterviewRequest[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [userName, setUserName] = useState('');
 
@@ -197,28 +197,30 @@ export default function Dashboard() {
       const requestsQuery = query(
         collection(db, 'mockInterviewRequests'),
         where('user_id', '==', user.uid),
-        orderBy('created_at', 'desc'),
-        firestoreLimit(5)
+        orderBy('created_at', 'desc')
+        // Removed firestoreLimit(5) to avoid composite index requirement
       );
 
       const unsubscribeRequests = onSnapshot(
         requestsQuery,
         (requestsSnapshot) => {
-          const requestsData = requestsSnapshot.docs.map(d => {
-            const data = d.data();
-            return {
-              id: d.id,
-              ticket_number: data.ticket_number || '',
-              job_role: data.job_role || '',
-              company_name: data.company_name || null,
-              status: data.status || 'pending',
-              preferred_date: data.preferred_date || '',
-              preferred_time: data.preferred_time || '',
-              scheduled_date: data.scheduled_date || null,
-              scheduled_time: data.scheduled_time || null,
-              created_at: data.created_at || new Date().toISOString()
-            };
-          });
+          const requestsData = requestsSnapshot.docs
+            .slice(0, 5) // Client-side limit to 5 items
+            .map(d => {
+              const data = d.data();
+              return {
+                id: d.id,
+                ticket_number: data.ticket_number || '',
+                job_role: data.job_role || '',
+                company_name: data.company_name || null,
+                status: data.status || 'pending',
+                preferred_date: data.preferred_date || '',
+                preferred_time: data.preferred_time || '',
+                scheduled_date: data.scheduled_date || null,
+                scheduled_time: data.scheduled_time || null,
+                created_at: data.created_at || new Date().toISOString()
+              };
+            });
 
           setMockRequests(requestsData);
         },

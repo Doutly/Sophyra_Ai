@@ -101,6 +101,6 @@ export interface ResumeData {
   createdAt: Timestamp;
 }
 
-export type UserRole = 'candidate' | 'hr' | 'admin';
+export type UserRole = 'candidate' | 'hr' | 'admin' | 'student';
 export type RequestStatus = 'pending' | 'approved' | 'rejected';
 export type BookingStatus = 'open' | 'claimed' | 'scheduled' | 'completed';

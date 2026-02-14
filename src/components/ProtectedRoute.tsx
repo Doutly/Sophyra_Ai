@@ -14,6 +14,9 @@ export default function ProtectedRoute({
   requireApproval = false
 }: ProtectedRouteProps) {
   const { user, role, isApproved, loading } = useAuth();
+  
+  // Handle legacy 'student' role by treating it as 'candidate'
+  const effectiveRole = role === 'student' ? 'candidate' : role;
 
   if (loading) {
     return (
@@ -34,10 +37,10 @@ export default function ProtectedRoute({
     return <>{children}</>;
   }
 
-  if (allowedRoles && role && !allowedRoles.includes(role)) {
-    if (role === 'candidate') return <Navigate to="/dashboard" replace />;
-    if (role === 'hr') return <Navigate to="/hr-dashboard" replace />;
-    if (role === 'admin') return <Navigate to="/admin" replace />;
+  if (allowedRoles && effectiveRole && !allowedRoles.includes(effectiveRole)) {
+    if (effectiveRole === 'candidate') return <Navigate to="/dashboard" replace />;
+    if (effectiveRole === 'hr') return <Navigate to="/hr-dashboard" replace />;
+    if (effectiveRole === 'admin') return <Navigate to="/admin" replace />;
     return <Navigate to="/dashboard" replace />;
   }
 
