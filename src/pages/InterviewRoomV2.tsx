@@ -16,6 +16,7 @@ import {
   WifiOff,
   Brain,
   AlertCircle,
+  Loader2,
 } from 'lucide-react';
 
 const AGENT_ID = 'agent_6401kf6a3faqejpbsks4a5h1j3da';
@@ -58,6 +59,7 @@ export default function InterviewRoomV2() {
   const [session, setSession] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [started, setStarted] = useState(false);
+  const [connecting, setConnecting] = useState(false);
   const [ended, setEnded] = useState(false);
   const [micEnabled, setMicEnabled] = useState(true);
   const [cameraEnabled, setCameraEnabled] = useState(true);
@@ -75,13 +77,18 @@ export default function InterviewRoomV2() {
   const startedRef = useRef(false);
   const endedRef = useRef(false);
   const transcriptCountRef = useRef(0);
+  const connectingRef = useRef(false);
 
   const conversation = useConversation({
     onConnect: () => {
       console.log('ElevenLabs connected');
+      connectingRef.current = false;
+      setConnecting(false);
     },
     onDisconnect: () => {
       console.log('ElevenLabs disconnected');
+      connectingRef.current = false;
+      setConnecting(false);
       if (startedRef.current && !endedRef.current && transcriptCountRef.current > 0) {
         handleEnd();
       }
@@ -100,6 +107,9 @@ export default function InterviewRoomV2() {
     },
     onError: (message: string, context?: unknown) => {
       console.error('ElevenLabs error:', message, context);
+      connectingRef.current = false;
+      setConnecting(false);
+      setStartError('Connection error. Please try again.');
     },
   });
 
@@ -169,7 +179,12 @@ export default function InterviewRoomV2() {
 
   const handleStart = async () => {
     if (!session) return;
+    if (connectingRef.current) return;
+    if (conversation.status === 'connected' || conversation.status === 'connecting') return;
+
     setStartError(null);
+    setConnecting(true);
+    connectingRef.current = true;
 
     try {
       const systemPrompt = generateSystemPrompt(session, candidateNameRef.current);
@@ -201,7 +216,11 @@ export default function InterviewRoomV2() {
       });
     } catch (err: any) {
       console.error('Failed to start session:', err);
-      setStartError(err?.message || 'Failed to connect. Please check your microphone and try again.');
+      connectingRef.current = false;
+      setConnecting(false);
+      setStartError(
+        err?.message || 'Failed to connect. Please check your microphone and try again.'
+      );
     }
   };
 
@@ -213,7 +232,9 @@ export default function InterviewRoomV2() {
     if (timerRef.current) clearInterval(timerRef.current);
 
     try {
-      await conversation.endSession();
+      if (conversation.status === 'connected') {
+        await conversation.endSession();
+      }
     } catch {
       /* ignore */
     }
@@ -270,17 +291,17 @@ export default function InterviewRoomV2() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#0f0f10] flex items-center justify-center">
+      <div className="min-h-screen bg-slate-950 flex items-center justify-center">
         <div className="text-center">
           <div className="w-12 h-12 border-4 border-brand-electric border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-gray-400 text-sm">Preparing your interview room...</p>
+          <p className="text-slate-400 text-sm">Preparing your interview room...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#0f0f10] flex flex-col select-none">
+    <div className="min-h-screen bg-slate-950 flex flex-col select-none">
       <header className="flex items-center justify-between px-6 py-4 border-b border-white/5">
         <div className="flex items-center space-x-3">
           <div className="w-8 h-8 bg-brand-electric rounded-lg flex items-center justify-center">
@@ -291,7 +312,7 @@ export default function InterviewRoomV2() {
               {session?.role || 'Mock Interview'}
             </p>
             {session?.company && (
-              <p className="text-gray-500 text-xs mt-0.5">{session.company}</p>
+              <p className="text-slate-500 text-xs mt-0.5">{session.company}</p>
             )}
           </div>
         </div>
@@ -309,19 +330,21 @@ export default function InterviewRoomV2() {
               ? 'bg-green-500/10 text-green-400 border border-green-500/20'
               : connectionStatus === 'connecting'
               ? 'bg-yellow-500/10 text-yellow-400 border border-yellow-500/20'
-              : 'bg-gray-500/10 text-gray-400 border border-gray-500/20'
+              : 'bg-slate-700/50 text-slate-400 border border-slate-600/30'
           }`}>
             {connectionStatus === 'connected' ? (
               <Wifi className="w-3 h-3" />
             ) : (
               <WifiOff className="w-3 h-3" />
             )}
-            <span className="capitalize">{connectionStatus === 'connected' ? 'Live' : connectionStatus === 'connecting' ? 'Connecting' : 'Ready'}</span>
+            <span className="capitalize">
+              {connectionStatus === 'connected' ? 'Live' : connectionStatus === 'connecting' ? 'Connecting' : 'Ready'}
+            </span>
           </div>
 
           <button
             onClick={() => setShowTranscript((v) => !v)}
-            className={`p-2 rounded-lg transition-all ${showTranscript ? 'bg-brand-electric text-white' : 'text-gray-400 hover:text-white hover:bg-white/5'}`}
+            className={`p-2 rounded-lg transition-all ${showTranscript ? 'bg-brand-electric text-white' : 'text-slate-400 hover:text-white hover:bg-white/5'}`}
           >
             <MessageSquare className="w-4 h-4" />
           </button>
@@ -337,7 +360,7 @@ export default function InterviewRoomV2() {
                   <Brain className="w-12 h-12 text-brand-electric" />
                 </div>
                 <h2 className="text-2xl font-bold text-white mb-2">Ready when you are</h2>
-                <p className="text-gray-400 text-sm mb-8 max-w-xs">
+                <p className="text-slate-400 text-sm mb-8 max-w-xs">
                   Sophyra will conduct your {session?.role} interview. Make sure your microphone is on before starting.
                 </p>
 
@@ -349,28 +372,37 @@ export default function InterviewRoomV2() {
                 )}
 
                 <div className="bg-white/5 border border-white/10 rounded-2xl p-5 mb-8 text-left max-w-sm w-full space-y-2">
-                  <p className="text-xs text-gray-400 font-semibold uppercase tracking-wider mb-3">What to expect</p>
+                  <p className="text-xs text-slate-400 font-semibold uppercase tracking-wider mb-3">What to expect</p>
                   {['8 tailored questions for your role', 'Natural voice conversation', '15–20 minute session', 'Detailed performance report after'].map((item, i) => (
-                    <div key={i} className="flex items-center space-x-2 text-sm text-gray-300">
+                    <div key={i} className="flex items-center space-x-2 text-sm text-slate-300">
                       <span className="w-1.5 h-1.5 bg-brand-electric rounded-full flex-shrink-0"></span>
                       <span>{item}</span>
                     </div>
                   ))}
                 </div>
+
                 <button
                   onClick={handleStart}
-                  className="px-10 py-4 bg-brand-electric text-white font-bold rounded-2xl hover:bg-brand-electric-dark transition-all shadow-lg shadow-brand-electric/30 text-base"
+                  disabled={connecting}
+                  className="px-10 py-4 bg-brand-electric text-white font-bold rounded-2xl hover:bg-brand-electric-dark transition-all shadow-lg shadow-brand-electric/30 text-base disabled:opacity-60 disabled:cursor-not-allowed flex items-center space-x-2"
                 >
-                  Start Interview
+                  {connecting ? (
+                    <>
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                      <span>Connecting...</span>
+                    </>
+                  ) : (
+                    <span>Start Interview</span>
+                  )}
                 </button>
               </div>
             ) : ended ? (
               <div className="flex flex-col items-center justify-center min-h-[60vh] text-center">
-                <div className="w-20 h-20 bg-gray-800 rounded-full flex items-center justify-center mb-6">
-                  <PhoneOff className="w-10 h-10 text-gray-400" />
+                <div className="w-20 h-20 bg-slate-800 rounded-full flex items-center justify-center mb-6">
+                  <PhoneOff className="w-10 h-10 text-slate-400" />
                 </div>
                 <h2 className="text-2xl font-bold text-white mb-2">Interview Complete</h2>
-                <p className="text-gray-400 text-sm">Generating your performance report...</p>
+                <p className="text-slate-400 text-sm">Generating your performance report...</p>
                 <div className="mt-4 flex space-x-1">
                   {[0, 1, 2].map((i) => (
                     <div key={i} className="w-2 h-2 bg-brand-electric rounded-full animate-bounce" style={{ animationDelay: `${i * 150}ms` }}></div>
@@ -379,7 +411,7 @@ export default function InterviewRoomV2() {
               </div>
             ) : (
               <div className="grid grid-cols-2 gap-4 h-[calc(100vh-180px)]">
-                <div className="relative bg-gray-900 rounded-2xl overflow-hidden border border-white/5 flex items-center justify-center">
+                <div className="relative bg-slate-900 rounded-2xl overflow-hidden border border-white/5 flex items-center justify-center">
                   <div className="absolute inset-0 flex items-center justify-center">
                     <div className="relative">
                       {isSpeaking && (
@@ -388,8 +420,8 @@ export default function InterviewRoomV2() {
                           <div className="absolute inset-0 rounded-full bg-brand-electric/5 animate-ping scale-200" style={{ animationDelay: '200ms' }}></div>
                         </>
                       )}
-                      <div className={`w-28 h-28 rounded-full flex items-center justify-center transition-all ${isSpeaking ? 'bg-brand-electric/20 border-2 border-brand-electric/60 shadow-lg shadow-brand-electric/20' : 'bg-gray-800 border border-white/10'}`}>
-                        <Brain className={`w-14 h-14 transition-colors ${isSpeaking ? 'text-brand-electric' : 'text-gray-500'}`} />
+                      <div className={`w-28 h-28 rounded-full flex items-center justify-center transition-all ${isSpeaking ? 'bg-brand-electric/20 border-2 border-brand-electric/60 shadow-lg shadow-brand-electric/20' : 'bg-slate-800 border border-white/10'}`}>
+                        <Brain className={`w-14 h-14 transition-colors ${isSpeaking ? 'text-brand-electric' : 'text-slate-500'}`} />
                       </div>
                     </div>
                   </div>
@@ -416,7 +448,7 @@ export default function InterviewRoomV2() {
                   </div>
                 </div>
 
-                <div className="relative bg-gray-900 rounded-2xl overflow-hidden border border-white/5">
+                <div className="relative bg-slate-900 rounded-2xl overflow-hidden border border-white/5">
                   <video
                     ref={videoRef}
                     autoPlay
@@ -426,9 +458,9 @@ export default function InterviewRoomV2() {
                   />
 
                   {(!cameraEnabled || cameraError) && (
-                    <div className="absolute inset-0 flex items-center justify-center bg-gray-900">
-                      <div className="w-20 h-20 rounded-full bg-gray-700 flex items-center justify-center">
-                        <span className="text-3xl font-bold text-gray-400">
+                    <div className="absolute inset-0 flex items-center justify-center bg-slate-900">
+                      <div className="w-20 h-20 rounded-full bg-slate-700 flex items-center justify-center">
+                        <span className="text-3xl font-bold text-slate-400">
                           {candidateNameRef.current.charAt(0).toUpperCase()}
                         </span>
                       </div>
@@ -452,12 +484,12 @@ export default function InterviewRoomV2() {
         </div>
 
         {showTranscript && (
-          <div className="w-80 border-l border-white/5 flex flex-col bg-[#141415]">
+          <div className="w-80 border-l border-white/5 flex flex-col bg-slate-900">
             <div className="flex items-center justify-between px-4 py-3 border-b border-white/5">
               <h3 className="text-sm font-semibold text-white">Live Transcript</h3>
               <button
                 onClick={() => setShowTranscript(false)}
-                className="text-gray-500 hover:text-white transition-colors"
+                className="text-slate-500 hover:text-white transition-colors"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -465,14 +497,14 @@ export default function InterviewRoomV2() {
 
             <div className="flex-1 overflow-y-auto p-4 space-y-3">
               {transcript.length === 0 ? (
-                <p className="text-xs text-gray-500 text-center mt-8">
+                <p className="text-xs text-slate-500 text-center mt-8">
                   Transcript will appear here as the interview progresses
                 </p>
               ) : (
                 transcript.map((msg) => (
                   <div key={msg.id} className={`flex ${msg.source === 'user' ? 'justify-end' : 'justify-start'}`}>
-                    <div className={`max-w-[85%] rounded-2xl px-3 py-2 text-xs ${msg.source === 'user' ? 'bg-brand-electric/20 text-white border border-brand-electric/20' : 'bg-white/5 text-gray-300 border border-white/5'}`}>
-                      <p className={`text-[10px] font-semibold mb-1 ${msg.source === 'user' ? 'text-brand-electric' : 'text-gray-400'}`}>
+                    <div className={`max-w-[85%] rounded-2xl px-3 py-2 text-xs ${msg.source === 'user' ? 'bg-brand-electric/20 text-white border border-brand-electric/20' : 'bg-white/5 text-slate-300 border border-white/5'}`}>
+                      <p className={`text-[10px] font-semibold mb-1 ${msg.source === 'user' ? 'text-brand-electric-light' : 'text-slate-400'}`}>
                         {msg.source === 'user' ? 'You' : 'Sophyra'}
                       </p>
                       <p className="leading-relaxed">{msg.message}</p>

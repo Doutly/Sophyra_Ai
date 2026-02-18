@@ -8,17 +8,17 @@ export default {
       },
       colors: {
         brand: {
-          electric: '#6F00FF',
-          'electric-light': '#8F33FF',
-          'electric-dark': '#5900CC',
-          deep: '#0A0021',
-          'deep-light': '#1A0A35',
+          electric: '#2563EB',
+          'electric-light': '#3B82F6',
+          'electric-dark': '#1D4ED8',
+          deep: '#0F172A',
+          'deep-light': '#1E293B',
           white: '#FFFFFF',
         },
         swiss: {
           base: {
             white: '#FFFFFF',
-            near: '#F7F8FA',
+            near: '#F6F7FA',
           },
           secondary: {
             light: '#E9ECF1',
@@ -26,9 +26,9 @@ export default {
             dark: '#A8B2BD',
           },
           accent: {
-            teal: '#6F00FF',
-            'teal-dark': '#5900CC',
-            'teal-light': '#F3E6FF',
+            teal: '#2563EB',
+            'teal-dark': '#1D4ED8',
+            'teal-light': '#EFF6FF',
           },
           status: {
             pending: '#FEF3C7',
@@ -47,6 +47,8 @@ export default {
         'swiss-md': '0 4px 6px -1px rgba(0, 0, 0, 0.06)',
         'swiss-lg': '0 10px 15px -3px rgba(0, 0, 0, 0.08)',
         'swiss-xl': '0 20px 25px -5px rgba(0, 0, 0, 0.08)',
+        'blue-glow': '0 0 40px rgba(37, 99, 235, 0.15)',
+        'blue-glow-lg': '0 0 80px rgba(37, 99, 235, 0.2)',
       },
       spacing: {
         '18': '4.5rem',
@@ -54,7 +56,7 @@ export default {
         '128': '32rem',
       },
       borderRadius: {
-        'bento': '1rem',
+        bento: '1rem',
         'bento-lg': '1.5rem',
       },
       animation: {
@@ -64,6 +66,9 @@ export default {
         'fade-in': 'fadeIn 0.2s ease-out',
         'scale-in': 'scaleIn 0.2s ease-out',
         'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+        spotlight: 'spotlight 2s ease .75s 1 forwards',
+        float: 'float 6s ease-in-out infinite',
+        shimmer: 'shimmer 2s linear infinite',
       },
       keyframes: {
         slideUp: {
@@ -85,6 +90,18 @@ export default {
         scaleIn: {
           '0%': { transform: 'scale(0.9)', opacity: '0' },
           '100%': { transform: 'scale(1)', opacity: '1' },
+        },
+        spotlight: {
+          '0%': { opacity: '0', transform: 'translate(-72%, -62%) scale(0.5)' },
+          '100%': { opacity: '1', transform: 'translate(-50%, -40%) scale(1)' },
+        },
+        float: {
+          '0%, 100%': { transform: 'translateY(0px)' },
+          '50%': { transform: 'translateY(-20px)' },
+        },
+        shimmer: {
+          '0%': { backgroundPosition: '-200% 0' },
+          '100%': { backgroundPosition: '200% 0' },
         },
       },
     },

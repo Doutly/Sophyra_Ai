@@ -321,10 +321,10 @@ export default function Dashboard() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#f8f9fb] flex items-center justify-center">
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
         <div className="text-center">
-          <div className="w-10 h-10 border-2 border-[#111] border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-gray-500 text-sm font-medium">Loading your dashboard...</p>
+          <div className="w-10 h-10 border-2 border-brand-electric border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-slate-500 text-sm font-medium">Loading your dashboard...</p>
         </div>
       </div>
     );
@@ -332,21 +332,21 @@ export default function Dashboard() {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-[#f8f9fb] flex items-center justify-center">
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
         <div className="text-center max-w-md mx-auto px-6">
           <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
-          <h2 className="text-xl font-bold text-gray-900 mb-2">Something went wrong</h2>
-          <p className="text-gray-500 mb-6 text-sm">{error}</p>
+          <h2 className="text-xl font-bold text-slate-900 mb-2">Something went wrong</h2>
+          <p className="text-slate-500 mb-6 text-sm">{error}</p>
           <div className="space-y-3">
             <button
               onClick={() => loadDashboardData()}
-              className="w-full px-6 py-3 bg-[#111] text-white font-semibold rounded-xl hover:bg-black transition-colors text-sm"
+              className="w-full px-6 py-3 bg-brand-electric text-white font-semibold rounded-xl hover:bg-brand-electric-dark transition-colors text-sm"
             >
               Retry
             </button>
             <button
               onClick={() => navigate('/')}
-              className="w-full px-6 py-3 bg-gray-100 text-gray-700 font-semibold rounded-xl hover:bg-gray-200 transition-colors text-sm"
+              className="w-full px-6 py-3 bg-slate-100 text-slate-700 font-semibold rounded-xl hover:bg-slate-200 transition-colors text-sm"
             >
               Go Home
             </button>
@@ -357,12 +357,12 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-[#f8f9fb] flex">
-      <aside className="w-60 bg-white border-r border-gray-100 flex flex-col fixed h-full z-10 shadow-sm">
-        <div className="px-5 py-5 border-b border-gray-100">
+    <div className="min-h-screen bg-slate-50 flex">
+      <aside className="w-60 bg-white border-r border-slate-100 flex flex-col fixed h-full z-10 shadow-sm">
+        <div className="px-5 py-5 border-b border-slate-100">
           <div className="flex items-center space-x-2.5">
             <img src="/lo.png" alt="Sophyra AI" className="w-8 h-8 rounded-lg" />
-            <span className="text-[15px] font-bold text-gray-900 tracking-tight">Sophyra AI</span>
+            <span className="text-[15px] font-bold text-slate-900 tracking-tight">Sophyra AI</span>
           </div>
         </div>
 
@@ -373,8 +373,8 @@ export default function Dashboard() {
               onClick={() => handleNavAction(item.action)}
               className={`w-full flex items-center space-x-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all ${
                 item.active
-                  ? 'bg-[#111] text-white shadow-sm'
-                  : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                  ? 'bg-brand-electric text-white shadow-sm shadow-blue-500/20'
+                  : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
               }`}
             >
               <item.icon className="w-4 h-4 flex-shrink-0" />
@@ -383,28 +383,28 @@ export default function Dashboard() {
           ))}
         </nav>
 
-        <div className="px-3 py-4 border-t border-gray-100 space-y-0.5">
+        <div className="px-3 py-4 border-t border-slate-100 space-y-0.5">
           <button
             onClick={() => navigate('/profile')}
-            className="w-full flex items-center space-x-3 px-3 py-2.5 rounded-xl text-sm font-medium text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition-all"
+            className="w-full flex items-center space-x-3 px-3 py-2.5 rounded-xl text-sm font-medium text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-all"
           >
             <Settings className="w-4 h-4" />
             <span>Settings</span>
           </button>
           <div className="flex items-center space-x-3 px-3 py-2.5 mt-1">
-            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-gray-200 to-gray-300 flex items-center justify-center flex-shrink-0">
-              <span className="text-xs font-bold text-gray-700">
+            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-brand-electric to-brand-electric-dark flex items-center justify-center flex-shrink-0">
+              <span className="text-xs font-bold text-white">
                 {firstNameDisplay.charAt(0).toUpperCase()}
               </span>
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-xs font-semibold text-gray-900 truncate">{firstNameDisplay}</p>
-              <p className="text-[10px] text-gray-400 truncate">{user?.email}</p>
+              <p className="text-xs font-semibold text-slate-900 truncate">{firstNameDisplay}</p>
+              <p className="text-[10px] text-slate-400 truncate">{user?.email}</p>
             </div>
             <button
               onClick={handleSignOut}
               title="Sign out"
-              className="text-gray-400 hover:text-gray-600 transition-colors flex-shrink-0"
+              className="text-slate-400 hover:text-slate-600 transition-colors flex-shrink-0"
             >
               <LogOut className="w-3.5 h-3.5" />
             </button>
@@ -413,12 +413,12 @@ export default function Dashboard() {
       </aside>
 
       <div className="flex-1 ml-60 flex flex-col min-h-screen">
-        <header className="bg-white border-b border-gray-100 px-8 py-4 flex items-center justify-between sticky top-0 z-10">
+        <header className="bg-white border-b border-slate-100 px-8 py-4 flex items-center justify-between sticky top-0 z-10">
           <div>
-            <h1 className="text-[17px] font-bold text-gray-900">
+            <h1 className="text-[17px] font-bold text-slate-900">
               {greeting}, {firstNameDisplay}
             </h1>
-            <p className="text-xs text-gray-400 mt-0.5">
+            <p className="text-xs text-slate-400 mt-0.5">
               {new Date().toLocaleDateString('en-US', {
                 weekday: 'long',
                 month: 'long',
@@ -428,7 +428,7 @@ export default function Dashboard() {
           </div>
           <button
             onClick={() => setShowInterviewModal(true)}
-            className="flex items-center space-x-2 px-4 py-2.5 bg-[#111] text-white text-sm font-semibold rounded-xl hover:bg-black transition-all shadow-sm"
+            className="flex items-center space-x-2 px-4 py-2.5 bg-brand-electric text-white text-sm font-semibold rounded-xl hover:bg-brand-electric-dark transition-all shadow-sm shadow-blue-500/20"
           >
             <Play className="w-3.5 h-3.5" />
             <span>New Interview</span>
@@ -442,8 +442,8 @@ export default function Dashboard() {
                 label: 'Total Sessions',
                 value: reports.length,
                 icon: Brain,
-                color: 'text-[#111]',
-                bg: 'bg-gray-50',
+                color: 'text-brand-electric',
+                bg: 'bg-blue-50',
                 sub:
                   reports.length === 0
                     ? 'Start your first'
@@ -491,27 +491,27 @@ export default function Dashboard() {
             ].map((stat) => (
               <div
                 key={stat.label}
-                className="bg-white rounded-2xl border border-gray-100 p-5 shadow-sm hover:shadow-md transition-shadow"
+                className="bg-white rounded-2xl border border-slate-100 p-5 shadow-sm hover:shadow-md transition-shadow"
               >
                 <div className="flex items-start justify-between mb-3">
                   <div className={`w-9 h-9 rounded-xl ${stat.bg} flex items-center justify-center`}>
                     <stat.icon className={`w-4 h-4 ${stat.color}`} />
                   </div>
-                  <ArrowUpRight className="w-3.5 h-3.5 text-gray-300" />
+                  <ArrowUpRight className="w-3.5 h-3.5 text-slate-300" />
                 </div>
-                <p className="text-2xl font-bold text-gray-900 mb-0.5">{stat.value}</p>
-                <p className="text-xs font-semibold text-gray-500 mb-1">{stat.label}</p>
-                <p className="text-[11px] text-gray-400">{stat.sub}</p>
+                <p className="text-2xl font-bold text-slate-900 mb-0.5">{stat.value}</p>
+                <p className="text-xs font-semibold text-slate-500 mb-1">{stat.label}</p>
+                <p className="text-[11px] text-slate-400">{stat.sub}</p>
               </div>
             ))}
           </div>
 
           <div className="grid grid-cols-12 gap-5">
             <div className="col-span-8 space-y-5">
-              <div className="bg-gradient-to-br from-[#111] to-[#2a2a2a] rounded-2xl p-7 text-white relative overflow-hidden shadow-lg">
+              <div className="bg-gradient-to-br from-slate-800 to-brand-electric-dark rounded-2xl p-7 text-white relative overflow-hidden shadow-lg shadow-blue-900/20">
                 <div className="absolute inset-0 pointer-events-none">
                   <div className="absolute top-0 right-0 w-80 h-80 rounded-full bg-white/5 transform translate-x-1/3 -translate-y-1/3"></div>
-                  <div className="absolute bottom-0 left-0 w-56 h-56 rounded-full bg-white/3 transform -translate-x-1/3 translate-y-1/3"></div>
+                  <div className="absolute bottom-0 left-0 w-56 h-56 rounded-full bg-brand-electric/10 transform -translate-x-1/3 translate-y-1/3"></div>
                 </div>
                 <div className="relative z-10 flex items-center justify-between">
                   <div>
@@ -534,7 +534,7 @@ export default function Dashboard() {
                     <div className="flex items-center space-x-3">
                       <button
                         onClick={() => setShowInterviewModal(true)}
-                        className="flex items-center space-x-2 px-5 py-2.5 bg-white text-[#111] text-sm font-bold rounded-xl hover:bg-gray-100 transition-all shadow-sm"
+                        className="flex items-center space-x-2 px-5 py-2.5 bg-white text-slate-900 text-sm font-bold rounded-xl hover:bg-slate-100 transition-all shadow-sm"
                       >
                         <Play className="w-3.5 h-3.5" />
                         <span>Start Interview</span>
@@ -556,27 +556,27 @@ export default function Dashboard() {
                 </div>
               </div>
 
-              <div className="bg-white rounded-2xl border border-gray-100 shadow-sm">
-                <div className="px-6 py-4 border-b border-gray-50 flex items-center justify-between">
+              <div className="bg-white rounded-2xl border border-slate-100 shadow-sm">
+                <div className="px-6 py-4 border-b border-slate-50 flex items-center justify-between">
                   <div>
-                    <h3 className="text-sm font-bold text-gray-900">Recent Reports</h3>
-                    <p className="text-xs text-gray-400 mt-0.5">{reports.length} total interviews</p>
+                    <h3 className="text-sm font-bold text-slate-900">Recent Reports</h3>
+                    <p className="text-xs text-slate-400 mt-0.5">{reports.length} total interviews</p>
                   </div>
-                  <TrendingUp className="w-4 h-4 text-gray-300" />
+                  <TrendingUp className="w-4 h-4 text-slate-300" />
                 </div>
 
                 {reports.length === 0 ? (
                   <div className="flex flex-col items-center justify-center py-14 px-6 text-center">
-                    <div className="w-14 h-14 bg-gray-50 rounded-2xl flex items-center justify-center mb-4">
-                      <FileText className="w-7 h-7 text-gray-300" />
+                    <div className="w-14 h-14 bg-slate-50 rounded-2xl flex items-center justify-center mb-4">
+                      <FileText className="w-7 h-7 text-slate-300" />
                     </div>
-                    <p className="text-sm font-semibold text-gray-700 mb-1">No interviews yet</p>
-                    <p className="text-xs text-gray-400 mb-5 max-w-[200px]">
+                    <p className="text-sm font-semibold text-slate-700 mb-1">No interviews yet</p>
+                    <p className="text-xs text-slate-400 mb-5 max-w-[200px]">
                       Complete your first AI interview to see performance reports here.
                     </p>
                     <button
                       onClick={() => setShowInterviewModal(true)}
-                      className="px-4 py-2 bg-[#111] text-white text-xs font-semibold rounded-xl hover:bg-black transition-colors"
+                      className="px-4 py-2 bg-brand-electric text-white text-xs font-semibold rounded-xl hover:bg-brand-electric-dark transition-colors"
                     >
                       Start First Interview
                     </button>
@@ -584,8 +584,8 @@ export default function Dashboard() {
                 ) : (
                   <>
                     {recentTrend.length > 1 && (
-                      <div className="px-6 py-4 border-b border-gray-50">
-                        <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">
+                      <div className="px-6 py-4 border-b border-slate-50">
+                        <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">
                           Score Trend
                         </p>
                         <div className="flex items-end space-x-2 h-12">
@@ -609,12 +609,12 @@ export default function Dashboard() {
                       </div>
                     )}
 
-                    <div className="divide-y divide-gray-50">
+                    <div className="divide-y divide-slate-50">
                       {reports.slice(0, 5).map((report) => (
                         <div
                           key={report.id}
                           onClick={() => navigate(`/report/${report.id}`)}
-                          className="flex items-center px-6 py-4 hover:bg-gray-50/70 cursor-pointer transition-colors group"
+                          className="flex items-center px-6 py-4 hover:bg-slate-50/70 cursor-pointer transition-colors group"
                         >
                           <div
                             className={`w-10 h-10 rounded-xl border flex items-center justify-center flex-shrink-0 mr-4 ${getScoreBg(report.overall_score)}`}
@@ -644,16 +644,16 @@ export default function Dashboard() {
                             >
                               {getScoreLabel(report.overall_score)}
                             </span>
-                            <ChevronRight className="w-4 h-4 text-gray-300 group-hover:text-gray-500 transition-colors" />
+                            <ChevronRight className="w-4 h-4 text-slate-300 group-hover:text-slate-500 transition-colors" />
                           </div>
                         </div>
                       ))}
                     </div>
                     {reports.length > 5 && (
-                      <div className="px-6 py-3 border-t border-gray-50">
+                      <div className="px-6 py-3 border-t border-slate-50">
                         <button
                           onClick={() => navigate(`/report/${reports[0].id}`)}
-                          className="text-xs text-gray-500 font-semibold hover:text-gray-900 transition-colors flex items-center space-x-1"
+                          className="text-xs text-slate-500 font-semibold hover:text-slate-900 transition-colors flex items-center space-x-1"
                         >
                           <span>View all {reports.length} reports</span>
                           <ChevronRight className="w-3 h-3" />
@@ -666,40 +666,40 @@ export default function Dashboard() {
             </div>
 
             <div className="col-span-4 space-y-5">
-              <div className="bg-white rounded-2xl border border-gray-100 shadow-sm">
-                <div className="px-5 py-4 border-b border-gray-50 flex items-center justify-between">
+              <div className="bg-white rounded-2xl border border-slate-100 shadow-sm">
+                <div className="px-5 py-4 border-b border-slate-50 flex items-center justify-between">
                   <div>
-                    <h3 className="text-sm font-bold text-gray-900">My Requests</h3>
-                    <p className="text-xs text-gray-400 mt-0.5">Manual interviews</p>
+                    <h3 className="text-sm font-bold text-slate-900">My Requests</h3>
+                    <p className="text-xs text-slate-400 mt-0.5">Manual interviews</p>
                   </div>
-                  <Ticket className="w-4 h-4 text-gray-300" />
+                  <Ticket className="w-4 h-4 text-slate-300" />
                 </div>
 
                 {mockRequests.length === 0 ? (
                   <div className="flex flex-col items-center justify-center py-10 px-5 text-center">
-                    <div className="w-10 h-10 bg-gray-50 rounded-xl flex items-center justify-center mb-3">
-                      <Ticket className="w-5 h-5 text-gray-300" />
+                    <div className="w-10 h-10 bg-slate-50 rounded-xl flex items-center justify-center mb-3">
+                      <Ticket className="w-5 h-5 text-slate-300" />
                     </div>
-                    <p className="text-xs font-semibold text-gray-600 mb-1">No requests yet</p>
-                    <p className="text-[11px] text-gray-400 mb-4">
+                    <p className="text-xs font-semibold text-slate-600 mb-1">No requests yet</p>
+                    <p className="text-[11px] text-slate-400 mb-4">
                       Request an interview with an HR professional.
                     </p>
                     <button
                       onClick={() => navigate('/interview/manual')}
-                      className="px-3 py-1.5 bg-[#111] text-white text-xs font-semibold rounded-lg hover:bg-black transition-colors"
+                      className="px-3 py-1.5 bg-brand-electric text-white text-xs font-semibold rounded-lg hover:bg-brand-electric-dark transition-colors"
                     >
                       Request Interview
                     </button>
                   </div>
                 ) : (
-                  <div className="divide-y divide-gray-50">
+                  <div className="divide-y divide-slate-50">
                     {mockRequests.slice(0, 4).map((request) => (
                       <div
                         key={request.id}
-                        className="px-5 py-3.5 hover:bg-gray-50/50 transition-colors"
+                        className="px-5 py-3.5 hover:bg-slate-50/50 transition-colors"
                       >
                         <div className="flex items-start justify-between mb-1.5">
-                          <p className="text-xs font-semibold text-gray-900 truncate flex-1 pr-2 leading-relaxed">
+                          <p className="text-xs font-semibold text-slate-900 truncate flex-1 pr-2 leading-relaxed">
                             {request.job_role}
                           </p>
                           <StatusBadge status={request.status} size="sm" />
@@ -714,7 +714,7 @@ export default function Dashboard() {
                           </span>
                         </div>
                         {request.status === 'approved' && request.scheduled_date && (
-                          <div className="mt-2 pt-2 border-t border-gray-50">
+                          <div className="mt-2 pt-2 border-t border-slate-50">
                             <p className="text-[11px] text-emerald-600 font-semibold flex items-center">
                               <Clock className="w-3 h-3 mr-1" />
                               {new Date(request.scheduled_date).toLocaleDateString('en-US', {
@@ -738,11 +738,11 @@ export default function Dashboard() {
                 )}
               </div>
 
-              <div className="bg-white rounded-2xl border border-gray-100 shadow-sm">
-                <div className="px-5 py-4 border-b border-gray-50 flex items-center justify-between">
+              <div className="bg-white rounded-2xl border border-slate-100 shadow-sm">
+                <div className="px-5 py-4 border-b border-slate-50 flex items-center justify-between">
                   <div>
-                    <h3 className="text-sm font-bold text-gray-900">Coaching Tips</h3>
-                    <p className="text-xs text-gray-400 mt-0.5">
+                    <h3 className="text-sm font-bold text-slate-900">Coaching Tips</h3>
+                    <p className="text-xs text-slate-400 mt-0.5">
                       {tips ? 'Personalized feedback' : 'General advice'}
                     </p>
                   </div>
@@ -761,7 +761,7 @@ export default function Dashboard() {
 
                   {(tips?.identified_weaknesses || DEFAULT_TIPS.identified_weaknesses).length > 0 && (
                     <div>
-                      <p className="text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-2.5">
+                      <p className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-2.5">
                         Focus Areas
                       </p>
                       <ul className="space-y-2">
@@ -770,9 +770,9 @@ export default function Dashboard() {
                           .map((w, i) => (
                             <li
                               key={i}
-                              className="flex items-start space-x-2 text-[12px] text-gray-600"
+                              className="flex items-start space-x-2 text-[12px] text-slate-600"
                             >
-                              <span className="w-1.5 h-1.5 bg-[#111] rounded-full mt-1.5 flex-shrink-0"></span>
+                              <span className="w-1.5 h-1.5 bg-brand-electric rounded-full mt-1.5 flex-shrink-0"></span>
                               <span className="leading-relaxed">{w}</span>
                             </li>
                           ))}
@@ -782,7 +782,7 @@ export default function Dashboard() {
 
                   {(tips?.suggested_topics || DEFAULT_TIPS.suggested_topics).length > 0 && (
                     <div>
-                      <p className="text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-2.5">
+                      <p className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-2.5">
                         Prep Topics
                       </p>
                       <div className="flex flex-wrap gap-1.5">
@@ -791,7 +791,7 @@ export default function Dashboard() {
                           .map((topic, i) => (
                             <span
                               key={i}
-                              className="px-2.5 py-1 bg-gray-100 text-gray-700 text-[11px] font-semibold rounded-lg"
+                              className="px-2.5 py-1 bg-slate-100 text-slate-700 text-[11px] font-semibold rounded-lg"
                             >
                               {topic}
                             </span>
