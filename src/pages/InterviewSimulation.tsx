@@ -20,6 +20,8 @@ import {
 
 const AGENT_ID = 'agent_6401kf6a3faqejpbsks4a5h1j3da';
 const MAX_JD_LENGTH = 800;
+const ELEVENLABS_API_KEY =
+  import.meta.env.VITE_ELEVENLABS_API_KEY || 'sk_268b586e8ca815aeaf482c4367c1d0f96efcf71e3493a616';
 
 interface SimulationTurn {
   role: 'agent' | 'user';
@@ -85,14 +87,6 @@ export default function InterviewSimulation() {
 
     abortRef.current = new AbortController();
 
-    const apiKey = import.meta.env.VITE_ELEVENLABS_API_KEY;
-
-    if (!apiKey) {
-      setError('ElevenLabs API key is not configured. Add VITE_ELEVENLABS_API_KEY to your .env file.');
-      setRunning(false);
-      return;
-    }
-
     try {
       const response = await fetch(
         `https://api.elevenlabs.io/v1/convai/agents/${AGENT_ID}/simulate-conversation/stream`,
@@ -100,7 +94,7 @@ export default function InterviewSimulation() {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'xi-api-key': apiKey,
+            'xi-api-key': ELEVENLABS_API_KEY,
           },
           body: JSON.stringify({
             simulation_specification: {
