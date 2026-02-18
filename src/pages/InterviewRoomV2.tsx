@@ -1,268 +1,550 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { db } from '../lib/firebase';
 import { doc, getDoc, updateDoc, Timestamp } from 'firebase/firestore';
-import { Power, Phone, PhoneOff } from 'lucide-react';
-import { createInterviewAgent, ElevenLabsInterviewAgent, InterviewContext } from '../lib/elevenLabsAgent';
+import { useConversation } from '@elevenlabs/react';
+import {
+  Mic,
+  MicOff,
+  Video,
+  VideoOff,
+  PhoneOff,
+  MessageSquare,
+  X,
+  Wifi,
+  WifiOff,
+  Brain,
+} from 'lucide-react';
+
+const AGENT_ID = 'agent_6401kf6a3faqejpbsks4a5h1j3da';
+
+interface TranscriptMessage {
+  id: string;
+  source: 'user' | 'ai';
+  message: string;
+  timestamp: Date;
+}
+
+function generateSystemPrompt(session: any, candidateName: string): string {
+  const company = session.company || 'a company';
+  const role = session.role || 'the position';
+  const experience = session.experienceLevel || 'any level';
+  const jd = session.jdText || 'General interview questions';
+
+  let prompt = `You are Sophyra, a professional AI interviewer conducting a mock interview for ${company}.
+
+CANDIDATE INFORMATION:
+- Name: ${candidateName}
+- Target Role: ${role}
+- Experience Level: ${experience}
+- Job Description: ${jd}
+`;
+
+  if (session.resumeSkills?.length > 0) {
+    prompt += `
+RESUME HIGHLIGHTS:
+- Skills: ${session.resumeSkills.join(', ')}`;
+  }
+  if (session.resumeExperience) {
+    prompt += `\n- Experience: ${session.resumeExperience}`;
+  }
+  if (session.resumeEducation) {
+    prompt += `\n- Education: ${session.resumeEducation}`;
+  }
+  if (session.resumeSummary) {
+    prompt += `\n- Summary: ${session.resumeSummary}`;
+  }
+
+  prompt += `
+
+INTERVIEW INSTRUCTIONS:
+1. Greet ${candidateName} warmly and introduce yourself as Sophyra.
+2. Ask exactly 8 relevant, tailored questions:
+   - 2 warm-up questions (background and motivation)
+   - 3 technical/skills questions based on the job description and resume
+   - 2 behavioral questions (STAR-method scenarios)
+   - 1 closing question (candidate's questions or wrap-up)
+3. After each answer, acknowledge briefly and move naturally to the next question.
+4. Adapt follow-up probes based on the candidate's responses.
+5. Keep a professional yet conversational tone.
+6. After question 8, say: "Thank you ${candidateName}, that concludes our interview. I'll now prepare your performance report with detailed feedback. Great job today!"
+
+IMPORTANT:
+- Never repeat questions.
+- Never ask for permission to continue.
+- Flow naturally without long pauses.
+- Stay focused on the ${role} role throughout.`;
+
+  return prompt;
+}
 
 export default function InterviewRoomV2() {
-  const { sessionId } = useParams();
+  const { sessionId } = useParams<{ sessionId: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
 
   const [session, setSession] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [callActive, setCallActive] = useState(false);
-  const [callStatus, setCallStatus] = useState<'idle' | 'connecting' | 'active' | 'ended'>('idle');
+  const [started, setStarted] = useState(false);
+  const [ended, setEnded] = useState(false);
+  const [micEnabled, setMicEnabled] = useState(true);
+  const [cameraEnabled, setCameraEnabled] = useState(true);
+  const [showTranscript, setShowTranscript] = useState(false);
+  const [transcript, setTranscript] = useState<TranscriptMessage[]>([]);
+  const [elapsedSeconds, setElapsedSeconds] = useState(0);
+  const [cameraError, setCameraError] = useState(false);
 
-  const agentRef = useRef<ElevenLabsInterviewAgent | null>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const localStreamRef = useRef<MediaStream | null>(null);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const transcriptEndRef = useRef<HTMLDivElement>(null);
+  const candidateNameRef = useRef('Candidate');
+
+  const conversation = useConversation({
+    onConnect: () => {
+      console.log('ElevenLabs connected');
+    },
+    onDisconnect: () => {
+      console.log('ElevenLabs disconnected');
+      if (started && !ended) {
+        handleEnd();
+      }
+    },
+    onMessage: (msg: { message: string; source: 'user' | 'ai' }) => {
+      setTranscript((prev) => [
+        ...prev,
+        {
+          id: `${Date.now()}-${Math.random()}`,
+          source: msg.source,
+          message: msg.message,
+          timestamp: new Date(),
+        },
+      ]);
+    },
+    onError: (message: string, context?: unknown) => {
+      console.error('ElevenLabs error:', message, context);
+    },
+  });
 
   useEffect(() => {
     if (!user) {
       navigate('/auth?mode=signin');
       return;
     }
-    loadSession();
+    initRoom();
 
     return () => {
-      if (agentRef.current) {
-        agentRef.current.destroy();
-      }
+      stopCamera();
+      if (timerRef.current) clearInterval(timerRef.current);
     };
-  }, [user, sessionId, navigate]);
+  }, [user, sessionId]);
 
-  const loadSession = async () => {
+  useEffect(() => {
+    transcriptEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [transcript]);
+
+  const initRoom = async () => {
     try {
       const sessionRef = doc(db, 'sessions', sessionId!);
-      const sessionSnap = await getDoc(sessionRef);
+      const snap = await getDoc(sessionRef);
+      if (!snap.exists()) throw new Error('Session not found');
 
-      if (!sessionSnap.exists()) {
-        throw new Error('Session not found');
-      }
-
-      const data = sessionSnap.data();
+      const data = snap.data();
       setSession(data);
+      candidateNameRef.current =
+        data.candidateName ||
+        user?.displayName ||
+        user?.email?.split('@')[0] ||
+        'Candidate';
 
-      await initializeAgent(data);
-
+      await startCamera();
       setLoading(false);
-    } catch (error) {
-      console.error('Error loading session:', error);
+    } catch (err) {
+      console.error('Error initializing room:', err);
       navigate('/dashboard');
     }
   };
 
-  const initializeAgent = async (sessionData: any) => {
+  const startCamera = async () => {
     try {
-      const context: InterviewContext = {
-        candidateName: user?.displayName || user?.email?.split('@')[0] || 'Candidate',
-        jobRole: sessionData.role,
-        experienceLevel: sessionData.experience_level,
-        jobDescription: sessionData.jd_text || 'General interview questions',
-        companyName: sessionData.company || 'Our company',
-        resumeData: sessionData.resume_data ? {
-          skills: sessionData.resume_data.skills || [],
-          experience: sessionData.resume_data.experience || '',
-          education: sessionData.resume_data.education || '',
-        } : undefined,
-      };
-
-      const agent = createInterviewAgent({
-        agentId: 'agent_6401kf6a3faqejpbsks4a5h1j3da',
-        context,
-        onCallStart: handleCallStart,
-        onCallEnd: handleCallEnd,
-      });
-
-      await agent.initialize();
-      agentRef.current = agent;
-
-      console.log('Interview agent initialized');
-    } catch (error) {
-      console.error('Failed to initialize agent:', error);
+      const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+      localStreamRef.current = stream;
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+      }
+    } catch {
+      setCameraError(true);
+      try {
+        const audioStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        localStreamRef.current = audioStream;
+      } catch {
+        console.error('Microphone access denied');
+      }
     }
   };
 
-  const handleCallStart = async () => {
-    setCallActive(true);
-    setCallStatus('active');
-    console.log('Call started');
+  const stopCamera = () => {
+    if (localStreamRef.current) {
+      localStreamRef.current.getTracks().forEach((t) => t.stop());
+      localStreamRef.current = null;
+    }
+  };
+
+  const handleStart = async () => {
+    if (!session) return;
 
     try {
-      const sessionRef = doc(db, 'sessions', sessionId!);
-      await updateDoc(sessionRef, {
+      const systemPrompt = generateSystemPrompt(session, candidateNameRef.current);
+      const company = session.company || '';
+      const role = session.role || 'the position';
+
+      await conversation.startSession({
+        agentId: AGENT_ID,
+        connectionType: 'webrtc',
+        overrides: {
+          agent: {
+            prompt: {
+              prompt: systemPrompt,
+            },
+            firstMessage: `Hi ${candidateNameRef.current}! I'm Sophyra, your AI interviewer today. I see you're preparing for the ${role}${company ? ' role at ' + company : ''}. Let's get started — can you tell me a bit about yourself?`,
+          },
+        },
+      });
+
+      setStarted(true);
+
+      timerRef.current = setInterval(() => {
+        setElapsedSeconds((s) => s + 1);
+      }, 1000);
+
+      await updateDoc(doc(db, 'sessions', sessionId!), {
         started_at: Timestamp.now(),
         status: 'in_progress',
       });
-    } catch (error) {
-      console.error('Error updating session start:', error);
+    } catch (err) {
+      console.error('Failed to start session:', err);
     }
   };
 
-  const handleCallEnd = async () => {
-    setCallActive(false);
-    setCallStatus('ended');
-    console.log('Call ended');
+  const handleEnd = useCallback(async () => {
+    if (ended) return;
+    setEnded(true);
+
+    if (timerRef.current) clearInterval(timerRef.current);
 
     try {
-      const sessionRef = doc(db, 'sessions', sessionId!);
-      await updateDoc(sessionRef, {
+      await conversation.endSession();
+    } catch {
+      /* ignore */
+    }
+
+    try {
+      await updateDoc(doc(db, 'sessions', sessionId!), {
         ended_at: Timestamp.now(),
         status: 'completed',
         completed_at: Timestamp.now(),
       });
-    } catch (error) {
-      console.error('Error updating session end:', error);
+    } catch (err) {
+      console.error('Error updating session end:', err);
     }
+
+    stopCamera();
 
     setTimeout(() => {
       navigate(`/report/${sessionId}`);
-    }, 2000);
-  };
+    }, 2500);
+  }, [ended, sessionId, conversation, navigate]);
 
-  const startInterview = async () => {
-    if (!agentRef.current) {
-      console.error('Agent not initialized');
-      return;
-    }
-
-    setCallStatus('connecting');
-
-    try {
-      await agentRef.current.startInterview();
-    } catch (error) {
-      console.error('Failed to start interview:', error);
-      setCallStatus('idle');
+  const confirmEnd = () => {
+    if (window.confirm('End the interview? Your progress will be saved.')) {
+      handleEnd();
     }
   };
 
-  const endInterviewEarly = async () => {
-    if (confirm('Are you sure you want to end the interview? Your progress will be saved.')) {
-      if (agentRef.current) {
-        await agentRef.current.endInterview();
-      }
-      await handleCallEnd();
+  const toggleMic = () => {
+    if (localStreamRef.current) {
+      localStreamRef.current.getAudioTracks().forEach((t) => {
+        t.enabled = !t.enabled;
+      });
+      setMicEnabled((v) => !v);
     }
   };
+
+  const toggleCamera = () => {
+    if (localStreamRef.current) {
+      localStreamRef.current.getVideoTracks().forEach((t) => {
+        t.enabled = !t.enabled;
+      });
+      setCameraEnabled((v) => !v);
+    }
+  };
+
+  const formatTime = (seconds: number) => {
+    const m = Math.floor(seconds / 60).toString().padStart(2, '0');
+    const s = (seconds % 60).toString().padStart(2, '0');
+    return `${m}:${s}`;
+  };
+
+  const connectionStatus = conversation.status;
+  const isSpeaking = conversation.isSpeaking;
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-slate-900 to-gray-900 flex items-center justify-center">
+      <div className="min-h-screen bg-[#0f0f10] flex items-center justify-center">
         <div className="text-center">
-          <div className="w-16 h-16 border-4 border-brand-electric border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-gray-400">Loading interview...</p>
+          <div className="w-12 h-12 border-3 border-brand-electric border-t-transparent rounded-full animate-spin mx-auto mb-4 border-4"></div>
+          <p className="text-gray-400 text-sm">Preparing your interview room...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="relative">
-      {/* Emergency exit button */}
-      {callActive && (
-        <button
-          onClick={endInterviewEarly}
-          className="fixed top-6 right-6 z-50 p-3 bg-gray-800/80 hover:bg-red-500/20 border border-gray-700 hover:border-red-500 rounded-full backdrop-blur-sm transition-all group"
-          title="End Interview"
-        >
-          <Power className="w-5 h-5 text-gray-400 group-hover:text-red-400" />
-        </button>
-      )}
+    <div className="min-h-screen bg-[#0f0f10] flex flex-col select-none">
+      {/* Top bar */}
+      <header className="flex items-center justify-between px-6 py-4 border-b border-white/5">
+        <div className="flex items-center space-x-3">
+          <div className="w-8 h-8 bg-brand-electric rounded-lg flex items-center justify-center">
+            <Brain className="w-4 h-4 text-white" />
+          </div>
+          <div>
+            <p className="text-white font-semibold text-sm leading-none">
+              {session?.role || 'Mock Interview'}
+            </p>
+            {session?.company && (
+              <p className="text-gray-500 text-xs mt-0.5">{session.company}</p>
+            )}
+          </div>
+        </div>
 
-      {/* Main Interview Interface */}
-      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-slate-900 to-gray-900 flex items-center justify-center p-6">
-        <div className="max-w-2xl w-full">
-          <div className="bg-gray-800/50 backdrop-blur-xl rounded-3xl p-12 border border-gray-700/50 shadow-2xl">
-            {/* Header */}
-            <div className="text-center mb-12">
-              <div className="w-24 h-24 bg-gradient-to-br from-brand-electric to-blue-500 rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg shadow-brand-electric/50">
-                <Phone className="w-12 h-12 text-white" />
-              </div>
-              <h1 className="text-3xl font-bold text-white mb-2">AI Interview with Sarah</h1>
-              <p className="text-gray-400">
-                {session?.role} - {session?.experience_level}
-              </p>
+        <div className="flex items-center space-x-3">
+          {started && !ended && (
+            <div className="flex items-center space-x-2 bg-white/5 border border-white/10 rounded-full px-3 py-1.5">
+              <span className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></span>
+              <span className="text-white text-sm font-mono tabular-nums">{formatTime(elapsedSeconds)}</span>
             </div>
+          )}
 
-            {/* Status Display */}
-            <div className="mb-8">
-              {callStatus === 'idle' && (
-                <div className="text-center">
-                  <p className="text-gray-300 mb-6">
-                    Ready to start your interview? Click the button below to begin your conversation with Sarah, your AI interviewer.
-                  </p>
-                  <button
-                    onClick={startInterview}
-                    className="w-full py-4 bg-gradient-to-r from-brand-electric to-blue-500 text-white font-semibold rounded-xl hover:from-brand-electric-dark hover:to-blue-600 transition-all shadow-lg shadow-brand-electric/30 flex items-center justify-center space-x-3"
-                  >
-                    <Phone className="w-5 h-5" />
-                    <span>Start Interview Call</span>
-                  </button>
+          <div className={`flex items-center space-x-1.5 rounded-full px-3 py-1.5 text-xs font-medium ${
+            connectionStatus === 'connected'
+              ? 'bg-green-500/10 text-green-400 border border-green-500/20'
+              : connectionStatus === 'connecting'
+              ? 'bg-yellow-500/10 text-yellow-400 border border-yellow-500/20'
+              : 'bg-gray-500/10 text-gray-400 border border-gray-500/20'
+          }`}>
+            {connectionStatus === 'connected' ? (
+              <Wifi className="w-3 h-3" />
+            ) : (
+              <WifiOff className="w-3 h-3" />
+            )}
+            <span className="capitalize">{connectionStatus === 'connected' ? 'Live' : connectionStatus === 'connecting' ? 'Connecting' : 'Ready'}</span>
+          </div>
+
+          <button
+            onClick={() => setShowTranscript((v) => !v)}
+            className={`p-2 rounded-lg transition-all ${showTranscript ? 'bg-brand-electric text-white' : 'text-gray-400 hover:text-white hover:bg-white/5'}`}
+          >
+            <MessageSquare className="w-4 h-4" />
+          </button>
+        </div>
+      </header>
+
+      {/* Main content */}
+      <main className="flex-1 flex overflow-hidden">
+        {/* Video grid */}
+        <div className={`flex-1 p-4 flex items-center justify-center transition-all ${showTranscript ? 'mr-0' : ''}`}>
+          <div className="w-full max-w-5xl">
+            {!started && !ended ? (
+              /* Pre-start screen */
+              <div className="flex flex-col items-center justify-center min-h-[60vh] text-center">
+                <div className="w-24 h-24 bg-brand-electric/10 border border-brand-electric/30 rounded-3xl flex items-center justify-center mb-6">
+                  <Brain className="w-12 h-12 text-brand-electric" />
                 </div>
-              )}
-
-              {callStatus === 'connecting' && (
-                <div className="text-center">
-                  <div className="w-16 h-16 border-4 border-brand-electric border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-                  <p className="text-brand-electric-light font-medium">Connecting to Sarah...</p>
+                <h2 className="text-2xl font-bold text-white mb-2">
+                  Ready when you are
+                </h2>
+                <p className="text-gray-400 text-sm mb-8 max-w-xs">
+                  Sophyra will conduct your {session?.role} interview. Make sure your microphone is on before starting.
+                </p>
+                <div className="bg-white/5 border border-white/10 rounded-2xl p-5 mb-8 text-left max-w-sm w-full space-y-2">
+                  <p className="text-xs text-gray-400 font-semibold uppercase tracking-wider mb-3">What to expect</p>
+                  {['8 tailored questions for your role', 'Natural voice conversation', '15–20 minute session', 'Detailed performance report after'].map((item, i) => (
+                    <div key={i} className="flex items-center space-x-2 text-sm text-gray-300">
+                      <span className="w-1.5 h-1.5 bg-brand-electric rounded-full flex-shrink-0"></span>
+                      <span>{item}</span>
+                    </div>
+                  ))}
                 </div>
-              )}
-
-              {callStatus === 'active' && (
-                <div className="text-center">
-                  <div className="relative inline-block mb-6">
-                    <div className="absolute inset-0 rounded-full bg-brand-electric/20 animate-ping"></div>
-                    <div className="w-32 h-32 bg-gradient-to-br from-brand-electric to-blue-500 rounded-full flex items-center justify-center relative">
-                      <Phone className="w-16 h-16 text-white animate-pulse" />
+                <button
+                  onClick={handleStart}
+                  className="px-10 py-4 bg-brand-electric text-white font-bold rounded-2xl hover:bg-brand-electric-dark transition-all shadow-lg shadow-brand-electric/30 text-base"
+                >
+                  Start Interview
+                </button>
+              </div>
+            ) : ended ? (
+              /* Ended screen */
+              <div className="flex flex-col items-center justify-center min-h-[60vh] text-center">
+                <div className="w-20 h-20 bg-gray-800 rounded-full flex items-center justify-center mb-6">
+                  <PhoneOff className="w-10 h-10 text-gray-400" />
+                </div>
+                <h2 className="text-2xl font-bold text-white mb-2">Interview Complete</h2>
+                <p className="text-gray-400 text-sm">Generating your performance report...</p>
+                <div className="mt-4 flex space-x-1">
+                  {[0, 1, 2].map((i) => (
+                    <div key={i} className="w-2 h-2 bg-brand-electric rounded-full animate-bounce" style={{ animationDelay: `${i * 150}ms` }}></div>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              /* Active call - dual video tiles */
+              <div className="grid grid-cols-2 gap-4 h-[calc(100vh-180px)]">
+                {/* AI tile */}
+                <div className="relative bg-gray-900 rounded-2xl overflow-hidden border border-white/5 flex items-center justify-center">
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <div className="relative">
+                      {isSpeaking && (
+                        <>
+                          <div className="absolute inset-0 rounded-full bg-brand-electric/10 animate-ping scale-150"></div>
+                          <div className="absolute inset-0 rounded-full bg-brand-electric/5 animate-ping scale-200" style={{ animationDelay: '200ms' }}></div>
+                        </>
+                      )}
+                      <div className={`w-28 h-28 rounded-full flex items-center justify-center transition-all ${isSpeaking ? 'bg-brand-electric/20 border-2 border-brand-electric/60 shadow-lg shadow-brand-electric/20' : 'bg-gray-800 border border-white/10'}`}>
+                        <Brain className={`w-14 h-14 transition-colors ${isSpeaking ? 'text-brand-electric' : 'text-gray-500'}`} />
+                      </div>
                     </div>
                   </div>
-                  <p className="text-brand-electric-light font-medium text-xl mb-2">Interview In Progress</p>
-                  <p className="text-gray-400 text-sm">Speaking with Sarah...</p>
-                </div>
-              )}
 
-              {callStatus === 'ended' && (
-                <div className="text-center">
-                  <div className="w-16 h-16 bg-gray-700 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <PhoneOff className="w-8 h-8 text-gray-400" />
+                  {/* Waveform bars when speaking */}
+                  {isSpeaking && (
+                    <div className="absolute bottom-16 left-0 right-0 flex items-end justify-center space-x-1 h-8">
+                      {Array.from({ length: 12 }).map((_, i) => (
+                        <div
+                          key={i}
+                          className="w-1 bg-brand-electric rounded-full animate-pulse"
+                          style={{
+                            height: `${Math.random() * 100}%`,
+                            animationDelay: `${i * 60}ms`,
+                            animationDuration: `${400 + i * 50}ms`,
+                          }}
+                        ></div>
+                      ))}
+                    </div>
+                  )}
+
+                  <div className="absolute bottom-4 left-4 bg-black/60 backdrop-blur-sm rounded-lg px-3 py-1.5 flex items-center space-x-2">
+                    <span className="text-xs font-semibold text-white">Sophyra AI</span>
+                    {isSpeaking && <span className="text-xs text-brand-electric">Speaking...</span>}
                   </div>
-                  <p className="text-gray-300 font-medium mb-2">Interview Completed</p>
-                  <p className="text-gray-500 text-sm">Generating your report...</p>
                 </div>
-              )}
-            </div>
 
-            {/* Instructions */}
-            {callStatus === 'idle' && (
-              <div className="bg-gray-900/50 rounded-xl p-6 border border-gray-700/50">
-                <h3 className="text-white font-semibold mb-3">What to Expect:</h3>
-                <ul className="space-y-2 text-gray-300 text-sm">
-                  <li className="flex items-start space-x-2">
-                    <span className="text-brand-electric-light mt-1">•</span>
-                    <span>Sarah will ask you 8 questions about the {session?.role} role</span>
-                  </li>
-                  <li className="flex items-start space-x-2">
-                    <span className="text-brand-electric-light mt-1">•</span>
-                    <span>Answer naturally - this is a conversation, not a test</span>
-                  </li>
-                  <li className="flex items-start space-x-2">
-                    <span className="text-brand-electric-light mt-1">•</span>
-                    <span>The interview typically lasts 15-20 minutes</span>
-                  </li>
-                  <li className="flex items-start space-x-2">
-                    <span className="text-brand-electric-light mt-1">•</span>
-                    <span>You'll receive a detailed performance report at the end</span>
-                  </li>
-                </ul>
+                {/* User tile */}
+                <div className="relative bg-gray-900 rounded-2xl overflow-hidden border border-white/5">
+                  {!cameraError && cameraEnabled ? (
+                    <video
+                      ref={videoRef}
+                      autoPlay
+                      muted
+                      playsInline
+                      className="w-full h-full object-cover scale-x-[-1]"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center bg-gray-900">
+                      <div className="w-20 h-20 rounded-full bg-gray-700 flex items-center justify-center">
+                        <span className="text-3xl font-bold text-gray-400">
+                          {candidateNameRef.current.charAt(0).toUpperCase()}
+                        </span>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Invisible video for camera even when "hidden" to allow re-enable */}
+                  {!cameraError && !cameraEnabled && (
+                    <video ref={videoRef} autoPlay muted playsInline className="hidden" />
+                  )}
+
+                  <div className="absolute bottom-4 left-4 bg-black/60 backdrop-blur-sm rounded-lg px-3 py-1.5 flex items-center space-x-2">
+                    <span className="text-xs font-semibold text-white">{candidateNameRef.current}</span>
+                    {!micEnabled && <MicOff className="w-3 h-3 text-red-400" />}
+                  </div>
+
+                  {!micEnabled && (
+                    <div className="absolute top-3 right-3 bg-red-500/20 border border-red-500/40 rounded-full p-1.5">
+                      <MicOff className="w-3 h-3 text-red-400" />
+                    </div>
+                  )}
+                </div>
               </div>
             )}
           </div>
         </div>
-      </div>
 
-      {/* Hidden ElevenLabs Widget */}
-      <div id="elevenlabs-widget-container" className="hidden"></div>
+        {/* Transcript sidebar */}
+        {showTranscript && (
+          <div className="w-80 border-l border-white/5 flex flex-col bg-[#141415]">
+            <div className="flex items-center justify-between px-4 py-3 border-b border-white/5">
+              <h3 className="text-sm font-semibold text-white">Live Transcript</h3>
+              <button
+                onClick={() => setShowTranscript(false)}
+                className="text-gray-500 hover:text-white transition-colors"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-4 space-y-3">
+              {transcript.length === 0 ? (
+                <p className="text-xs text-gray-500 text-center mt-8">
+                  Transcript will appear here as the interview progresses
+                </p>
+              ) : (
+                transcript.map((msg) => (
+                  <div key={msg.id} className={`flex ${msg.source === 'user' ? 'justify-end' : 'justify-start'}`}>
+                    <div className={`max-w-[85%] rounded-2xl px-3 py-2 text-xs ${msg.source === 'user' ? 'bg-brand-electric/20 text-white border border-brand-electric/20' : 'bg-white/5 text-gray-300 border border-white/5'}`}>
+                      <p className={`text-[10px] font-semibold mb-1 ${msg.source === 'user' ? 'text-brand-electric' : 'text-gray-400'}`}>
+                        {msg.source === 'user' ? 'You' : 'Sophyra'}
+                      </p>
+                      <p className="leading-relaxed">{msg.message}</p>
+                    </div>
+                  </div>
+                ))
+              )}
+              <div ref={transcriptEndRef} />
+            </div>
+          </div>
+        )}
+      </main>
+
+      {/* Bottom control bar */}
+      {started && !ended && (
+        <footer className="flex items-center justify-center space-x-4 px-6 py-4 border-t border-white/5">
+          <button
+            onClick={toggleMic}
+            className={`w-12 h-12 rounded-full flex items-center justify-center transition-all ${micEnabled ? 'bg-white/10 hover:bg-white/15 text-white border border-white/10' : 'bg-red-500/20 border border-red-500/40 text-red-400 hover:bg-red-500/30'}`}
+            title={micEnabled ? 'Mute microphone' : 'Unmute microphone'}
+          >
+            {micEnabled ? <Mic className="w-5 h-5" /> : <MicOff className="w-5 h-5" />}
+          </button>
+
+          <button
+            onClick={toggleCamera}
+            disabled={cameraError}
+            className={`w-12 h-12 rounded-full flex items-center justify-center transition-all ${cameraEnabled && !cameraError ? 'bg-white/10 hover:bg-white/15 text-white border border-white/10' : 'bg-red-500/20 border border-red-500/40 text-red-400 hover:bg-red-500/30'} disabled:opacity-40 disabled:cursor-not-allowed`}
+            title={cameraEnabled ? 'Turn off camera' : 'Turn on camera'}
+          >
+            {cameraEnabled && !cameraError ? <Video className="w-5 h-5" /> : <VideoOff className="w-5 h-5" />}
+          </button>
+
+          <button
+            onClick={confirmEnd}
+            className="h-12 px-6 bg-red-500 hover:bg-red-600 text-white font-semibold rounded-full flex items-center space-x-2 transition-all shadow-lg shadow-red-500/20"
+          >
+            <PhoneOff className="w-5 h-5" />
+            <span className="text-sm">End Interview</span>
+          </button>
+        </footer>
+      )}
     </div>
   );
 }

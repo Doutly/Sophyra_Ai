@@ -3,8 +3,9 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { db } from '../lib/firebase';
 import { collection, query, where, orderBy, limit as firestoreLimit, doc, getDoc, onSnapshot } from 'firebase/firestore';
-import { Play, FileText, Share2, Download, TrendingUp, Target, Lightbulb, LogOut, User as UserIcon, Ticket, Calendar, Clock, AlertCircle } from 'lucide-react';
+import { Play, FileText, Target, Lightbulb, LogOut, User as UserIcon, Ticket, Calendar, Clock, AlertCircle } from 'lucide-react';
 import StatusBadge from '../components/StatusBadge';
+import MockInterviewModal from '../components/MockInterviewModal';
 
 const DEFAULT_TIPS = {
   identified_weaknesses: [
@@ -62,6 +63,7 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [userName, setUserName] = useState('');
+  const [showInterviewModal, setShowInterviewModal] = useState(false);
   const unsubscribersRef = useRef<Array<() => void>>([]);
 
   const cleanupListeners = () => {
@@ -353,7 +355,7 @@ export default function Dashboard() {
                   <h2 className="text-3xl font-bold mb-2">Start Mock Test</h2>
                   <p className="text-white/90 text-lg mb-6">Practice with AI that adapts to your role and experience</p>
                   <button
-                    onClick={() => navigate('/interview/setup')}
+                    onClick={() => setShowInterviewModal(true)}
                     className="px-10 py-4 bg-white text-brand-electric font-bold rounded-lg hover:bg-gray-50 transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 inline-flex items-center space-x-2"
                   >
                     <Play className="w-6 h-6" />
@@ -375,7 +377,7 @@ export default function Dashboard() {
               </div>
               <div className="grid md:grid-cols-2 gap-4">
                 <button
-                  onClick={() => navigate('/interview/setup')}
+                  onClick={() => setShowInterviewModal(true)}
                   className="p-6 bg-brand-electric/5 text-brand-electric font-semibold rounded-xl hover:bg-brand-electric/10 transition-all border-2 border-brand-electric/20 hover:border-brand-electric/40 text-left group"
                 >
                   <div className="flex items-center space-x-3 mb-2">
@@ -410,7 +412,7 @@ export default function Dashboard() {
                   <FileText className="w-12 h-12 text-gray-300 mx-auto mb-3" />
                   <p className="text-sm text-gray-600 mb-4">No reports yet</p>
                   <button
-                    onClick={() => navigate('/interview/setup')}
+                    onClick={() => setShowInterviewModal(true)}
                     className="px-4 py-2 bg-brand-electric text-white text-sm font-medium rounded-lg hover:bg-brand-electric-dark transition-colors"
                   >
                     Start Now
@@ -557,6 +559,10 @@ export default function Dashboard() {
           </div>
         </div>
       </div>
+
+      {showInterviewModal && (
+        <MockInterviewModal onClose={() => setShowInterviewModal(false)} />
+      )}
     </div>
   );
 }
