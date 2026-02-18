@@ -15,9 +15,11 @@ import {
   Wifi,
   WifiOff,
   Brain,
+  AlertCircle,
 } from 'lucide-react';
 
 const AGENT_ID = 'agent_6401kf6a3faqejpbsks4a5h1j3da';
+const MAX_JD_LENGTH = 800;
 
 interface TranscriptMessage {
   id: string;
@@ -30,51 +32,20 @@ function generateSystemPrompt(session: any, candidateName: string): string {
   const company = session.company || 'a company';
   const role = session.role || 'the position';
   const experience = session.experienceLevel || 'any level';
-  const jd = session.jdText || 'General interview questions';
+  const rawJd = session.jdText || 'General interview questions';
+  const jd = rawJd.length > MAX_JD_LENGTH ? rawJd.slice(0, MAX_JD_LENGTH) + '...' : rawJd;
 
-  let prompt = `You are Sophyra, a professional AI interviewer conducting a mock interview for ${company}.
-
-CANDIDATE INFORMATION:
-- Name: ${candidateName}
-- Target Role: ${role}
-- Experience Level: ${experience}
-- Job Description: ${jd}
-`;
+  let prompt = `You are Sophyra, an AI interviewer for ${company}. Candidate: ${candidateName}, Role: ${role}, Level: ${experience}. JD: ${jd}`;
 
   if (session.resumeSkills?.length > 0) {
-    prompt += `
-RESUME HIGHLIGHTS:
-- Skills: ${session.resumeSkills.join(', ')}`;
-  }
-  if (session.resumeExperience) {
-    prompt += `\n- Experience: ${session.resumeExperience}`;
-  }
-  if (session.resumeEducation) {
-    prompt += `\n- Education: ${session.resumeEducation}`;
+    prompt += ` Skills: ${session.resumeSkills.slice(0, 10).join(', ')}.`;
   }
   if (session.resumeSummary) {
-    prompt += `\n- Summary: ${session.resumeSummary}`;
+    const summary = session.resumeSummary.slice(0, 200);
+    prompt += ` Summary: ${summary}`;
   }
 
-  prompt += `
-
-INTERVIEW INSTRUCTIONS:
-1. Greet ${candidateName} warmly and introduce yourself as Sophyra.
-2. Ask exactly 8 relevant, tailored questions:
-   - 2 warm-up questions (background and motivation)
-   - 3 technical/skills questions based on the job description and resume
-   - 2 behavioral questions (STAR-method scenarios)
-   - 1 closing question (candidate's questions or wrap-up)
-3. After each answer, acknowledge briefly and move naturally to the next question.
-4. Adapt follow-up probes based on the candidate's responses.
-5. Keep a professional yet conversational tone.
-6. After question 8, say: "Thank you ${candidateName}, that concludes our interview. I'll now prepare your performance report with detailed feedback. Great job today!"
-
-IMPORTANT:
-- Never repeat questions.
-- Never ask for permission to continue.
-- Flow naturally without long pauses.
-- Stay focused on the ${role} role throughout.`;
+  prompt += ` Ask 8 questions: 2 warm-up, 3 technical, 2 behavioral (STAR), 1 closing. After Q8 say: "Thank you ${candidateName}, that concludes our interview. I'll prepare your performance report now."`;
 
   return prompt;
 }
@@ -94,12 +65,16 @@ export default function InterviewRoomV2() {
   const [transcript, setTranscript] = useState<TranscriptMessage[]>([]);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [cameraError, setCameraError] = useState(false);
+  const [startError, setStartError] = useState<string | null>(null);
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const localStreamRef = useRef<MediaStream | null>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const transcriptEndRef = useRef<HTMLDivElement>(null);
   const candidateNameRef = useRef('Candidate');
+  const startedRef = useRef(false);
+  const endedRef = useRef(false);
+  const transcriptCountRef = useRef(0);
 
   const conversation = useConversation({
     onConnect: () => {
@@ -107,11 +82,12 @@ export default function InterviewRoomV2() {
     },
     onDisconnect: () => {
       console.log('ElevenLabs disconnected');
-      if (started && !ended) {
+      if (startedRef.current && !endedRef.current && transcriptCountRef.current > 0) {
         handleEnd();
       }
     },
     onMessage: (msg: { message: string; source: 'user' | 'ai' }) => {
+      transcriptCountRef.current += 1;
       setTranscript((prev) => [
         ...prev,
         {
@@ -193,6 +169,7 @@ export default function InterviewRoomV2() {
 
   const handleStart = async () => {
     if (!session) return;
+    setStartError(null);
 
     try {
       const systemPrompt = generateSystemPrompt(session, candidateNameRef.current);
@@ -201,17 +178,17 @@ export default function InterviewRoomV2() {
 
       await conversation.startSession({
         agentId: AGENT_ID,
-        connectionType: 'webrtc',
         overrides: {
           agent: {
             prompt: {
               prompt: systemPrompt,
             },
-            firstMessage: `Hi ${candidateNameRef.current}! I'm Sophyra, your AI interviewer today. I see you're preparing for the ${role}${company ? ' role at ' + company : ''}. Let's get started — can you tell me a bit about yourself?`,
+            firstMessage: `Hi ${candidateNameRef.current}! I'm Sophyra, your AI interviewer today. You're preparing for the ${role}${company ? ' role at ' + company : ''}. Let's begin — can you tell me a bit about yourself?`,
           },
         },
       });
 
+      startedRef.current = true;
       setStarted(true);
 
       timerRef.current = setInterval(() => {
@@ -222,13 +199,15 @@ export default function InterviewRoomV2() {
         started_at: Timestamp.now(),
         status: 'in_progress',
       });
-    } catch (err) {
+    } catch (err: any) {
       console.error('Failed to start session:', err);
+      setStartError(err?.message || 'Failed to connect. Please check your microphone and try again.');
     }
   };
 
   const handleEnd = useCallback(async () => {
-    if (ended) return;
+    if (endedRef.current) return;
+    endedRef.current = true;
     setEnded(true);
 
     if (timerRef.current) clearInterval(timerRef.current);
@@ -254,7 +233,7 @@ export default function InterviewRoomV2() {
     setTimeout(() => {
       navigate(`/report/${sessionId}`);
     }, 2500);
-  }, [ended, sessionId, conversation, navigate]);
+  }, [sessionId, conversation, navigate]);
 
   const confirmEnd = () => {
     if (window.confirm('End the interview? Your progress will be saved.')) {
@@ -293,7 +272,7 @@ export default function InterviewRoomV2() {
     return (
       <div className="min-h-screen bg-[#0f0f10] flex items-center justify-center">
         <div className="text-center">
-          <div className="w-12 h-12 border-3 border-brand-electric border-t-transparent rounded-full animate-spin mx-auto mb-4 border-4"></div>
+          <div className="w-12 h-12 border-4 border-brand-electric border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
           <p className="text-gray-400 text-sm">Preparing your interview room...</p>
         </div>
       </div>
@@ -302,7 +281,6 @@ export default function InterviewRoomV2() {
 
   return (
     <div className="min-h-screen bg-[#0f0f10] flex flex-col select-none">
-      {/* Top bar */}
       <header className="flex items-center justify-between px-6 py-4 border-b border-white/5">
         <div className="flex items-center space-x-3">
           <div className="w-8 h-8 bg-brand-electric rounded-lg flex items-center justify-center">
@@ -350,23 +328,26 @@ export default function InterviewRoomV2() {
         </div>
       </header>
 
-      {/* Main content */}
       <main className="flex-1 flex overflow-hidden">
-        {/* Video grid */}
-        <div className={`flex-1 p-4 flex items-center justify-center transition-all ${showTranscript ? 'mr-0' : ''}`}>
+        <div className="flex-1 p-4 flex items-center justify-center">
           <div className="w-full max-w-5xl">
             {!started && !ended ? (
-              /* Pre-start screen */
               <div className="flex flex-col items-center justify-center min-h-[60vh] text-center">
                 <div className="w-24 h-24 bg-brand-electric/10 border border-brand-electric/30 rounded-3xl flex items-center justify-center mb-6">
                   <Brain className="w-12 h-12 text-brand-electric" />
                 </div>
-                <h2 className="text-2xl font-bold text-white mb-2">
-                  Ready when you are
-                </h2>
+                <h2 className="text-2xl font-bold text-white mb-2">Ready when you are</h2>
                 <p className="text-gray-400 text-sm mb-8 max-w-xs">
                   Sophyra will conduct your {session?.role} interview. Make sure your microphone is on before starting.
                 </p>
+
+                {startError && (
+                  <div className="mb-6 flex items-start space-x-2 bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-3 max-w-sm w-full text-left">
+                    <AlertCircle className="w-4 h-4 text-red-400 flex-shrink-0 mt-0.5" />
+                    <p className="text-xs text-red-300">{startError}</p>
+                  </div>
+                )}
+
                 <div className="bg-white/5 border border-white/10 rounded-2xl p-5 mb-8 text-left max-w-sm w-full space-y-2">
                   <p className="text-xs text-gray-400 font-semibold uppercase tracking-wider mb-3">What to expect</p>
                   {['8 tailored questions for your role', 'Natural voice conversation', '15–20 minute session', 'Detailed performance report after'].map((item, i) => (
@@ -384,7 +365,6 @@ export default function InterviewRoomV2() {
                 </button>
               </div>
             ) : ended ? (
-              /* Ended screen */
               <div className="flex flex-col items-center justify-center min-h-[60vh] text-center">
                 <div className="w-20 h-20 bg-gray-800 rounded-full flex items-center justify-center mb-6">
                   <PhoneOff className="w-10 h-10 text-gray-400" />
@@ -398,9 +378,7 @@ export default function InterviewRoomV2() {
                 </div>
               </div>
             ) : (
-              /* Active call - dual video tiles */
               <div className="grid grid-cols-2 gap-4 h-[calc(100vh-180px)]">
-                {/* AI tile */}
                 <div className="relative bg-gray-900 rounded-2xl overflow-hidden border border-white/5 flex items-center justify-center">
                   <div className="absolute inset-0 flex items-center justify-center">
                     <div className="relative">
@@ -416,7 +394,6 @@ export default function InterviewRoomV2() {
                     </div>
                   </div>
 
-                  {/* Waveform bars when speaking */}
                   {isSpeaking && (
                     <div className="absolute bottom-16 left-0 right-0 flex items-end justify-center space-x-1 h-8">
                       {Array.from({ length: 12 }).map((_, i) => (
@@ -424,7 +401,7 @@ export default function InterviewRoomV2() {
                           key={i}
                           className="w-1 bg-brand-electric rounded-full animate-pulse"
                           style={{
-                            height: `${Math.random() * 100}%`,
+                            height: `${20 + (i % 4) * 20}%`,
                             animationDelay: `${i * 60}ms`,
                             animationDuration: `${400 + i * 50}ms`,
                           }}
@@ -439,29 +416,23 @@ export default function InterviewRoomV2() {
                   </div>
                 </div>
 
-                {/* User tile */}
                 <div className="relative bg-gray-900 rounded-2xl overflow-hidden border border-white/5">
-                  {!cameraError && cameraEnabled ? (
-                    <video
-                      ref={videoRef}
-                      autoPlay
-                      muted
-                      playsInline
-                      className="w-full h-full object-cover scale-x-[-1]"
-                    />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center bg-gray-900">
+                  <video
+                    ref={videoRef}
+                    autoPlay
+                    muted
+                    playsInline
+                    className={`w-full h-full object-cover scale-x-[-1] ${!cameraEnabled || cameraError ? 'hidden' : ''}`}
+                  />
+
+                  {(!cameraEnabled || cameraError) && (
+                    <div className="absolute inset-0 flex items-center justify-center bg-gray-900">
                       <div className="w-20 h-20 rounded-full bg-gray-700 flex items-center justify-center">
                         <span className="text-3xl font-bold text-gray-400">
                           {candidateNameRef.current.charAt(0).toUpperCase()}
                         </span>
                       </div>
                     </div>
-                  )}
-
-                  {/* Invisible video for camera even when "hidden" to allow re-enable */}
-                  {!cameraError && !cameraEnabled && (
-                    <video ref={videoRef} autoPlay muted playsInline className="hidden" />
                   )}
 
                   <div className="absolute bottom-4 left-4 bg-black/60 backdrop-blur-sm rounded-lg px-3 py-1.5 flex items-center space-x-2">
@@ -480,7 +451,6 @@ export default function InterviewRoomV2() {
           </div>
         </div>
 
-        {/* Transcript sidebar */}
         {showTranscript && (
           <div className="w-80 border-l border-white/5 flex flex-col bg-[#141415]">
             <div className="flex items-center justify-between px-4 py-3 border-b border-white/5">
@@ -516,7 +486,6 @@ export default function InterviewRoomV2() {
         )}
       </main>
 
-      {/* Bottom control bar */}
       {started && !ended && (
         <footer className="flex items-center justify-center space-x-4 px-6 py-4 border-t border-white/5">
           <button
