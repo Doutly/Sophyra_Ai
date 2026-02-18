@@ -75,63 +75,63 @@ export default function Auth() {
         />
 
         <div className="relative z-10 flex flex-col justify-between p-12 w-full">
-          <div className="flex items-center gap-2.5">
+          <div className="flex items-center gap-3">
             <div className="relative">
-              <img src="/lo.png" alt="Sophyra AI" className="w-8 h-8 relative z-10" />
+              <img src="/lo.png" alt="Sophyra AI" className="w-10 h-10 relative z-10" />
               <div className="absolute inset-0 bg-blue-500/30 rounded-full blur-sm" />
             </div>
-            <span className="text-base font-bold text-white">Sophyra AI</span>
+            <span className="text-xl font-bold text-white">Sophyra AI</span>
           </div>
 
-          <div className="space-y-8">
+          <div className="space-y-10">
             <div>
-              <span className="inline-flex items-center gap-1.5 text-[10px] font-semibold text-blue-400 bg-blue-500/10 border border-blue-500/20 px-3 py-1 rounded-full tracking-widest uppercase mb-5">
-                <Zap className="w-3 h-3" />
+              <span className="inline-flex items-center gap-2 text-xs font-semibold text-blue-400 bg-blue-500/10 border border-blue-500/20 px-4 py-1.5 rounded-full tracking-widest uppercase mb-6">
+                <Zap className="w-3.5 h-3.5" />
                 AI Interview Intelligence
               </span>
-              <h2 className="text-4xl font-bold text-white mb-3 leading-[1.12]">
+              <h2 className="text-5xl font-bold text-white mb-5 leading-[1.1]">
                 Sophyra decides
                 <br />
                 <span className="text-white/25">before the</span>
                 <br />
                 <span className="bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">interviewer does</span>
               </h2>
-              <p className="text-base text-white/40 leading-relaxed max-w-sm">
+              <p className="text-lg text-white/45 leading-relaxed max-w-sm">
                 Practice with an AI that adapts to your resume, role, and real-time answers. Get Big-Tech grade feedback before any real interview.
               </p>
             </div>
 
-            <div className="space-y-3">
+            <div className="space-y-5">
               {[
                 { n: '01', t: 'Upload resume & job description', d: 'Setup takes under 2 minutes' },
                 { n: '02', t: 'Live AI-driven mock interview', d: '6–10 adaptive questions tailored to you' },
                 { n: '03', t: 'Get your Performance Certificate', d: 'Big-Tech grade report with action plan' },
               ].map(({ n, t, d }) => (
-                <div key={n} className="flex items-start gap-3">
-                  <span className="text-xs font-bold text-white/15 mt-0.5 w-5 flex-shrink-0">{n}</span>
+                <div key={n} className="flex items-start gap-4">
+                  <span className="text-base font-bold text-white/20 mt-0.5 w-7 flex-shrink-0">{n}</span>
                   <div>
-                    <p className="text-xs font-semibold text-white/60">{t}</p>
-                    <p className="text-[10px] text-white/25 mt-0.5">{d}</p>
+                    <p className="text-base font-semibold text-white/70">{t}</p>
+                    <p className="text-sm text-white/35 mt-1">{d}</p>
                   </div>
                 </div>
               ))}
             </div>
 
-            <div className="flex items-center gap-4 pt-2">
+            <div className="flex items-center gap-8 pt-1">
               {[['5,000+', 'Candidates'], ['50+', 'Universities'], ['4.4/5', 'Satisfaction']].map(([val, lbl]) => (
-                <div key={lbl} className="text-center">
-                  <p className="text-lg font-bold text-white">{val}</p>
-                  <p className="text-[9px] text-white/25 uppercase tracking-wide">{lbl}</p>
+                <div key={lbl}>
+                  <p className="text-2xl font-bold text-white">{val}</p>
+                  <p className="text-xs text-white/30 uppercase tracking-wider mt-0.5">{lbl}</p>
                 </div>
               ))}
             </div>
           </div>
 
-          <p className="text-[10px] text-white/15">© 2025 Sophyra AI. All rights reserved.</p>
+          <p className="text-xs text-white/20">© 2025 Sophyra AI. All rights reserved.</p>
         </div>
       </div>
 
-      <div className="flex-1 flex items-center justify-center px-6 py-12 relative">
+      <div className="flex-1 flex items-center justify-center px-6 py-6 relative">
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_50%_50%_at_70%_50%,rgba(59,130,246,0.04),transparent)]" />
 
         <motion.div
@@ -140,8 +140,8 @@ export default function Auth() {
           transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
           className="w-full max-w-sm relative z-10"
         >
-          <div className="mb-8">
-            <div className="lg:hidden flex items-center gap-2 mb-6">
+          <div className="mb-5">
+            <div className="lg:hidden flex items-center gap-2 mb-5">
               <div className="relative">
                 <img src="/lo.png" alt="Sophyra AI" className="w-7 h-7 relative z-10" />
                 <div className="absolute inset-0 bg-blue-500/30 rounded-full blur-sm" />
