@@ -29,28 +29,6 @@ interface TranscriptMessage {
   timestamp: Date;
 }
 
-function generateSystemPrompt(session: any, candidateName: string): string {
-  const company = session.company || 'a company';
-  const role = session.role || 'the position';
-  const experience = session.experienceLevel || 'any level';
-  const rawJd = session.jdText || 'General interview questions';
-  const jd = rawJd.length > MAX_JD_LENGTH ? rawJd.slice(0, MAX_JD_LENGTH) + '...' : rawJd;
-
-  let prompt = `You are Sophyra, an AI interviewer for ${company}. Candidate: ${candidateName}, Role: ${role}, Level: ${experience}. JD: ${jd}`;
-
-  if (session.resumeSkills?.length > 0) {
-    prompt += ` Skills: ${session.resumeSkills.slice(0, 10).join(', ')}.`;
-  }
-  if (session.resumeSummary) {
-    const summary = session.resumeSummary.slice(0, 200);
-    prompt += ` Summary: ${summary}`;
-  }
-
-  prompt += ` Ask 8 questions: 2 warm-up, 3 technical, 2 behavioral (STAR), 1 closing. After Q8 say: "Thank you ${candidateName}, that concludes our interview. I'll prepare your performance report now."`;
-
-  return prompt;
-}
-
 export default function InterviewRoomV2() {
   const { sessionId } = useParams<{ sessionId: string }>();
   const navigate = useNavigate();
@@ -80,13 +58,12 @@ export default function InterviewRoomV2() {
   const connectingRef = useRef(false);
 
   const conversation = useConversation({
+    micMuted: !micEnabled,
     onConnect: () => {
-      console.log('ElevenLabs connected');
       connectingRef.current = false;
       setConnecting(false);
     },
     onDisconnect: () => {
-      console.log('ElevenLabs disconnected');
       connectingRef.current = false;
       setConnecting(false);
       if (startedRef.current && !endedRef.current && transcriptCountRef.current > 0) {
@@ -187,18 +164,27 @@ export default function InterviewRoomV2() {
     connectingRef.current = true;
 
     try {
-      const systemPrompt = generateSystemPrompt(session, candidateNameRef.current);
-      const company = session.company || '';
+      const rawJd = session.jdText || 'General interview questions';
+      const jd = rawJd.length > MAX_JD_LENGTH ? rawJd.slice(0, MAX_JD_LENGTH) + '...' : rawJd;
+      const company = session.company || 'a company';
       const role = session.role || 'the position';
 
       await conversation.startSession({
         agentId: AGENT_ID,
+        connectionType: 'webrtc',
+        userId: user?.uid,
+        dynamicVariables: {
+          candidate_name: candidateNameRef.current,
+          company,
+          role,
+          experience_level: session.experienceLevel || 'any level',
+          job_description: jd,
+          resume_skills: session.resumeSkills?.slice(0, 10).join(', ') || '',
+          resume_summary: session.resumeSummary?.slice(0, 200) || '',
+        },
         overrides: {
           agent: {
-            prompt: {
-              prompt: systemPrompt,
-            },
-            firstMessage: `Hi ${candidateNameRef.current}! I'm Sophyra, your AI interviewer today. You're preparing for the ${role}${company ? ' role at ' + company : ''}. Let's begin — can you tell me a bit about yourself?`,
+            firstMessage: `Hi ${candidateNameRef.current}! I'm Sophyra, your AI interviewer today. You're preparing for the ${role}${company && company !== 'a company' ? ' role at ' + company : ''}. Let's begin — can you tell me a bit about yourself?`,
           },
         },
       });
