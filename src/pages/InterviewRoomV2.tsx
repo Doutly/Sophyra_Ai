@@ -1,8 +1,9 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { db } from '../lib/firebase';
+import { db, functions } from '../lib/firebase';
 import { doc, getDoc, updateDoc, Timestamp } from 'firebase/firestore';
+import { httpsCallable } from 'firebase/functions';
 import { useConversation } from '@elevenlabs/react';
 import {
   Mic,
@@ -21,26 +22,15 @@ import {
 
 const AGENT_ID = import.meta.env.VITE_ELEVENLABS_AGENT_ID || 'agent_6401kf6a3faqejpbsks4a5h1j3da';
 const MAX_JD_LENGTH = 800;
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
-const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
 async function getSignedUrl(agentId: string): Promise<string> {
-  const res = await fetch(`${SUPABASE_URL}/functions/v1/elevenlabs-signed-url`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
-      Apikey: SUPABASE_ANON_KEY,
-    },
-    body: JSON.stringify({ agentId }),
-  });
-  if (!res.ok) {
-    const err = await res.text();
-    throw new Error(`Failed to get signed URL: ${err}`);
-  }
-  const data = await res.json();
-  if (!data.signed_url) throw new Error('No signed URL returned');
-  return data.signed_url;
+  const getSignedUrlFn = httpsCallable<{ agentId: string }, { signed_url: string }>(
+    functions,
+    'getElevenLabsSignedUrl'
+  );
+  const result = await getSignedUrlFn({ agentId });
+  if (!result.data?.signed_url) throw new Error('No signed URL returned');
+  return result.data.signed_url;
 }
 
 interface TranscriptMessage {
