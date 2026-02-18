@@ -14,7 +14,6 @@ import HRDashboard from './pages/HRDashboard';
 import PendingApproval from './pages/PendingApproval';
 import Profile from './pages/Profile';
 import SharedReport from './pages/SharedReport';
-import InterviewSimulation from './pages/InterviewSimulation';
 
 function App() {
   return (
@@ -109,17 +108,6 @@ function App() {
                 <ErrorBoundary>
                   <ProtectedRoute allowedRoles={['candidate']}>
                     <ManualMockInterview />
-                  </ProtectedRoute>
-                </ErrorBoundary>
-              }
-            />
-
-            <Route
-              path="/interview/simulate"
-              element={
-                <ErrorBoundary>
-                  <ProtectedRoute allowedRoles={['candidate']}>
-                    <InterviewSimulation />
                   </ProtectedRoute>
                 </ErrorBoundary>
               }

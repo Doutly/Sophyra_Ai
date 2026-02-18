@@ -85,7 +85,6 @@ interface MockInterviewRequest {
 const NAV_ITEMS = [
   { icon: LayoutDashboard, label: 'Dashboard', active: true },
   { icon: Brain, label: 'AI Interview', action: 'interview' },
-  { icon: Zap, label: 'Simulate Interview', action: 'simulate' },
   { icon: FileText, label: 'Reports', action: 'reports' },
   { icon: Ticket, label: 'Manual Interview', action: 'manual' },
   { icon: UserIcon, label: 'Profile', action: 'profile' },
@@ -269,7 +268,6 @@ export default function Dashboard() {
 
   const handleNavAction = (action?: string) => {
     if (action === 'interview') setShowInterviewModal(true);
-    else if (action === 'simulate') navigate('/interview/simulate');
     else if (action === 'reports' && reports.length > 0) navigate(`/report/${reports[0].id}`);
     else if (action === 'manual') navigate('/interview/manual');
     else if (action === 'profile') navigate('/profile');
@@ -540,13 +538,6 @@ export default function Dashboard() {
                       >
                         <Play className="w-3.5 h-3.5" />
                         <span>Start Interview</span>
-                      </button>
-                      <button
-                        onClick={() => navigate('/interview/simulate')}
-                        className="flex items-center space-x-2 px-5 py-2.5 bg-white/10 text-white text-sm font-semibold rounded-xl hover:bg-white/15 transition-all border border-white/10"
-                      >
-                        <Zap className="w-3.5 h-3.5" />
-                        <span>Simulate</span>
                       </button>
                       <button
                         onClick={() => navigate('/interview/manual')}
