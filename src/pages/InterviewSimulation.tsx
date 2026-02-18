@@ -18,10 +18,10 @@ import {
   ChevronDown,
 } from 'lucide-react';
 
-const AGENT_ID = 'agent_6401kf6a3faqejpbsks4a5h1j3da';
+const AGENT_ID = import.meta.env.VITE_ELEVENLABS_AGENT_ID || 'agent_6401kf6a3faqejpbsks4a5h1j3da';
 const MAX_JD_LENGTH = 800;
 const ELEVENLABS_API_KEY =
-  import.meta.env.VITE_ELEVENLABS_API_KEY || 'sk_268b586e8ca815aeaf482c4367c1d0f96efcf71e3493a616';
+  import.meta.env.VITE_ELEVENLABS_API_KEY || '3962ab55c2cce53b25a1777ffb58e2dc8ea7eb3cd7a6f2c18e94dcd3c384e5e2';
 
 interface SimulationTurn {
   role: 'agent' | 'user';

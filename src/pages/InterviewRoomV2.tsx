@@ -19,7 +19,7 @@ import {
   Loader2,
 } from 'lucide-react';
 
-const AGENT_ID = 'agent_6401kf6a3faqejpbsks4a5h1j3da';
+const AGENT_ID = import.meta.env.VITE_ELEVENLABS_AGENT_ID || 'agent_6401kf6a3faqejpbsks4a5h1j3da';
 const MAX_JD_LENGTH = 800;
 
 interface TranscriptMessage {
@@ -56,18 +56,39 @@ export default function InterviewRoomV2() {
   const endedRef = useRef(false);
   const transcriptCountRef = useRef(0);
   const connectingRef = useRef(false);
+  const connectedAtRef = useRef<number | null>(null);
 
   const conversation = useConversation({
     micMuted: !micEnabled,
     onConnect: () => {
       connectingRef.current = false;
+      connectedAtRef.current = Date.now();
       setConnecting(false);
     },
     onDisconnect: () => {
       connectingRef.current = false;
       setConnecting(false);
-      if (startedRef.current && !endedRef.current && transcriptCountRef.current > 0) {
+      const connectedDuration = connectedAtRef.current
+        ? Date.now() - connectedAtRef.current
+        : 0;
+      const minSessionMs = 8000;
+      if (
+        startedRef.current &&
+        !endedRef.current &&
+        transcriptCountRef.current > 0 &&
+        connectedDuration > minSessionMs
+      ) {
         handleEnd();
+      } else if (
+        startedRef.current &&
+        !endedRef.current &&
+        connectedDuration <= minSessionMs &&
+        connectedDuration > 0
+      ) {
+        setStartError('Connection dropped unexpectedly. Please try again.');
+        startedRef.current = false;
+        setStarted(false);
+        connectedAtRef.current = null;
       }
     },
     onMessage: (msg: { message: string; source: 'user' | 'ai' }) => {
@@ -213,6 +234,7 @@ export default function InterviewRoomV2() {
   const handleEnd = useCallback(async () => {
     if (endedRef.current) return;
     endedRef.current = true;
+    connectedAtRef.current = null;
     setEnded(true);
 
     if (timerRef.current) clearInterval(timerRef.current);
