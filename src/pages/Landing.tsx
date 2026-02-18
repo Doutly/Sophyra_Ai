@@ -3,7 +3,6 @@ import { useAuth } from '../contexts/AuthContext';
 import Hero from '../components/Hero';
 import ValueProps from '../components/ValueProps';
 import HowItWorks from '../components/HowItWorks';
-import DemoReport from '../components/DemoReport';
 import CTA from '../components/CTA';
 import Footer from '../components/Footer';
 
@@ -24,11 +23,10 @@ export default function Landing() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-950">
+    <div className="min-h-screen bg-black">
       <Hero onStartMockTest={handleStartMockTest} onSignIn={handleSignIn} />
       <ValueProps />
       <HowItWorks />
-      <DemoReport />
       <CTA onStartMockTest={handleStartMockTest} />
       <Footer />
     </div>

@@ -361,513 +361,325 @@ export default function AdminDashboard() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-[#030712] flex items-center justify-center">
         <div className="text-center">
-          <div className="w-16 h-16 border-4 border-brand-electric border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading admin dashboard...</p>
+          <div className="w-10 h-10 border-2 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-3"></div>
+          <p className="text-xs text-white/30">Loading dashboard...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <nav className="bg-white border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-6 py-4">
+    <div className="min-h-screen bg-[#030712]">
+      <nav className="bg-white/[0.02] border-b border-white/5 backdrop-blur-xl sticky top-0 z-40">
+        <div className="max-w-7xl mx-auto px-6 py-3.5">
           <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3">
-              <img src="/lo.png" alt="Sophyra AI" className="w-10 h-10" />
-              <div>
-                <span className="text-2xl font-bold text-gray-900">Sophyra AI</span>
-                <span className="ml-3 px-3 py-1 bg-brand-electric/10 text-brand-electric text-xs font-semibold rounded-full">
-                  Admin
-                </span>
+            <div className="flex items-center gap-3">
+              <div className="relative">
+                <img src="/lo.png" alt="Sophyra AI" className="w-7 h-7 relative z-10" />
+                <div className="absolute inset-0 bg-blue-500/25 rounded-full blur-sm" />
               </div>
+              <span className="text-sm font-bold text-white">Sophyra AI</span>
+              <span className="px-2.5 py-0.5 bg-blue-500/10 border border-blue-500/20 text-blue-400 text-[10px] font-semibold rounded-full tracking-wide uppercase">Admin</span>
             </div>
             <button
               onClick={handleSignOut}
-              className="flex items-center space-x-2 px-4 py-2 text-gray-600 hover:text-gray-900 transition-colors"
+              className="flex items-center gap-1.5 px-3.5 py-1.5 text-white/40 hover:text-white/80 bg-white/[0.03] hover:bg-white/[0.06] border border-white/5 hover:border-white/10 rounded-lg transition-all text-xs font-medium"
             >
-              <LogOut className="w-5 h-5" />
-              <span className="text-sm font-medium">Sign Out</span>
+              <LogOut className="w-3.5 h-3.5" />
+              Sign Out
             </button>
           </div>
         </div>
       </nav>
 
-      <div className="max-w-7xl mx-auto px-6 py-8">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Admin Dashboard</h1>
-          <p className="text-gray-600">Monitor candidate performance and cohort analytics</p>
+      <div className="max-w-7xl mx-auto px-6 py-7">
+        <div className="mb-7">
+          <h1 className="text-xl font-bold text-white mb-0.5">Admin Dashboard</h1>
+          <p className="text-xs text-white/30">Monitor candidate performance and cohort analytics</p>
 
-          <div className="mt-6 flex space-x-2 border-b border-gray-200">
-            <button
-              onClick={() => setActiveTab('candidates')}
-              className={`px-6 py-3 font-medium transition-all ${
-                activeTab === 'candidates'
-                  ? 'text-brand-electric border-b-2 border-brand-electric'
-                  : 'text-gray-600 hover:text-gray-900'
-              }`}
-            >
-              <div className="flex items-center space-x-2">
-                <Users className="w-4 h-4" />
-                <span>Candidates</span>
-              </div>
-            </button>
-            <button
-              onClick={() => setActiveTab('requests')}
-              className={`px-6 py-3 font-medium transition-all relative ${
-                activeTab === 'requests'
-                  ? 'text-brand-electric border-b-2 border-brand-electric'
-                  : 'text-gray-600 hover:text-gray-900'
-              }`}
-            >
-              <div className="flex items-center space-x-2">
-                <Ticket className="w-4 h-4" />
-                <span>Interview Requests</span>
-                {requestStats.pending > 0 && (
-                  <span className="ml-2 px-2 py-0.5 bg-red-500 text-white text-xs font-bold rounded-full">
-                    {requestStats.pending}
-                  </span>
+          <div className="mt-5 flex gap-1 border-b border-white/5">
+            {([
+              { id: 'candidates', icon: Users, label: 'Candidates' },
+              { id: 'requests', icon: Ticket, label: 'Interview Requests', badge: requestStats.pending, badgeColor: 'bg-red-500' },
+              { id: 'hr_approvals', icon: Users, label: 'HR Approvals', badge: hrUsers.filter(h => !h.is_approved).length, badgeColor: 'bg-amber-500' },
+            ] as const).map(({ id, icon: Icon, label, badge, badgeColor }) => (
+              <button
+                key={id}
+                onClick={() => setActiveTab(id)}
+                className={`flex items-center gap-1.5 px-4 py-2.5 text-xs font-medium transition-all relative ${
+                  activeTab === id
+                    ? 'text-white border-b-2 border-blue-500 -mb-px'
+                    : 'text-white/40 hover:text-white/70'
+                }`}
+              >
+                <Icon className="w-3.5 h-3.5" />
+                {label}
+                {badge != null && badge > 0 && (
+                  <span className={`ml-1 px-1.5 py-0.5 ${badgeColor} text-white text-[9px] font-bold rounded-full`}>{badge}</span>
                 )}
-              </div>
-            </button>
-            <button
-              onClick={() => setActiveTab('hr_approvals')}
-              className={`px-6 py-3 font-medium transition-all relative ${
-                activeTab === 'hr_approvals'
-                  ? 'text-brand-electric border-b-2 border-brand-electric'
-                  : 'text-gray-600 hover:text-gray-900'
-              }`}
-            >
-              <div className="flex items-center space-x-2">
-                <Users className="w-4 h-4" />
-                <span>HR Approvals</span>
-                {hrUsers.filter(h => !h.is_approved).length > 0 && (
-                  <span className="ml-2 px-2 py-0.5 bg-amber-500 text-white text-xs font-bold rounded-full">
-                    {hrUsers.filter(h => !h.is_approved).length}
-                  </span>
-                )}
-              </div>
-            </button>
+              </button>
+            ))}
           </div>
         </div>
 
         {activeTab === 'candidates' && (
           <>
-            <div className="grid md:grid-cols-4 gap-6 mb-8">
-          <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-200">
-            <div className="flex items-center justify-between mb-2">
-              <Users className="w-8 h-8 text-brand-electric" />
-              <span className="text-sm text-gray-500">Total</span>
-            </div>
-            <div className="text-3xl font-bold text-gray-900">{candidates.length}</div>
-            <div className="text-sm text-gray-600 mt-1">Candidates</div>
-          </div>
-
-          <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-200">
-            <div className="flex items-center justify-between mb-2">
-              <BarChart3 className="w-8 h-8 text-blue-500" />
-              <span className="text-sm text-gray-500">Interviews</span>
-            </div>
-            <div className="text-3xl font-bold text-gray-900">
-              {candidates.reduce((sum, c) => sum + c.total_interviews, 0)}
-            </div>
-            <div className="text-sm text-gray-600 mt-1">Total Sessions</div>
-          </div>
-
-          <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-200">
-            <div className="flex items-center justify-between mb-2">
-              <TrendingUp className="w-8 h-8 text-green-500" />
-              <span className="text-sm text-gray-500">Average</span>
-            </div>
-            <div className="text-3xl font-bold text-gray-900">
-              {candidates.length > 0
-                ? Math.round(candidates.reduce((sum, c) => sum + c.avg_score, 0) / candidates.length)
-                : 0}
-            </div>
-            <div className="text-sm text-gray-600 mt-1">Cohort Score</div>
-          </div>
-
-          <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-200">
-            <div className="flex items-center justify-between mb-2">
-              <TrendingUp className="w-8 h-8 text-purple-500" />
-              <span className="text-sm text-gray-500">This Week</span>
-            </div>
-            <div className="text-3xl font-bold text-gray-900">
-              {candidates.filter(c => {
-                const weekAgo = new Date();
-                weekAgo.setDate(weekAgo.getDate() - 7);
-                return new Date(c.last_interview) > weekAgo;
-              }).length}
-            </div>
-            <div className="text-sm text-gray-600 mt-1">Active Users</div>
-          </div>
-        </div>
-
-        <div className="grid lg:grid-cols-3 gap-6 mb-8">
-          <div className="lg:col-span-2 bg-white rounded-2xl p-6 shadow-sm border border-gray-200">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-xl font-bold text-gray-900">Candidate List</h2>
-              <button
-                onClick={exportData}
-                className="flex items-center space-x-2 px-4 py-2 bg-brand-electric text-white rounded-lg hover:bg-brand-electric-dark transition-colors"
-              >
-                <Download className="w-4 h-4" />
-                <span className="text-sm font-medium">Export CSV</span>
-              </button>
+            <div className="grid md:grid-cols-4 gap-3 mb-6">
+              {[
+                { icon: Users, color: 'text-blue-400', bg: 'bg-blue-500/10 border-blue-500/20', value: candidates.length, label: 'Total Candidates', sub: 'Registered' },
+                { icon: BarChart3, color: 'text-cyan-400', bg: 'bg-cyan-500/10 border-cyan-500/20', value: candidates.reduce((sum, c) => sum + c.total_interviews, 0), label: 'Total Sessions', sub: 'Interviews' },
+                { icon: TrendingUp, color: 'text-emerald-400', bg: 'bg-emerald-500/10 border-emerald-500/20', value: candidates.length > 0 ? Math.round(candidates.reduce((sum, c) => sum + c.avg_score, 0) / candidates.length) : 0, label: 'Cohort Score', sub: 'Average' },
+                { icon: TrendingUp, color: 'text-amber-400', bg: 'bg-amber-500/10 border-amber-500/20', value: candidates.filter(c => { const w = new Date(); w.setDate(w.getDate() - 7); return new Date(c.last_interview) > w; }).length, label: 'Active Users', sub: 'This week' },
+              ].map(({ icon: Icon, color, bg, value, label, sub }) => (
+                <div key={label} className="bg-white/[0.02] border border-white/5 rounded-xl p-5">
+                  <div className="flex items-start justify-between mb-3">
+                    <div className={`w-9 h-9 ${bg} border rounded-lg flex items-center justify-center`}>
+                      <Icon className={`w-4 h-4 ${color}`} />
+                    </div>
+                    <span className="text-[10px] text-white/20 font-medium uppercase tracking-wide">{sub}</span>
+                  </div>
+                  <p className="text-2xl font-bold text-white mb-0.5">{value}</p>
+                  <p className="text-[10px] text-white/30">{label}</p>
+                </div>
+              ))}
             </div>
 
-            <div className="flex items-center space-x-4 mb-6">
-              <div className="flex-1 relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                <input
-                  type="text"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  placeholder="Search candidates..."
-                  className="w-full pl-11 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-electric focus:border-transparent"
-                />
-              </div>
-              <button className="flex items-center space-x-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
-                <Filter className="w-4 h-4 text-gray-600" />
-                <span className="text-sm font-medium text-gray-700">Filter</span>
-              </button>
-            </div>
+            <div className="grid lg:grid-cols-3 gap-5 mb-6">
+              <div className="lg:col-span-2 bg-white/[0.02] border border-white/5 rounded-xl p-5">
+                <div className="flex items-center justify-between mb-5">
+                  <h2 className="text-sm font-bold text-white">Candidate List</h2>
+                  <button onClick={exportData} className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 text-white text-xs font-semibold rounded-lg hover:bg-blue-500 transition-all">
+                    <Download className="w-3.5 h-3.5" />Export CSV
+                  </button>
+                </div>
 
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b border-gray-200">
-                    <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">Candidate</th>
-                    <th className="text-center py-3 px-4 text-sm font-semibold text-gray-700">Interviews</th>
-                    <th className="text-center py-3 px-4 text-sm font-semibold text-gray-700">Avg Score</th>
-                    <th className="text-center py-3 px-4 text-sm font-semibold text-gray-700">Latest</th>
-                    <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">Last Active</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredCandidates.length === 0 ? (
-                    <tr>
-                      <td colSpan={5} className="text-center py-8 text-gray-500">
-                        No candidates found
-                      </td>
-                    </tr>
-                  ) : (
-                    filteredCandidates.map((candidate) => (
-                      <tr key={candidate.user_id} className="border-b border-gray-100 hover:bg-gray-50">
-                        <td className="py-4 px-4">
-                          <div className="font-medium text-gray-900">{candidate.user_name}</div>
-                        </td>
-                        <td className="py-4 px-4 text-center text-gray-700">
-                          {candidate.total_interviews}
-                        </td>
-                        <td className="py-4 px-4 text-center">
-                          <span className="px-3 py-1 bg-blue-50 text-brand-electric-dark rounded-full text-sm font-medium">
-                            {candidate.avg_score}
-                          </span>
-                        </td>
-                        <td className="py-4 px-4 text-center">
-                          <span className={`px-3 py-1 rounded-full text-sm font-medium ${
-                            candidate.latest_score >= 80 ? 'bg-green-50 text-green-700' :
-                            candidate.latest_score >= 60 ? 'bg-blue-50 text-blue-700' :
-                            'bg-yellow-50 text-yellow-700'
-                          }`}>
-                            {candidate.latest_score}
-                          </span>
-                        </td>
-                        <td className="py-4 px-4 text-sm text-gray-600">
-                          {new Date(candidate.last_interview).toLocaleDateString()}
-                        </td>
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="flex-1 relative">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-white/20" />
+                    <input
+                      type="text"
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      placeholder="Search candidates..."
+                      className="w-full pl-9 pr-4 py-2 bg-white/[0.04] border border-white/8 rounded-lg text-xs text-white placeholder:text-white/20 focus:outline-none focus:border-blue-500/40 transition-all"
+                    />
+                  </div>
+                  <button className="flex items-center gap-1.5 px-3 py-2 bg-white/[0.03] border border-white/8 rounded-lg hover:bg-white/[0.06] transition-all">
+                    <Filter className="w-3.5 h-3.5 text-white/30" />
+                    <span className="text-xs text-white/30">Filter</span>
+                  </button>
+                </div>
+
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead>
+                      <tr className="border-b border-white/5">
+                        <th className="text-left py-2.5 px-3 text-[10px] font-semibold text-white/30 uppercase tracking-wide">Candidate</th>
+                        <th className="text-center py-2.5 px-3 text-[10px] font-semibold text-white/30 uppercase tracking-wide">Sessions</th>
+                        <th className="text-center py-2.5 px-3 text-[10px] font-semibold text-white/30 uppercase tracking-wide">Avg Score</th>
+                        <th className="text-center py-2.5 px-3 text-[10px] font-semibold text-white/30 uppercase tracking-wide">Latest</th>
+                        <th className="text-left py-2.5 px-3 text-[10px] font-semibold text-white/30 uppercase tracking-wide">Last Active</th>
                       </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </div>
-
-          <div className="space-y-6">
-            <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-200">
-              <h2 className="text-xl font-bold text-gray-900 mb-6">Skill Gap Heatmap</h2>
-              <div className="space-y-4">
-                {cohortMetrics.map((metric) => (
-                  <div key={metric.category}>
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-sm font-medium text-gray-700">{metric.category}</span>
-                      <span className="text-sm font-bold text-gray-900">{metric.avg_score}/10</span>
-                    </div>
-                    <div className="h-3 bg-gray-200 rounded-full overflow-hidden">
-                      <div
-                        className={`h-full transition-all ${
-                          metric.avg_score >= 8 ? 'bg-green-500' :
-                          metric.avg_score >= 6 ? 'bg-yellow-500' :
-                          'bg-red-500'
-                        }`}
-                        style={{ width: `${(metric.avg_score / 10) * 100}%` }}
-                      ></div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-200">
-              <h2 className="text-xl font-bold text-gray-900 mb-6">Benchmarking</h2>
-              <div className="space-y-4">
-                <div className="p-4 bg-gray-50 rounded-lg">
-                  <div className="text-sm text-gray-600 mb-1">Industry Average</div>
-                  <div className="text-2xl font-bold text-gray-900">72</div>
-                </div>
-                <div className="p-4 bg-blue-50 rounded-lg">
-                  <div className="text-sm text-brand-electric-dark mb-1">Your Cohort</div>
-                  <div className="text-2xl font-bold text-brand-electric-dark">
-                    {candidates.length > 0
-                      ? Math.round(candidates.reduce((sum, c) => sum + c.avg_score, 0) / candidates.length)
-                      : 0}
-                  </div>
-                </div>
-                <div className="text-center pt-4">
-                  <span className={`text-lg font-bold ${
-                    candidates.length > 0 &&
-                    Math.round(candidates.reduce((sum, c) => sum + c.avg_score, 0) / candidates.length) > 72
-                      ? 'text-green-600'
-                      : 'text-gray-600'
-                  }`}>
-                    {candidates.length > 0 &&
-                    Math.round(candidates.reduce((sum, c) => sum + c.avg_score, 0) / candidates.length) > 72
-                      ? '+' + (Math.round(candidates.reduce((sum, c) => sum + c.avg_score, 0) / candidates.length) - 72)
-                      : '---'}
-                  </span>
-                  <div className="text-sm text-gray-600 mt-1">vs Industry</div>
+                    </thead>
+                    <tbody>
+                      {filteredCandidates.length === 0 ? (
+                        <tr><td colSpan={5} className="text-center py-10 text-xs text-white/20">No candidates found</td></tr>
+                      ) : (
+                        filteredCandidates.map((candidate) => (
+                          <tr key={candidate.user_id} className="border-b border-white/[0.03] hover:bg-white/[0.02]">
+                            <td className="py-3 px-3 text-xs font-medium text-white/70">{candidate.user_name}</td>
+                            <td className="py-3 px-3 text-center text-xs text-white/40">{candidate.total_interviews}</td>
+                            <td className="py-3 px-3 text-center">
+                              <span className="px-2 py-0.5 bg-blue-500/10 text-blue-400 rounded-md text-[10px] font-semibold">{candidate.avg_score}</span>
+                            </td>
+                            <td className="py-3 px-3 text-center">
+                              <span className={`px-2 py-0.5 rounded-md text-[10px] font-semibold ${
+                                candidate.latest_score >= 80 ? 'bg-emerald-500/10 text-emerald-400' :
+                                candidate.latest_score >= 60 ? 'bg-blue-500/10 text-blue-400' :
+                                'bg-amber-500/10 text-amber-400'
+                              }`}>{candidate.latest_score}</span>
+                            </td>
+                            <td className="py-3 px-3 text-xs text-white/25">{new Date(candidate.last_interview).toLocaleDateString()}</td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
                 </div>
               </div>
+
+              <div className="space-y-4">
+                <div className="bg-white/[0.02] border border-white/5 rounded-xl p-5">
+                  <h2 className="text-sm font-bold text-white mb-4">Skill Gap Heatmap</h2>
+                  <div className="space-y-3">
+                    {cohortMetrics.map((metric) => (
+                      <div key={metric.category}>
+                        <div className="flex items-center justify-between mb-1.5">
+                          <span className="text-xs text-white/40">{metric.category}</span>
+                          <span className="text-xs font-bold text-white/60">{metric.avg_score}/10</span>
+                        </div>
+                        <div className="h-1.5 bg-white/5 rounded-full overflow-hidden">
+                          <div
+                            className={`h-full rounded-full transition-all ${metric.avg_score >= 8 ? 'bg-emerald-400' : metric.avg_score >= 6 ? 'bg-amber-400' : 'bg-red-400'}`}
+                            style={{ width: `${(metric.avg_score / 10) * 100}%` }}
+                          />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="bg-white/[0.02] border border-white/5 rounded-xl p-5">
+                  <h2 className="text-sm font-bold text-white mb-4">Benchmarking</h2>
+                  <div className="space-y-3">
+                    <div className="p-3 bg-white/[0.03] border border-white/5 rounded-lg">
+                      <p className="text-[10px] text-white/30 mb-1">Industry Average</p>
+                      <p className="text-2xl font-bold text-white">72</p>
+                    </div>
+                    <div className="p-3 bg-blue-500/[0.06] border border-blue-500/15 rounded-lg">
+                      <p className="text-[10px] text-blue-400/70 mb-1">Your Cohort</p>
+                      <p className="text-2xl font-bold text-blue-400">
+                        {candidates.length > 0 ? Math.round(candidates.reduce((sum, c) => sum + c.avg_score, 0) / candidates.length) : 0}
+                      </p>
+                    </div>
+                    <div className="text-center">
+                      <span className={`text-base font-bold ${candidates.length > 0 && Math.round(candidates.reduce((sum, c) => sum + c.avg_score, 0) / candidates.length) > 72 ? 'text-emerald-400' : 'text-white/20'}`}>
+                        {candidates.length > 0 && Math.round(candidates.reduce((sum, c) => sum + c.avg_score, 0) / candidates.length) > 72
+                          ? '+' + (Math.round(candidates.reduce((sum, c) => sum + c.avg_score, 0) / candidates.length) - 72)
+                          : '---'}
+                      </span>
+                      <p className="text-[10px] text-white/20 mt-0.5">vs Industry</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
-          </div>
-        </div>
           </>
         )}
 
         {activeTab === 'requests' && (
           <>
-            <div className="grid md:grid-cols-4 gap-6 mb-8">
-              <BentoCard>
-                <div className="flex items-center justify-between mb-2">
-                  <Ticket className="w-8 h-8 text-brand-electric" />
-                  <span className="text-sm text-gray-500">Total</span>
+            <div className="grid md:grid-cols-4 gap-3 mb-5">
+              {[
+                { icon: Ticket, color: 'text-blue-400', bg: 'bg-blue-500/10 border-blue-500/20', value: requestStats.total, label: 'All Requests' },
+                { icon: AlertCircle, color: 'text-amber-400', bg: 'bg-amber-500/10 border-amber-500/20', value: requestStats.pending, label: 'Pending' },
+                { icon: CheckCircle, color: 'text-emerald-400', bg: 'bg-emerald-500/10 border-emerald-500/20', value: requestStats.approved, label: 'Approved' },
+                { icon: XCircle, color: 'text-red-400', bg: 'bg-red-500/10 border-red-500/20', value: requestStats.rejected, label: 'Rejected' },
+              ].map(({ icon: Icon, color, bg, value, label }) => (
+                <div key={label} className="bg-white/[0.02] border border-white/5 rounded-xl p-4">
+                  <div className={`w-8 h-8 ${bg} border rounded-lg flex items-center justify-center mb-3`}>
+                    <Icon className={`w-4 h-4 ${color}`} />
+                  </div>
+                  <p className="text-2xl font-bold text-white mb-0.5">{value}</p>
+                  <p className="text-[10px] text-white/30">{label}</p>
                 </div>
-                <div className="text-3xl font-bold text-gray-900">{requestStats.total}</div>
-                <div className="text-sm text-gray-600 mt-1">All Requests</div>
-              </BentoCard>
-
-              <BentoCard>
-                <div className="flex items-center justify-between mb-2">
-                  <AlertCircle className="w-8 h-8 text-yellow-500" />
-                  <span className="text-sm text-gray-500">Pending</span>
-                </div>
-                <div className="text-3xl font-bold text-gray-900">{requestStats.pending}</div>
-                <div className="text-sm text-gray-600 mt-1">Awaiting Review</div>
-              </BentoCard>
-
-              <BentoCard>
-                <div className="flex items-center justify-between mb-2">
-                  <CheckCircle className="w-8 h-8 text-green-500" />
-                  <span className="text-sm text-gray-500">Approved</span>
-                </div>
-                <div className="text-3xl font-bold text-gray-900">{requestStats.approved}</div>
-                <div className="text-sm text-gray-600 mt-1">Ready to Schedule</div>
-              </BentoCard>
-
-              <BentoCard>
-                <div className="flex items-center justify-between mb-2">
-                  <XCircle className="w-8 h-8 text-red-500" />
-                  <span className="text-sm text-gray-500">Rejected</span>
-                </div>
-                <div className="text-3xl font-bold text-gray-900">{requestStats.rejected}</div>
-                <div className="text-sm text-gray-600 mt-1">Not Suitable</div>
-              </BentoCard>
+              ))}
             </div>
 
-            <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-200">
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-xl font-bold text-gray-900">Interview Requests</h2>
-                <button
-                  onClick={exportData}
-                  className="flex items-center space-x-2 px-4 py-2 bg-brand-electric text-white rounded-lg hover:bg-brand-electric-dark transition-colors"
-                >
-                  <Download className="w-4 h-4" />
-                  <span className="text-sm font-medium">Export</span>
+            <div className="bg-white/[0.02] border border-white/5 rounded-xl p-5">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-sm font-bold text-white">Interview Requests</h2>
+                <button onClick={exportData} className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 text-white text-xs font-semibold rounded-lg hover:bg-blue-500 transition-all">
+                  <Download className="w-3.5 h-3.5" />Export
                 </button>
               </div>
 
-              <div className="flex items-center space-x-4 mb-6">
+              <div className="flex items-center gap-3 mb-4">
                 <div className="flex-1 relative">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                  <input
-                    type="text"
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    placeholder="Search by name, role, or ticket..."
-                    className="w-full pl-11 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-electric focus:border-transparent"
-                  />
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-white/20" />
+                  <input type="text" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} placeholder="Search by name, role, or ticket..." className="w-full pl-9 pr-4 py-2 bg-white/[0.04] border border-white/8 rounded-lg text-xs text-white placeholder:text-white/20 focus:outline-none focus:border-blue-500/40 transition-all" />
                 </div>
-                <select
-                  value={statusFilter}
-                  onChange={(e) => setStatusFilter(e.target.value)}
-                  className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-electric focus:border-transparent"
-                >
-                  <option value="all">All Status</option>
-                  <option value="pending">Pending</option>
-                  <option value="approved">Approved</option>
-                  <option value="rejected">Rejected</option>
-                  <option value="completed">Completed</option>
+                <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="px-3 py-2 bg-white/[0.04] border border-white/8 rounded-lg text-xs text-white focus:outline-none focus:border-blue-500/40 transition-all">
+                  <option value="all" className="bg-slate-900">All Status</option>
+                  <option value="pending" className="bg-slate-900">Pending</option>
+                  <option value="approved" className="bg-slate-900">Approved</option>
+                  <option value="rejected" className="bg-slate-900">Rejected</option>
+                  <option value="completed" className="bg-slate-900">Completed</option>
                 </select>
               </div>
 
-              <div className="space-y-4">
+              <div className="space-y-3">
                 {filteredRequests.length === 0 ? (
-                  <div className="text-center py-12">
-                    <Ticket className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                    <h3 className="text-lg font-semibold text-gray-900 mb-2">No requests found</h3>
-                    <p className="text-gray-600">Try adjusting your search or filters</p>
+                  <div className="text-center py-10">
+                    <Ticket className="w-10 h-10 text-white/10 mx-auto mb-3" />
+                    <p className="text-xs text-white/20">No requests found</p>
                   </div>
                 ) : (
                   filteredRequests.map((request) => (
-                    <div
-                      key={request.id}
-                      className="border border-gray-200 rounded-xl p-5 hover:border-brand-electric transition-all"
-                    >
-                      <div className="flex items-start justify-between mb-3">
-                        <div className="flex-1">
-                          <div className="flex items-center space-x-3 mb-2">
-                            <h3 className="font-semibold text-gray-900">{request.candidate_info?.name || request.users.name}</h3>
+                    <div key={request.id} className="border border-white/5 rounded-xl p-4 hover:border-white/10 hover:bg-white/[0.02] transition-all">
+                      <div className="flex items-start justify-between gap-4">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center flex-wrap gap-2 mb-2">
+                            <h3 className="text-xs font-semibold text-white">{request.candidate_info?.name || request.users.name}</h3>
                             <StatusBadge status={request.status} size="sm" />
-                            <span className="text-xs text-gray-500 font-mono">{request.ticket_number}</span>
-                            {request.booking_status === 'claimed' && (
-                              <span className="px-2 py-0.5 bg-blue-100 text-blue-700 text-xs font-medium rounded">Claimed</span>
-                            )}
-                            {request.booking_status === 'booked' && (
-                              <span className="px-2 py-0.5 bg-green-100 text-green-700 text-xs font-medium rounded">Booked</span>
-                            )}
+                            <span className="text-[9px] text-white/20 font-mono bg-white/5 px-1.5 py-0.5 rounded">{request.ticket_number}</span>
+                            {request.booking_status === 'claimed' && <span className="px-1.5 py-0.5 bg-blue-500/10 text-blue-400 text-[9px] font-semibold rounded">Claimed</span>}
+                            {request.booking_status === 'booked' && <span className="px-1.5 py-0.5 bg-emerald-500/10 text-emerald-400 text-[9px] font-semibold rounded">Booked</span>}
                           </div>
-                          <div className="space-y-1 mb-3">
-                            <p className="text-sm text-gray-700">
-                              <span className="font-medium">Role:</span> {request.job_role}
-                              {request.company_name && ` at ${request.company_name}`}
-                            </p>
-                            <p className="text-sm text-gray-600">
-                              <span className="font-medium">Experience:</span> {request.experience_level}
-                            </p>
-                            <p className="text-sm text-gray-600">
-                              <span className="font-medium">Preferred:</span>{' '}
-                              {new Date(request.preferred_date).toLocaleDateString()} at {request.preferred_time}
-                            </p>
-                            {request.candidate_info?.email && (
-                              <p className="text-sm text-gray-600">
-                                <span className="font-medium">Email:</span> {request.candidate_info.email}
-                              </p>
-                            )}
+                          <div className="flex flex-wrap gap-x-4 gap-y-0.5 mb-2">
+                            <p className="text-[10px] text-white/40"><span className="text-white/25">Role:</span> {request.job_role}{request.company_name && ` · ${request.company_name}`}</p>
+                            <p className="text-[10px] text-white/40"><span className="text-white/25">Level:</span> {request.experience_level}</p>
+                            <p className="text-[10px] text-white/40"><span className="text-white/25">Preferred:</span> {new Date(request.preferred_date).toLocaleDateString()} at {request.preferred_time}</p>
+                            {request.candidate_info?.email && <p className="text-[10px] text-white/40"><span className="text-white/25">Email:</span> {request.candidate_info.email}</p>}
                           </div>
-
                           {request.status === 'approved' && (
-                            <div className="flex items-center space-x-2 mt-3">
-                              <label className="text-xs font-medium text-gray-600">Assign to HR:</label>
-                              <select
-                                value={request.assigned_hr_id || ''}
-                                onChange={(e) => handleAssignHR(request.id, e.target.value)}
-                                disabled={actionLoading === request.id}
-                                className="px-3 py-1 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-electric focus:border-transparent disabled:opacity-50"
-                              >
-                                <option value="">Unassigned (Pool)</option>
-                                {hrUsers.filter(h => h.is_approved).map((hr) => (
-                                  <option key={hr.id} value={hr.id}>{hr.name}</option>
-                                ))}
+                            <div className="flex items-center gap-2 mt-2">
+                              <label className="text-[10px] text-white/25">Assign to HR:</label>
+                              <select value={request.assigned_hr_id || ''} onChange={(e) => handleAssignHR(request.id, e.target.value)} disabled={actionLoading === request.id} className="px-2 py-1 bg-white/[0.04] border border-white/8 rounded text-[10px] text-white focus:outline-none disabled:opacity-40">
+                                <option value="" className="bg-slate-900">Unassigned (Pool)</option>
+                                {hrUsers.filter(h => h.is_approved).map(hr => <option key={hr.id} value={hr.id} className="bg-slate-900">{hr.name}</option>)}
                               </select>
-                              {request.assigned_hr_name && (
-                                <span className="text-xs text-gray-600">
-                                  (Currently: {request.assigned_hr_name})
-                                </span>
-                              )}
                             </div>
                           )}
                         </div>
 
-                        {request.status === 'pending' && (
-                          <div className="flex items-center space-x-2">
-                            <button
-                              onClick={() => handleRequestAction(request.id, 'approved')}
-                              disabled={actionLoading === request.id}
-                              className="px-4 py-2 bg-green-500 text-white text-sm font-medium rounded-lg hover:bg-green-600 transition-colors disabled:opacity-50 flex items-center space-x-1"
-                            >
-                              <CheckCircle className="w-4 h-4" />
-                              <span>Approve</span>
-                            </button>
-                            <button
-                              onClick={() => handleRequestAction(request.id, 'rejected')}
-                              disabled={actionLoading === request.id}
-                              className="px-4 py-2 bg-red-500 text-white text-sm font-medium rounded-lg hover:bg-red-600 transition-colors disabled:opacity-50 flex items-center space-x-1"
-                            >
-                              <XCircle className="w-4 h-4" />
-                              <span>Reject</span>
-                            </button>
-                          </div>
-                        )}
-
-                        {request.status === 'approved' && !request.scheduled_date && (
-                          <div className="px-4 py-2 bg-brand-electric-light text-brand-electric text-sm font-medium rounded-lg flex items-center space-x-1">
-                            <Calendar className="w-4 h-4" />
-                            <span>Ready to Schedule</span>
-                          </div>
-                        )}
-
-                        {request.scheduled_date && (
-                          <div className="text-right">
-                            <p className="text-xs text-gray-500 mb-1">Scheduled</p>
-                            <p className="text-sm font-semibold text-brand-electric">
-                              {new Date(request.scheduled_date).toLocaleDateString()}
-                            </p>
-                            <p className="text-xs text-gray-600">{request.scheduled_time}</p>
-                          </div>
-                        )}
+                        <div className="flex-shrink-0 flex flex-col items-end gap-2">
+                          {request.status === 'pending' && (
+                            <div className="flex gap-1.5">
+                              <button onClick={() => handleRequestAction(request.id, 'approved')} disabled={actionLoading === request.id} className="px-3 py-1.5 bg-emerald-500/15 text-emerald-400 border border-emerald-500/25 text-[10px] font-semibold rounded-lg hover:bg-emerald-500/25 transition-all disabled:opacity-40 flex items-center gap-1">
+                                <CheckCircle className="w-3 h-3" />Approve
+                              </button>
+                              <button onClick={() => handleRequestAction(request.id, 'rejected')} disabled={actionLoading === request.id} className="px-3 py-1.5 bg-red-500/15 text-red-400 border border-red-500/25 text-[10px] font-semibold rounded-lg hover:bg-red-500/25 transition-all disabled:opacity-40 flex items-center gap-1">
+                                <XCircle className="w-3 h-3" />Reject
+                              </button>
+                            </div>
+                          )}
+                          {request.status === 'approved' && !request.scheduled_date && (
+                            <span className="px-2 py-1 bg-blue-500/10 text-blue-400 border border-blue-500/20 text-[9px] font-semibold rounded-lg flex items-center gap-1">
+                              <Calendar className="w-3 h-3" />Ready to Schedule
+                            </span>
+                          )}
+                          {request.scheduled_date && (
+                            <div className="text-right">
+                              <p className="text-[9px] text-white/20 mb-0.5">Scheduled</p>
+                              <p className="text-xs font-semibold text-blue-400">{new Date(request.scheduled_date).toLocaleDateString()}</p>
+                              <p className="text-[9px] text-white/30">{request.scheduled_time}</p>
+                            </div>
+                          )}
+                        </div>
                       </div>
 
-                      <details className="mt-3 pt-3 border-t border-gray-200">
-                        <summary className="text-sm text-brand-electric font-medium cursor-pointer hover:underline">
-                          View Full Details
-                        </summary>
-                        <div className="mt-3 space-y-3">
+                      <details className="mt-3 pt-3 border-t border-white/5">
+                        <summary className="text-[10px] text-blue-400 font-medium cursor-pointer hover:text-blue-300 transition-colors">View Full Details</summary>
+                        <div className="mt-3 space-y-2">
                           {request.candidate_info && (
-                            <div className="p-3 bg-blue-50 rounded-lg">
-                              <h4 className="text-sm font-semibold text-gray-900 mb-2">Candidate Profile</h4>
-                              {request.candidate_info.bio && (
-                                <p className="text-sm text-gray-700 mb-2">{request.candidate_info.bio}</p>
-                              )}
-                              {request.candidate_info.industry && (
-                                <p className="text-sm text-gray-600">
-                                  <span className="font-medium">Industry:</span> {request.candidate_info.industry}
-                                </p>
-                              )}
-                              {request.candidate_info.career_goals && (
-                                <p className="text-sm text-gray-600">
-                                  <span className="font-medium">Career Goals:</span> {request.candidate_info.career_goals}
-                                </p>
-                              )}
+                            <div className="p-3 bg-white/[0.02] border border-white/5 rounded-lg">
+                              <p className="text-[10px] font-semibold text-white/50 mb-2">Candidate Profile</p>
+                              {request.candidate_info.bio && <p className="text-[10px] text-white/35 mb-2">{request.candidate_info.bio}</p>}
+                              {request.candidate_info.industry && <p className="text-[10px] text-white/30"><span className="text-white/20">Industry:</span> {request.candidate_info.industry}</p>}
+                              {request.candidate_info.career_goals && <p className="text-[10px] text-white/30 mt-1"><span className="text-white/20">Goals:</span> {request.candidate_info.career_goals}</p>}
                               {request.candidate_info.resume_url && (
-                                <a
-                                  href={request.candidate_info.resume_url}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="inline-flex items-center mt-2 text-sm text-brand-electric hover:underline"
-                                >
-                                  <Download className="w-4 h-4 mr-1" />
-                                  Download Resume
+                                <a href={request.candidate_info.resume_url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 mt-2 text-[10px] text-blue-400 hover:text-blue-300 transition-colors">
+                                  <Download className="w-3 h-3" />Download Resume
                                 </a>
                               )}
                             </div>
                           )}
-                          <div className="p-3 bg-gray-50 rounded-lg">
-                            <h4 className="text-sm font-semibold text-gray-900 mb-2">Job Description</h4>
-                            <p className="text-sm text-gray-700 whitespace-pre-wrap">{request.job_description}</p>
+                          <div className="p-3 bg-white/[0.02] border border-white/5 rounded-lg">
+                            <p className="text-[10px] font-semibold text-white/50 mb-2">Job Description</p>
+                            <p className="text-[10px] text-white/30 whitespace-pre-wrap">{request.job_description}</p>
                           </div>
                         </div>
                       </details>
@@ -881,76 +693,45 @@ export default function AdminDashboard() {
 
         {activeTab === 'hr_approvals' && (
           <>
-            <div className="grid md:grid-cols-3 gap-6 mb-8">
-              <BentoCard>
-                <div className="flex items-center justify-between mb-2">
-                  <Users className="w-8 h-8 text-brand-electric" />
-                  <span className="text-sm text-gray-500">Total</span>
+            <div className="grid md:grid-cols-3 gap-3 mb-5">
+              {[
+                { icon: Users, color: 'text-blue-400', bg: 'bg-blue-500/10 border-blue-500/20', value: hrUsers.length, label: 'Total HRs' },
+                { icon: Clock, color: 'text-amber-400', bg: 'bg-amber-500/10 border-amber-500/20', value: hrUsers.filter(h => !h.is_approved).length, label: 'Pending Approval' },
+                { icon: CheckCircle, color: 'text-emerald-400', bg: 'bg-emerald-500/10 border-emerald-500/20', value: hrUsers.filter(h => h.is_approved).length, label: 'Active HRs' },
+              ].map(({ icon: Icon, color, bg, value, label }) => (
+                <div key={label} className="bg-white/[0.02] border border-white/5 rounded-xl p-4">
+                  <div className={`w-8 h-8 ${bg} border rounded-lg flex items-center justify-center mb-3`}>
+                    <Icon className={`w-4 h-4 ${color}`} />
+                  </div>
+                  <p className="text-2xl font-bold text-white mb-0.5">{value}</p>
+                  <p className="text-[10px] text-white/30">{label}</p>
                 </div>
-                <div className="text-3xl font-bold text-gray-900">{hrUsers.length}</div>
-                <div className="text-sm text-gray-600 mt-1">All HRs</div>
-              </BentoCard>
-
-              <BentoCard>
-                <div className="flex items-center justify-between mb-2">
-                  <Clock className="w-8 h-8 text-amber-500" />
-                  <span className="text-sm text-gray-500">Pending</span>
-                </div>
-                <div className="text-3xl font-bold text-gray-900">{hrUsers.filter(h => !h.is_approved).length}</div>
-                <div className="text-sm text-gray-600 mt-1">Awaiting Approval</div>
-              </BentoCard>
-
-              <BentoCard>
-                <div className="flex items-center justify-between mb-2">
-                  <CheckCircle className="w-8 h-8 text-green-500" />
-                  <span className="text-sm text-gray-500">Approved</span>
-                </div>
-                <div className="text-3xl font-bold text-gray-900">{hrUsers.filter(h => h.is_approved).length}</div>
-                <div className="text-sm text-gray-600 mt-1">Active HRs</div>
-              </BentoCard>
+              ))}
             </div>
 
-            <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-200 mb-6">
-              <h2 className="text-xl font-bold text-gray-900 mb-6">Pending HR Approvals</h2>
-              <div className="space-y-4">
+            <div className="bg-white/[0.02] border border-white/5 rounded-xl p-5 mb-4">
+              <h2 className="text-sm font-bold text-white mb-4">Pending HR Approvals</h2>
+              <div className="space-y-3">
                 {hrUsers.filter(h => !h.is_approved).length === 0 ? (
-                  <div className="text-center py-12">
-                    <Users className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                    <h3 className="text-lg font-semibold text-gray-900 mb-2">No pending approvals</h3>
-                    <p className="text-gray-600">All HR applications have been reviewed</p>
+                  <div className="text-center py-10">
+                    <Users className="w-10 h-10 text-white/10 mx-auto mb-3" />
+                    <p className="text-xs text-white/20">No pending approvals</p>
                   </div>
                 ) : (
                   hrUsers.filter(h => !h.is_approved).map((hr) => (
-                    <div
-                      key={hr.id}
-                      className="border border-gray-200 rounded-xl p-5 hover:border-brand-electric transition-all"
-                    >
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                          <h3 className="font-semibold text-gray-900 mb-1">{hr.name}</h3>
-                          <p className="text-sm text-gray-600 mb-2">{hr.email}</p>
-                          <p className="text-xs text-gray-500">
-                            Applied: {new Date(hr.created_at).toLocaleDateString()} at {new Date(hr.created_at).toLocaleTimeString()}
-                          </p>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <button
-                            onClick={() => handleHRApproval(hr.id, true)}
-                            disabled={actionLoading === hr.id}
-                            className="px-4 py-2 bg-green-500 text-white text-sm font-medium rounded-lg hover:bg-green-600 transition-colors disabled:opacity-50 flex items-center space-x-1"
-                          >
-                            <CheckCircle className="w-4 h-4" />
-                            <span>Approve</span>
-                          </button>
-                          <button
-                            onClick={() => handleHRApproval(hr.id, false)}
-                            disabled={actionLoading === hr.id}
-                            className="px-4 py-2 bg-red-500 text-white text-sm font-medium rounded-lg hover:bg-red-600 transition-colors disabled:opacity-50 flex items-center space-x-1"
-                          >
-                            <XCircle className="w-4 h-4" />
-                            <span>Reject</span>
-                          </button>
-                        </div>
+                    <div key={hr.id} className="border border-white/5 rounded-xl p-4 hover:border-white/10 transition-all flex items-start justify-between gap-4">
+                      <div>
+                        <p className="text-xs font-semibold text-white mb-0.5">{hr.name}</p>
+                        <p className="text-[10px] text-white/35 mb-1">{hr.email}</p>
+                        <p className="text-[9px] text-white/20">Applied: {new Date(hr.created_at).toLocaleDateString()} at {new Date(hr.created_at).toLocaleTimeString()}</p>
+                      </div>
+                      <div className="flex gap-1.5 flex-shrink-0">
+                        <button onClick={() => handleHRApproval(hr.id, true)} disabled={actionLoading === hr.id} className="px-3 py-1.5 bg-emerald-500/15 text-emerald-400 border border-emerald-500/25 text-[10px] font-semibold rounded-lg hover:bg-emerald-500/25 transition-all disabled:opacity-40 flex items-center gap-1">
+                          <CheckCircle className="w-3 h-3" />Approve
+                        </button>
+                        <button onClick={() => handleHRApproval(hr.id, false)} disabled={actionLoading === hr.id} className="px-3 py-1.5 bg-red-500/15 text-red-400 border border-red-500/25 text-[10px] font-semibold rounded-lg hover:bg-red-500/25 transition-all disabled:opacity-40 flex items-center gap-1">
+                          <XCircle className="w-3 h-3" />Reject
+                        </button>
                       </div>
                     </div>
                   ))
@@ -958,41 +739,29 @@ export default function AdminDashboard() {
               </div>
             </div>
 
-            <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-200">
-              <h2 className="text-xl font-bold text-gray-900 mb-6">Active HRs</h2>
+            <div className="bg-white/[0.02] border border-white/5 rounded-xl p-5">
+              <h2 className="text-sm font-bold text-white mb-4">Active HRs</h2>
               <div className="overflow-x-auto">
                 <table className="w-full">
                   <thead>
-                    <tr className="border-b border-gray-200">
-                      <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">Name</th>
-                      <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">Email</th>
-                      <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">Joined</th>
-                      <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">Status</th>
+                    <tr className="border-b border-white/5">
+                      <th className="text-left py-2.5 px-3 text-[10px] font-semibold text-white/30 uppercase tracking-wide">Name</th>
+                      <th className="text-left py-2.5 px-3 text-[10px] font-semibold text-white/30 uppercase tracking-wide">Email</th>
+                      <th className="text-left py-2.5 px-3 text-[10px] font-semibold text-white/30 uppercase tracking-wide">Joined</th>
+                      <th className="text-left py-2.5 px-3 text-[10px] font-semibold text-white/30 uppercase tracking-wide">Status</th>
                     </tr>
                   </thead>
                   <tbody>
                     {hrUsers.filter(h => h.is_approved).length === 0 ? (
-                      <tr>
-                        <td colSpan={4} className="text-center py-8 text-gray-500">
-                          No active HRs yet
-                        </td>
-                      </tr>
+                      <tr><td colSpan={4} className="text-center py-8 text-xs text-white/20">No active HRs yet</td></tr>
                     ) : (
                       hrUsers.filter(h => h.is_approved).map((hr) => (
-                        <tr key={hr.id} className="border-b border-gray-100 hover:bg-gray-50">
-                          <td className="py-4 px-4">
-                            <div className="font-medium text-gray-900">{hr.name}</div>
-                          </td>
-                          <td className="py-4 px-4 text-gray-700">
-                            {hr.email}
-                          </td>
-                          <td className="py-4 px-4 text-sm text-gray-600">
-                            {new Date(hr.created_at).toLocaleDateString()}
-                          </td>
-                          <td className="py-4 px-4">
-                            <span className="px-3 py-1 bg-green-50 text-green-700 rounded-full text-sm font-medium">
-                              Active
-                            </span>
+                        <tr key={hr.id} className="border-b border-white/[0.03] hover:bg-white/[0.02]">
+                          <td className="py-3 px-3 text-xs font-medium text-white/70">{hr.name}</td>
+                          <td className="py-3 px-3 text-xs text-white/40">{hr.email}</td>
+                          <td className="py-3 px-3 text-xs text-white/25">{new Date(hr.created_at).toLocaleDateString()}</td>
+                          <td className="py-3 px-3">
+                            <span className="px-2 py-0.5 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded-md text-[10px] font-semibold">Active</span>
                           </td>
                         </tr>
                       ))

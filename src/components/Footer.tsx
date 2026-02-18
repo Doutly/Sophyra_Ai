@@ -23,7 +23,7 @@ export default function Footer() {
   };
 
   return (
-    <footer className="bg-slate-950 border-t border-white/5">
+    <footer className="bg-black border-t border-white/5">
       <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12">
         <div className="py-16 grid md:grid-cols-2 lg:grid-cols-5 gap-12">
           <div className="lg:col-span-2 space-y-6">

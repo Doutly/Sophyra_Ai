@@ -7,7 +7,7 @@ interface CTAProps {
 
 export default function CTA({ onStartMockTest }: CTAProps) {
   return (
-    <section id="pricing" className="py-28 bg-slate-950 relative overflow-hidden">
+    <section id="pricing" className="py-24 bg-black relative overflow-hidden">
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_60%_50%_at_50%_50%,rgba(59,130,246,0.05),transparent)]" />
       <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12 relative z-10">
 

@@ -51,7 +51,7 @@ export default function HowItWorks() {
   };
 
   return (
-    <section id="how-it-works" className="py-28 bg-slate-900 relative overflow-hidden">
+    <section id="how-it-works" className="py-24 bg-[#030712] relative overflow-hidden">
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_50%_60%_at_50%_-10%,rgba(59,130,246,0.05),transparent)]" />
       <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12 relative z-10">
 
