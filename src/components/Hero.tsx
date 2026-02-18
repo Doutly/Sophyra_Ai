@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Mic, Brain, TrendingUp, ArrowRight, Star, CheckCircle, Zap, Shield } from 'lucide-react';
 import { SplineScene } from './ui/splite';
@@ -127,6 +127,14 @@ function TypingRole() {
 }
 
 export default function Hero({ onStartMockTest, onSignIn }: HeroProps) {
+  const [splineReady, setSplineReady] = useState(false);
+  const splineRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    splineRef.current = setTimeout(() => setSplineReady(true), 800);
+    return () => { if (splineRef.current) clearTimeout(splineRef.current); };
+  }, []);
+
   return (
     <>
       <NavBar onStartMockTest={onStartMockTest} onSignIn={onSignIn} />
@@ -244,14 +252,16 @@ export default function Hero({ onStartMockTest, onSignIn }: HeroProps) {
           </div>
 
           <div className="relative hidden lg:flex items-center justify-center">
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ duration: 1.1, ease: 'easeOut', delay: 0.2 }}
-              className="absolute inset-0"
-            >
-              <SplineScene scene="https://prod.spline.design/kZDDjO5HuC9GJUM2/scene.splinecode" className="w-full h-full" />
-            </motion.div>
+            {splineReady && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 1.1, ease: 'easeOut' }}
+                className="absolute inset-0"
+              >
+                <SplineScene scene="https://prod.spline.design/kZDDjO5HuC9GJUM2/scene.splinecode" className="w-full h-full" />
+              </motion.div>
+            )}
 
             <FloatingMetric
               className="absolute top-24 right-6 bg-[#0a0f1e]/90 backdrop-blur-xl border border-white/10 rounded-2xl px-4 py-3.5 z-20 shadow-2xl"
@@ -322,9 +332,11 @@ export default function Hero({ onStartMockTest, onSignIn }: HeroProps) {
             <div className="absolute top-0 left-0 right-0 h-28 bg-gradient-to-b from-[#030712] to-transparent z-10 pointer-events-none" />
           </div>
 
-          <div className="lg:hidden absolute inset-0 z-0 opacity-15 pointer-events-none">
-            <SplineScene scene="https://prod.spline.design/kZDDjO5HuC9GJUM2/scene.splinecode" className="w-full h-full" />
-          </div>
+          {splineReady && (
+            <div className="lg:hidden absolute inset-0 z-0 opacity-15 pointer-events-none">
+              <SplineScene scene="https://prod.spline.design/kZDDjO5HuC9GJUM2/scene.splinecode" className="w-full h-full" />
+            </div>
+          )}
         </div>
 
         <div className="relative z-10 border-t border-white/[0.04] py-5 overflow-hidden">

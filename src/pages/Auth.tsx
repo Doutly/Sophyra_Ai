@@ -98,13 +98,13 @@ export default function Auth() {
               </p>
             </div>
 
-            <div className="space-y-3">
+            <div className="space-y-4">
               {[
                 { n: '01', t: 'Upload resume & job description' },
                 { n: '02', t: 'Live AI-driven mock interview' },
                 { n: '03', t: 'Get your Performance Certificate' },
               ].map(({ n, t }) => (
-                <div key={n} className="flex items-center gap-3">
+                <div key={n} className="flex items-center gap-3 py-1">
                   <span className="text-xs font-bold text-white/20 w-6 flex-shrink-0">{n}</span>
                   <p className="text-sm font-medium text-white/60">{t}</p>
                 </div>
