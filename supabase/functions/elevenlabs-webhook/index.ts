@@ -7,6 +7,35 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Client-Info, Apikey, elevenlabs-signature",
 };
 
+async function verifySignature(body: string, signatureHeader: string | null, secret: string): Promise<boolean> {
+  if (!signatureHeader) return false;
+
+  const parts = signatureHeader.split(",");
+  const tPart = parts.find((p) => p.startsWith("t="));
+  const v0Part = parts.find((p) => p.startsWith("v0="));
+
+  if (!tPart || !v0Part) return false;
+
+  const timestamp = tPart.slice(2);
+  const receivedSig = v0Part.slice(3);
+
+  const payload = `${timestamp}.${body}`;
+  const key = await crypto.subtle.importKey(
+    "raw",
+    new TextEncoder().encode(secret),
+    { name: "HMAC", hash: "SHA-256" },
+    false,
+    ["sign"]
+  );
+
+  const sigBuffer = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(payload));
+  const computedSig = Array.from(new Uint8Array(sigBuffer))
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
+
+  return computedSig === receivedSig;
+}
+
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { status: 200, headers: corsHeaders });
@@ -21,8 +50,20 @@ Deno.serve(async (req: Request) => {
     }
 
     const body = await req.text();
-    let event: any;
 
+    const webhookSecret = Deno.env.get("ELEVENLABS_WEBHOOK_SECRET");
+    if (webhookSecret) {
+      const signatureHeader = req.headers.get("elevenlabs-signature");
+      const valid = await verifySignature(body, signatureHeader, webhookSecret);
+      if (!valid) {
+        return new Response(JSON.stringify({ error: "Invalid signature" }), {
+          status: 401,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    }
+
+    let event: any;
     try {
       event = JSON.parse(body);
     } catch {
