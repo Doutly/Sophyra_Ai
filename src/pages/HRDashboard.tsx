@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { db } from '../lib/firebase';
 import { collection, onSnapshot, doc, getDoc, updateDoc } from 'firebase/firestore';
-import { LogOut, Ticket, Clock, Calendar, CheckCircle, ExternalLink, User, Briefcase, Download, Brain, ChevronDown, ChevronUp, X } from 'lucide-react';
+import { LogOut, Ticket, Clock, Calendar, CheckCircle, ExternalLink, User, Briefcase, Download, Brain, ChevronDown, ChevronUp, X, Sun, Moon } from 'lucide-react';
 
 interface MockInterviewRequest {
   id: string;
@@ -59,6 +59,7 @@ export default function HRDashboard() {
   const [bookingDate, setBookingDate] = useState('');
   const [bookingTime, setBookingTime] = useState('');
   const [expandedTickets, setExpandedTickets] = useState<Set<string>>(new Set());
+  const [darkMode, setDarkMode] = useState(true);
 
   useEffect(() => {
     if (!user) {
@@ -249,12 +250,38 @@ export default function HRDashboard() {
     { label: 'Completed', value: stats.completed, icon: CheckCircle, color: 'text-white/50', bg: 'bg-white/5' },
   ];
 
+  const th = {
+    bg: darkMode ? 'bg-[#030712]' : 'bg-gray-50',
+    nav: darkMode ? 'bg-white/[0.02] border-white/5 backdrop-blur-xl' : 'bg-white border-gray-200',
+    navText: darkMode ? 'text-white' : 'text-gray-900',
+    card: darkMode ? 'bg-white/[0.02] border-white/5' : 'bg-white border-gray-200',
+    cardText: darkMode ? 'text-white' : 'text-gray-900',
+    cardSub: darkMode ? 'text-white/35' : 'text-gray-500',
+    cardFaint: darkMode ? 'text-white/25' : 'text-gray-400',
+    border: darkMode ? 'border-white/5' : 'border-gray-100',
+    tab: (active: boolean) => active
+      ? darkMode ? 'text-white border-blue-500' : 'text-blue-600 border-blue-600'
+      : darkMode ? 'text-white/35 border-transparent hover:text-white/60' : 'text-gray-500 border-transparent hover:text-gray-700',
+    tabBadge: (active: boolean) => active
+      ? 'bg-blue-500/20 text-blue-400'
+      : darkMode ? 'bg-white/5 text-white/30' : 'bg-gray-100 text-gray-400',
+    toggleBg: darkMode ? 'bg-white/[0.04] border-white/8 text-white/50 hover:text-white/80' : 'bg-gray-100 border-gray-200 text-gray-500 hover:text-gray-800',
+    statCard: darkMode ? 'bg-white/[0.02] border-white/5' : 'bg-white border-gray-200',
+    ticketCard: darkMode ? 'bg-white/[0.02] border-white/5 hover:border-white/10' : 'bg-white border-gray-200 hover:border-gray-300',
+    badge: (type: string) => type === 'assigned' ? 'text-blue-400 bg-blue-500/10 border-blue-500/20'
+      : type === 'booked' ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20'
+      : darkMode ? 'text-white/40 bg-white/5 border-white/10' : 'text-gray-500 bg-gray-100 border-gray-200',
+    expandContent: darkMode ? 'bg-white/[0.03] border-white/5' : 'bg-gray-50 border-gray-200',
+    modalBg: darkMode ? 'bg-[#0d1117] border-white/10' : 'bg-white border-gray-200',
+    modalInput: darkMode ? 'bg-white/[0.04] border-white/8 text-white/80' : 'bg-gray-50 border-gray-200 text-gray-900',
+  };
+
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#030712] flex items-center justify-center">
+      <div className={`min-h-screen ${th.bg} flex items-center justify-center`}>
         <div className="flex flex-col items-center gap-4">
           <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
-          <p className="text-sm text-white/30">Loading dashboard...</p>
+          <p className={`text-sm ${th.cardSub}`}>Loading dashboard...</p>
         </div>
       </div>
     );
@@ -274,7 +301,7 @@ export default function HRDashboard() {
     const candidateEmail = ticket.candidate_info?.email || ticket.users.email;
 
     return (
-      <div key={ticket.id} className="bg-white/[0.02] border border-white/5 rounded-xl overflow-hidden hover:border-white/10 transition-all duration-200">
+      <div key={ticket.id} className={`border rounded-xl overflow-hidden transition-all duration-200 ${th.ticketCard}`}>
         <div className="p-5">
           <div className="flex items-start justify-between gap-4">
             <div className="flex-1 min-w-0">
@@ -290,14 +317,14 @@ export default function HRDashboard() {
                   </span>
                 )}
                 {activeTab === 'completed' && (
-                  <span className="inline-flex items-center text-[10px] font-bold text-white/40 bg-white/5 border border-white/10 px-2 py-0.5 rounded-full tracking-wide uppercase">
+                  <span className={`inline-flex items-center text-[10px] font-bold px-2 py-0.5 rounded-full tracking-wide uppercase border ${th.badge('completed')}`}>
                     Completed
                   </span>
                 )}
-                <span className="text-[10px] font-mono text-white/25">{ticket.ticket_number}</span>
+                <span className={`text-[10px] font-mono ${th.cardFaint}`}>{ticket.ticket_number}</span>
               </div>
-              <p className="font-semibold text-white text-sm leading-tight">{candidateName}</p>
-              <p className="text-xs text-white/35 mt-0.5">{candidateEmail}</p>
+              <p className={`font-semibold text-sm leading-tight ${th.cardText}`}>{candidateName}</p>
+              <p className={`text-xs mt-0.5 ${th.cardSub}`}>{candidateEmail}</p>
             </div>
 
             <div className="flex items-center gap-2 flex-shrink-0">
@@ -347,7 +374,7 @@ export default function HRDashboard() {
               )}
               <button
                 onClick={() => toggleExpand(ticket.id)}
-                className="p-1.5 text-white/25 hover:text-white/50 transition-colors"
+                className={`p-1.5 transition-colors ${darkMode ? 'text-white/25 hover:text-white/50' : 'text-gray-400 hover:text-gray-600'}`}
               >
                 {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
               </button>
@@ -356,14 +383,14 @@ export default function HRDashboard() {
 
           <div className="mt-4 grid grid-cols-2 gap-x-6 gap-y-2">
             <div className="flex items-center gap-1.5">
-              <Briefcase className="w-3.5 h-3.5 text-white/20 flex-shrink-0" />
-              <span className="text-xs text-white/50 truncate">
+              <Briefcase className={`w-3.5 h-3.5 flex-shrink-0 ${th.cardFaint}`} />
+              <span className={`text-xs truncate ${th.cardSub}`}>
                 {ticket.job_role}{ticket.company_name ? ` · ${ticket.company_name}` : ''}
               </span>
             </div>
             <div className="flex items-center gap-1.5">
-              <Calendar className="w-3.5 h-3.5 text-white/20 flex-shrink-0" />
-              <span className="text-xs text-white/40">
+              <Calendar className={`w-3.5 h-3.5 flex-shrink-0 ${th.cardFaint}`} />
+              <span className={`text-xs ${th.cardSub}`}>
                 {activeTab === 'booked' && ticket.scheduled_date
                   ? `${new Date(ticket.scheduled_date).toLocaleDateString()} · ${ticket.scheduled_time}`
                   : ticket.preferred_date
@@ -374,7 +401,7 @@ export default function HRDashboard() {
           </div>
 
           {activeTab === 'booked' && ticket.meeting_room_link && (
-            <div className="mt-4 pt-4 border-t border-white/5">
+            <div className={`mt-4 pt-4 border-t ${th.border}`}>
               <a
                 href={ticket.meeting_room_link}
                 target="_blank"
@@ -388,39 +415,39 @@ export default function HRDashboard() {
           )}
 
           {activeTab === 'claimed' && ticket.claimed_at && (
-            <p className="mt-2 text-[11px] text-white/25">
+            <p className={`mt-2 text-[11px] ${th.cardFaint}`}>
               Claimed {new Date(ticket.claimed_at).toLocaleDateString()}
             </p>
           )}
         </div>
 
         {isExpanded && ticket.candidate_info && (
-          <div className="px-5 pb-5 border-t border-white/5 pt-4 space-y-3">
+          <div className={`px-5 pb-5 border-t pt-4 space-y-3 ${th.border}`}>
             {ticket.candidate_info.bio && (
-              <p className="text-xs text-white/40 leading-relaxed">{ticket.candidate_info.bio}</p>
+              <p className={`text-xs leading-relaxed ${th.cardSub}`}>{ticket.candidate_info.bio}</p>
             )}
             <div className="grid grid-cols-2 gap-3">
               {ticket.candidate_info.industry && (
                 <div>
-                  <p className="text-[10px] text-white/25 uppercase tracking-wide mb-0.5">Industry</p>
-                  <p className="text-xs text-white/50">{ticket.candidate_info.industry}</p>
+                  <p className={`text-[10px] uppercase tracking-wide mb-0.5 ${th.cardFaint}`}>Industry</p>
+                  <p className={`text-xs ${th.cardSub}`}>{ticket.candidate_info.industry}</p>
                 </div>
               )}
               <div>
-                <p className="text-[10px] text-white/25 uppercase tracking-wide mb-0.5">Experience</p>
-                <p className="text-xs text-white/50">{ticket.experience_level}</p>
+                <p className={`text-[10px] uppercase tracking-wide mb-0.5 ${th.cardFaint}`}>Experience</p>
+                <p className={`text-xs ${th.cardSub}`}>{ticket.experience_level}</p>
               </div>
             </div>
             {ticket.candidate_info.career_goals && (
               <div>
-                <p className="text-[10px] text-white/25 uppercase tracking-wide mb-0.5">Career Goals</p>
-                <p className="text-xs text-white/40 leading-relaxed">{ticket.candidate_info.career_goals}</p>
+                <p className={`text-[10px] uppercase tracking-wide mb-0.5 ${th.cardFaint}`}>Career Goals</p>
+                <p className={`text-xs leading-relaxed ${th.cardSub}`}>{ticket.candidate_info.career_goals}</p>
               </div>
             )}
             {ticket.job_description && (
               <div>
-                <p className="text-[10px] text-white/25 uppercase tracking-wide mb-0.5">Job Description</p>
-                <p className="text-xs text-white/35 leading-relaxed line-clamp-4">{ticket.job_description}</p>
+                <p className={`text-[10px] uppercase tracking-wide mb-0.5 ${th.cardFaint}`}>Job Description</p>
+                <p className={`text-xs leading-relaxed line-clamp-4 ${th.cardSub}`}>{ticket.job_description}</p>
               </div>
             )}
             {ticket.candidate_info.resume_url && (
@@ -441,26 +468,34 @@ export default function HRDashboard() {
   };
 
   return (
-    <div className="min-h-screen bg-[#030712]">
-      <nav className="sticky top-0 z-40 bg-white/[0.02] border-b border-white/5 backdrop-blur-xl">
+    <div className={`min-h-screen ${th.bg} transition-colors duration-300`}>
+      <nav className={`sticky top-0 z-40 border-b ${th.nav}`}>
         <div className="max-w-7xl mx-auto px-6 py-3.5">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
                 <Brain className="w-4.5 h-4.5 text-white" style={{ width: '18px', height: '18px' }} />
               </div>
-              <span className="text-sm font-bold text-white tracking-tight">Sophyra AI</span>
+              <span className={`text-sm font-bold tracking-tight ${th.navText}`}>Sophyra AI</span>
               <span className="inline-flex items-center text-[10px] font-bold text-blue-400 bg-blue-500/10 border border-blue-500/20 px-2.5 py-1 rounded-full tracking-widest uppercase">
                 HR Portal
               </span>
             </div>
-            <div className="flex items-center gap-4">
-              <span className="text-xs text-white/30 hidden sm:block">
+            <div className="flex items-center gap-3">
+              <span className={`text-xs hidden sm:block ${th.cardFaint}`}>
                 {user?.email}
               </span>
               <button
+                onClick={() => setDarkMode(!darkMode)}
+                className={`flex items-center gap-1.5 px-3 py-1.5 border rounded-lg transition-all text-xs font-medium ${th.toggleBg}`}
+                title={darkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+              >
+                {darkMode ? <Sun className="w-3.5 h-3.5" /> : <Moon className="w-3.5 h-3.5" />}
+                <span className="hidden sm:inline">{darkMode ? 'Light' : 'Dark'}</span>
+              </button>
+              <button
                 onClick={handleSignOut}
-                className="flex items-center gap-1.5 text-xs text-white/40 hover:text-white/70 transition-colors"
+                className={`flex items-center gap-1.5 px-3 py-1.5 border rounded-lg transition-all text-xs font-medium ${th.toggleBg}`}
               >
                 <LogOut className="w-3.5 h-3.5" />
                 Sign Out
@@ -472,28 +507,28 @@ export default function HRDashboard() {
 
       <div className="max-w-7xl mx-auto px-6 py-8">
         <div className="mb-8">
-          <h1 className="text-2xl font-bold text-white mb-1">Interview Ticket Board</h1>
-          <p className="text-sm text-white/35">Claim and manage mock interview sessions</p>
+          <h1 className={`text-2xl font-bold mb-1 ${th.cardText}`}>Interview Ticket Board</h1>
+          <p className={`text-sm ${th.cardSub}`}>Claim and manage mock interview sessions</p>
         </div>
 
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 mb-8">
           {statCards.map((s) => {
             const Icon = s.icon;
             return (
-              <div key={s.label} className="bg-white/[0.02] border border-white/5 rounded-xl p-4">
+              <div key={s.label} className={`border rounded-xl p-4 ${th.statCard}`}>
                 <div className="flex items-center justify-between mb-3">
                   <div className={`w-8 h-8 ${s.bg} rounded-lg flex items-center justify-center`}>
                     <Icon className={`w-4 h-4 ${s.color}`} />
                   </div>
                 </div>
-                <p className="text-2xl font-bold text-white">{s.value}</p>
-                <p className="text-xs text-white/30 mt-0.5">{s.label}</p>
+                <p className={`text-2xl font-bold ${th.cardText}`}>{s.value}</p>
+                <p className={`text-xs mt-0.5 ${th.cardFaint}`}>{s.label}</p>
               </div>
             );
           })}
         </div>
 
-        <div className="flex gap-0 border-b border-white/5 mb-6 overflow-x-auto">
+        <div className={`flex gap-0 border-b mb-6 overflow-x-auto ${th.border}`}>
           {tabs.map((tab) => {
             const Icon = tab.icon;
             const isActive = activeTab === tab.key;
@@ -501,18 +536,12 @@ export default function HRDashboard() {
               <button
                 key={tab.key}
                 onClick={() => setActiveTab(tab.key)}
-                className={`flex items-center gap-2 px-5 py-3 text-sm font-medium transition-all whitespace-nowrap border-b-2 -mb-px ${
-                  isActive
-                    ? 'text-white border-blue-500'
-                    : 'text-white/35 border-transparent hover:text-white/60'
-                }`}
+                className={`flex items-center gap-2 px-5 py-3 text-sm font-medium transition-all whitespace-nowrap border-b-2 -mb-px ${th.tab(isActive)}`}
               >
                 <Icon className="w-3.5 h-3.5" />
                 {tab.label}
                 {tab.count > 0 && (
-                  <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${
-                    isActive ? 'bg-blue-500/20 text-blue-400' : 'bg-white/5 text-white/30'
-                  }`}>
+                  <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${th.tabBadge(isActive)}`}>
                     {tab.count}
                   </span>
                 )}
@@ -524,16 +553,16 @@ export default function HRDashboard() {
         <div>
           {currentTickets.length === 0 ? (
             <div className="text-center py-20">
-              <div className="w-12 h-12 bg-white/[0.03] rounded-xl flex items-center justify-center mx-auto mb-4">
+              <div className={`w-12 h-12 border rounded-xl flex items-center justify-center mx-auto mb-4 ${darkMode ? 'bg-white/[0.03] border-white/5' : 'bg-gray-100 border-gray-200'}`}>
                 {(() => {
                   const tab = tabs.find(t => t.key === activeTab);
                   if (!tab) return null;
                   const Icon = tab.icon;
-                  return <Icon className="w-5 h-5 text-white/15" />;
+                  return <Icon className={`w-5 h-5 ${th.cardFaint}`} />;
                 })()}
               </div>
-              <p className="text-sm font-medium text-white/25">No {tabs.find(t => t.key === activeTab)?.label.toLowerCase()} tickets</p>
-              <p className="text-xs text-white/15 mt-1">
+              <p className={`text-sm font-medium ${th.cardFaint}`}>No {tabs.find(t => t.key === activeTab)?.label.toLowerCase()} tickets</p>
+              <p className={`text-xs mt-1 ${darkMode ? 'text-white/15' : 'text-gray-400'}`}>
                 {activeTab === 'assigned' && 'Admin has not assigned any tickets to you yet'}
                 {activeTab === 'pool' && 'No unassigned tickets available right now'}
                 {activeTab === 'claimed' && 'Claim tickets from the pool or assigned tab'}
@@ -551,49 +580,49 @@ export default function HRDashboard() {
 
       {showBookingModal && selectedTicket && (
         <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-[#0d1117] border border-white/10 rounded-2xl max-w-md w-full p-6 shadow-2xl">
+          <div className={`border rounded-2xl max-w-md w-full p-6 shadow-2xl ${th.modalBg}`}>
             <div className="flex items-center justify-between mb-5">
-              <h3 className="text-base font-bold text-white">Schedule Interview</h3>
+              <h3 className={`text-base font-bold ${th.cardText}`}>Schedule Interview</h3>
               <button
                 onClick={() => { setShowBookingModal(false); setSelectedTicket(null); }}
-                className="p-1.5 text-white/25 hover:text-white/60 transition-colors rounded-lg hover:bg-white/5"
+                className={`p-1.5 transition-colors rounded-lg ${darkMode ? 'text-white/25 hover:text-white/60 hover:bg-white/5' : 'text-gray-400 hover:text-gray-600 hover:bg-gray-100'}`}
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
-            <div className="bg-white/[0.03] border border-white/5 rounded-xl p-4 mb-5 space-y-1.5">
+            <div className={`border rounded-xl p-4 mb-5 space-y-1.5 ${darkMode ? 'bg-white/[0.03] border-white/5' : 'bg-gray-50 border-gray-200'}`}>
               <div className="flex items-center justify-between">
-                <span className="text-xs text-white/30">Candidate</span>
-                <span className="text-xs font-medium text-white/70">{selectedTicket.users.name}</span>
+                <span className={`text-xs ${th.cardFaint}`}>Candidate</span>
+                <span className={`text-xs font-medium ${th.cardSub}`}>{selectedTicket.users.name}</span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-xs text-white/30">Role</span>
-                <span className="text-xs font-medium text-white/70">{selectedTicket.job_role}</span>
+                <span className={`text-xs ${th.cardFaint}`}>Role</span>
+                <span className={`text-xs font-medium ${th.cardSub}`}>{selectedTicket.job_role}</span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-xs text-white/30">Ticket</span>
-                <span className="text-[10px] font-mono text-white/30">{selectedTicket.ticket_number}</span>
+                <span className={`text-xs ${th.cardFaint}`}>Ticket</span>
+                <span className={`text-[10px] font-mono ${th.cardFaint}`}>{selectedTicket.ticket_number}</span>
               </div>
             </div>
 
             <div className="space-y-4 mb-6">
               <div>
-                <label className="block text-xs font-medium text-white/40 mb-2">Interview Date</label>
+                <label className={`block text-xs font-medium mb-2 ${th.cardFaint}`}>Interview Date</label>
                 <input
                   type="date"
                   value={bookingDate}
                   onChange={(e) => setBookingDate(e.target.value)}
-                  className="w-full px-3.5 py-2.5 bg-white/[0.04] border border-white/8 rounded-xl text-sm text-white/80 focus:outline-none focus:border-blue-500/40 focus:bg-white/[0.06] transition-all [color-scheme:dark]"
+                  className={`w-full px-3.5 py-2.5 border rounded-xl text-sm focus:outline-none focus:border-blue-500/40 transition-all ${th.modalInput} ${darkMode ? '[color-scheme:dark]' : ''}`}
                 />
               </div>
               <div>
-                <label className="block text-xs font-medium text-white/40 mb-2">Interview Time</label>
+                <label className={`block text-xs font-medium mb-2 ${th.cardFaint}`}>Interview Time</label>
                 <input
                   type="time"
                   value={bookingTime}
                   onChange={(e) => setBookingTime(e.target.value)}
-                  className="w-full px-3.5 py-2.5 bg-white/[0.04] border border-white/8 rounded-xl text-sm text-white/80 focus:outline-none focus:border-blue-500/40 focus:bg-white/[0.06] transition-all [color-scheme:dark]"
+                  className={`w-full px-3.5 py-2.5 border rounded-xl text-sm focus:outline-none focus:border-blue-500/40 transition-all ${th.modalInput} ${darkMode ? '[color-scheme:dark]' : ''}`}
                 />
               </div>
             </div>
@@ -608,7 +637,7 @@ export default function HRDashboard() {
               </button>
               <button
                 onClick={() => { setShowBookingModal(false); setSelectedTicket(null); }}
-                className="px-4 py-2.5 bg-white/[0.04] border border-white/8 text-white/50 text-sm font-medium rounded-xl hover:bg-white/[0.07] transition-colors"
+                className={`px-4 py-2.5 border text-sm font-medium rounded-xl transition-colors ${darkMode ? 'bg-white/[0.04] border-white/8 text-white/50 hover:bg-white/[0.07]' : 'bg-gray-100 border-gray-200 text-gray-600 hover:bg-gray-200'}`}
               >
                 Cancel
               </button>

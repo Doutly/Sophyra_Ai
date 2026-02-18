@@ -89,14 +89,14 @@ export default function Auth() {
                 <Zap className="w-3 h-3" />
                 AI Interview Intelligence
               </span>
-              <h2 className="text-3xl font-bold text-white mb-3 leading-[1.15]">
+              <h2 className="text-4xl font-bold text-white mb-3 leading-[1.12]">
                 Sophyra decides
                 <br />
                 <span className="text-white/25">before the</span>
                 <br />
                 <span className="bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">interviewer does</span>
               </h2>
-              <p className="text-sm text-white/35 leading-relaxed max-w-sm">
+              <p className="text-base text-white/40 leading-relaxed max-w-sm">
                 Practice with an AI that adapts to your resume, role, and real-time answers. Get Big-Tech grade feedback before any real interview.
               </p>
             </div>
@@ -148,8 +148,8 @@ export default function Auth() {
               </div>
               <span className="text-sm font-bold text-white">Sophyra AI</span>
             </div>
-            <h1 className="text-2xl font-bold text-white mb-1.5">{titles[authMode].h}</h1>
-            <p className="text-sm text-white/35">{titles[authMode].p}</p>
+            <h1 className="text-3xl font-bold text-white mb-2">{titles[authMode].h}</h1>
+            <p className="text-base text-white/40">{titles[authMode].p}</p>
           </div>
 
           <div className="bg-white/[0.03] border border-white/8 rounded-2xl p-7 backdrop-blur-sm shadow-2xl shadow-black/40">
@@ -181,14 +181,14 @@ export default function Auth() {
                 {authMode === 'signup' && (
                   <>
                     <div>
-                      <label className="block text-xs font-medium text-white/50 mb-1.5">Full Name</label>
+                      <label className="block text-sm font-medium text-white/50 mb-1.5">Full Name</label>
                       <div className="relative">
                         <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/20" />
                         <input
                           type="text"
                           value={fullName}
                           onChange={(e) => setFullName(e.target.value)}
-                          className="w-full pl-9 pr-4 py-2.5 bg-white/[0.04] border border-white/8 rounded-lg text-sm text-white placeholder:text-white/20 focus:outline-none focus:border-blue-500/50 focus:bg-white/[0.06] transition-all"
+                          className="w-full pl-9 pr-4 py-3 bg-white/[0.04] border border-white/8 rounded-lg text-base text-white placeholder:text-white/20 focus:outline-none focus:border-blue-500/50 focus:bg-white/[0.06] transition-all"
                           placeholder="John Doe"
                           required
                         />
@@ -196,7 +196,7 @@ export default function Auth() {
                     </div>
 
                     <div>
-                      <label className="block text-xs font-medium text-white/50 mb-2">I am signing up as</label>
+                      <label className="block text-sm font-medium text-white/50 mb-2">I am signing up as</label>
                       <div className="space-y-2">
                         {[
                           { value: 'candidate', icon: UserCheck, title: 'Student / Job Seeker', desc: 'Practice AI interviews and request mock sessions' },
@@ -241,14 +241,14 @@ export default function Auth() {
                 )}
 
                 <div>
-                  <label className="block text-xs font-medium text-white/50 mb-1.5">Email</label>
+                  <label className="block text-sm font-medium text-white/50 mb-1.5">Email</label>
                   <div className="relative">
                     <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/20" />
                     <input
                       type="email"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
-                      className="w-full pl-9 pr-4 py-2.5 bg-white/[0.04] border border-white/8 rounded-lg text-sm text-white placeholder:text-white/20 focus:outline-none focus:border-blue-500/50 focus:bg-white/[0.06] transition-all"
+                      className="w-full pl-9 pr-4 py-3 bg-white/[0.04] border border-white/8 rounded-lg text-base text-white placeholder:text-white/20 focus:outline-none focus:border-blue-500/50 focus:bg-white/[0.06] transition-all"
                       placeholder="you@example.com"
                       required
                     />
@@ -257,14 +257,14 @@ export default function Auth() {
 
                 {authMode !== 'forgot' && (
                   <div>
-                    <label className="block text-xs font-medium text-white/50 mb-1.5">Password</label>
+                    <label className="block text-sm font-medium text-white/50 mb-1.5">Password</label>
                     <div className="relative">
                       <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/20" />
                       <input
                         type="password"
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
-                        className="w-full pl-9 pr-4 py-2.5 bg-white/[0.04] border border-white/8 rounded-lg text-sm text-white placeholder:text-white/20 focus:outline-none focus:border-blue-500/50 focus:bg-white/[0.06] transition-all"
+                        className="w-full pl-9 pr-4 py-3 bg-white/[0.04] border border-white/8 rounded-lg text-base text-white placeholder:text-white/20 focus:outline-none focus:border-blue-500/50 focus:bg-white/[0.06] transition-all"
                         placeholder="••••••••"
                         required
                         minLength={6}
@@ -288,7 +288,7 @@ export default function Auth() {
                 <button
                   type="submit"
                   disabled={loading}
-                  className="w-full py-3 bg-blue-600 text-white text-sm font-semibold rounded-xl hover:bg-blue-500 transition-all shadow-lg shadow-blue-600/20 disabled:opacity-40 disabled:cursor-not-allowed mt-1"
+                  className="w-full py-3.5 bg-blue-600 text-white text-base font-semibold rounded-xl hover:bg-blue-500 transition-all shadow-lg shadow-blue-600/20 disabled:opacity-40 disabled:cursor-not-allowed mt-1"
                 >
                   {loading ? 'Please wait...' : (
                     authMode === 'signup' ? 'Create Account' :
@@ -301,17 +301,17 @@ export default function Auth() {
             {!resetSent && (
               <div className="mt-5 text-center border-t border-white/5 pt-5">
                 {authMode === 'signin' ? (
-                  <p className="text-xs text-white/30">
+                  <p className="text-sm text-white/35">
                     Don't have an account?{' '}
-                    <button onClick={() => setAuthMode('signup')} className="text-blue-400 font-medium hover:text-blue-300 transition-colors">Sign up</button>
+                    <button onClick={() => setAuthMode('signup')} className="text-blue-400 font-semibold hover:text-blue-300 transition-colors">Sign up</button>
                   </p>
                 ) : authMode === 'signup' ? (
-                  <p className="text-xs text-white/30">
+                  <p className="text-sm text-white/35">
                     Already have an account?{' '}
-                    <button onClick={() => setAuthMode('signin')} className="text-blue-400 font-medium hover:text-blue-300 transition-colors">Sign in</button>
+                    <button onClick={() => setAuthMode('signin')} className="text-blue-400 font-semibold hover:text-blue-300 transition-colors">Sign in</button>
                   </p>
                 ) : (
-                  <button onClick={() => setAuthMode('signin')} className="text-xs text-blue-400 font-medium hover:text-blue-300 transition-colors">
+                  <button onClick={() => setAuthMode('signin')} className="text-sm text-blue-400 font-semibold hover:text-blue-300 transition-colors">
                     Back to sign in
                   </button>
                 )}

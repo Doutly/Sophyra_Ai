@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Mic, Brain, TrendingUp, ArrowRight, Star, CheckCircle, Zap, Shield } from 'lucide-react';
 import { SplineScene } from './ui/splite';
 import { Spotlight } from './ui/spotlight';
+import { ShimmerButton } from './ui/shimmer-button';
 
 interface HeroProps {
   onStartMockTest: () => void;
@@ -194,16 +195,17 @@ export default function Hero({ onStartMockTest, onSignIn }: HeroProps) {
               variants={fadeUp} initial="hidden" animate="visible" custom={0.28}
               className="flex flex-col sm:flex-row gap-2.5 mb-6"
             >
-              <button
+              <ShimmerButton
                 onClick={onStartMockTest}
-                className="group inline-flex items-center justify-center gap-2 px-6 py-3 bg-blue-600 text-white text-sm font-semibold rounded-xl hover:bg-blue-500 transition-all shadow-xl shadow-blue-600/25 hover:-translate-y-px"
+                borderRadius="12px"
+                background="rgba(37, 99, 235, 1)"
+                shimmerColor="rgba(255,255,255,0.6)"
+                shimmerDuration="2.5s"
+                className="group px-6 py-3 text-sm font-semibold shadow-xl shadow-blue-600/25"
               >
                 Start Mock Interview
-                <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
-              </button>
-              <button className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-white/[0.04] text-white text-sm font-semibold rounded-xl border border-white/8 hover:bg-white/8 transition-all">
-                Watch Demo
-              </button>
+                <ArrowRight className="w-3.5 h-3.5 ml-2 group-hover:translate-x-0.5 transition-transform" />
+              </ShimmerButton>
             </motion.div>
 
             <motion.div
@@ -325,14 +327,14 @@ export default function Hero({ onStartMockTest, onSignIn }: HeroProps) {
           </div>
         </div>
 
-        <div className="relative z-10 border-t border-white/[0.04] py-5">
-          <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12">
-            <p className="text-center text-[9px] text-white/15 font-medium tracking-widest uppercase mb-3">
-              Trusted by candidates from India's leading institutions
-            </p>
-            <div className="flex flex-wrap items-center justify-center gap-6 sm:gap-10">
-              {['IIT', 'IIM', 'BITS', 'NIT', 'VIT', 'IISC', 'NSIT'].map((name) => (
-                <span key={name} className="text-sm font-bold text-white/10 tracking-widest">{name}</span>
+        <div className="relative z-10 border-t border-white/[0.04] py-5 overflow-hidden">
+          <p className="text-center text-[10px] text-white/50 font-medium tracking-widest uppercase mb-4">
+            Trusted by candidates from India's leading institutions
+          </p>
+          <div className="relative overflow-hidden">
+            <div className="flex items-center gap-12 animate-scroll-x whitespace-nowrap w-max">
+              {['IIT', 'IIM', 'BITS', 'NIT', 'VIT', 'IISC', 'NSIT', 'IIT', 'IIM', 'BITS', 'NIT', 'VIT', 'IISC', 'NSIT'].map((name, i) => (
+                <span key={i} className="text-base font-bold text-white/70 tracking-widest flex-shrink-0">{name}</span>
               ))}
             </div>
           </div>
