@@ -89,20 +89,21 @@ export default function InterviewRoomV2() {
     onDisconnect: () => {
       connectingRef.current = false;
       setConnecting(false);
+
+      if (endedRef.current) return;
+
       const connectedDuration = connectedAtRef.current
         ? Date.now() - connectedAtRef.current
         : 0;
       const minSessionMs = 8000;
       if (
         startedRef.current &&
-        !endedRef.current &&
         transcriptCountRef.current > 0 &&
         connectedDuration > minSessionMs
       ) {
         handleEnd();
       } else if (
         startedRef.current &&
-        !endedRef.current &&
         connectedDuration <= minSessionMs &&
         connectedDuration > 0
       ) {
@@ -261,7 +262,8 @@ export default function InterviewRoomV2() {
     if (timerRef.current) clearInterval(timerRef.current);
 
     try {
-      if (conversation.status === 'connected') {
+      const status = conversation.status;
+      if (status === 'connected') {
         await conversation.endSession();
       }
     } catch {
