@@ -64,64 +64,102 @@ export default function Auth() {
 
   return (
     <div className="min-h-screen bg-black flex">
-      <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden bg-[#030712]">
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_60%_at_30%_40%,rgba(59,130,246,0.12),transparent)]" />
+      <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden bg-white">
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_60%_at_30%_40%,rgba(59,130,246,0.07),transparent)]" />
         <div
-          className="absolute inset-0 opacity-[0.03]"
+          className="absolute inset-0 opacity-[0.4]"
           style={{
-            backgroundImage: `linear-gradient(rgba(255,255,255,0.07) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.07) 1px, transparent 1px)`,
+            backgroundImage: `linear-gradient(rgba(59,130,246,0.06) 1px, transparent 1px), linear-gradient(90deg, rgba(59,130,246,0.06) 1px, transparent 1px)`,
             backgroundSize: '48px 48px',
           }}
         />
 
-        <div className="relative z-10 flex flex-col justify-center gap-10 p-10 w-full h-full">
-          <div className="flex items-center gap-2.5">
+        <div className="relative z-10 flex flex-col justify-between p-10 w-full h-full">
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+            className="flex items-center gap-2.5"
+          >
             <div className="relative">
               <img src="/lo.png" alt="Sophyra AI" className="w-8 h-8 relative z-10" />
-              <div className="absolute inset-0 bg-blue-500/30 rounded-full blur-sm" />
+              <div className="absolute inset-0 bg-blue-500/20 rounded-full blur-sm" />
             </div>
-            <span className="text-base font-bold text-white">Sophyra AI</span>
-          </div>
+            <span className="text-base font-bold text-slate-900">Sophyra AI</span>
+          </motion.div>
 
-          <div className="space-y-6">
-            <div>
-              <span className="inline-flex items-center gap-1.5 text-[10px] font-semibold text-blue-400 bg-blue-500/10 border border-blue-500/20 px-3 py-1 rounded-full tracking-widest uppercase mb-4">
+          <div className="space-y-8">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.1, ease: [0.22, 1, 0.36, 1] }}
+            >
+              <span className="inline-flex items-center gap-1.5 text-[10px] font-semibold text-blue-600 bg-blue-50 border border-blue-200 px-3 py-1 rounded-full tracking-widest uppercase mb-5">
                 <Zap className="w-3 h-3" />
                 AI Interview Intelligence
               </span>
-              <h2 className="text-4xl font-bold text-white mb-3 leading-[1.1]">
-                Sophyra decides <span className="text-white/25">before the</span>{' '}
-                <span className="bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">interviewer does</span>
+              <h2 className="text-4xl font-bold text-slate-900 mb-3 leading-[1.1]">
+                Sophyra decides{' '}
+                <span className="text-slate-400">before the</span>
+                <br />
+                <span className="bg-gradient-to-r from-blue-600 to-cyan-500 bg-clip-text text-transparent">
+                  interviewer does
+                </span>
               </h2>
-              <p className="text-sm text-white/40 leading-relaxed">
+              <p className="text-sm text-slate-500 leading-relaxed max-w-sm">
                 AI that adapts to your resume and role. Big-Tech grade feedback before your real interview.
               </p>
-            </div>
+            </motion.div>
 
-            <div className="space-y-4">
+            <motion.div
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.55, delay: 0.2, ease: [0.22, 1, 0.36, 1] }}
+              className="space-y-3"
+            >
               {[
                 { n: '01', t: 'Upload resume & job description' },
                 { n: '02', t: 'Live AI-driven mock interview' },
                 { n: '03', t: 'Get your Performance Certificate' },
-              ].map(({ n, t }) => (
-                <div key={n} className="flex items-center gap-3 py-1">
-                  <span className="text-xs font-bold text-white/20 w-6 flex-shrink-0">{n}</span>
-                  <p className="text-sm font-medium text-white/60">{t}</p>
-                </div>
+              ].map(({ n, t }, idx) => (
+                <motion.div
+                  key={n}
+                  initial={{ opacity: 0, x: -12 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ duration: 0.45, delay: 0.25 + idx * 0.09, ease: [0.22, 1, 0.36, 1] }}
+                  className="flex items-center gap-4 p-3.5 bg-white border border-slate-200 rounded-xl shadow-sm hover:shadow-md hover:border-blue-200 transition-all duration-200"
+                >
+                  <div className="w-9 h-9 bg-blue-50 border border-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                    <span className="text-xs font-bold text-blue-600">{n}</span>
+                  </div>
+                  <p className="text-sm font-semibold text-slate-700">{t}</p>
+                </motion.div>
               ))}
-            </div>
+            </motion.div>
 
-            <div className="flex items-center gap-6">
-              {[['5,000+', 'Candidates'], ['50+', 'Universities'], ['4.4/5', 'Satisfaction']].map(([val, lbl]) => (
-                <div key={lbl}>
-                  <p className="text-xl font-bold text-white">{val}</p>
-                  <p className="text-[10px] text-white/30 uppercase tracking-wider">{lbl}</p>
+            <motion.div
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.5, ease: [0.22, 1, 0.36, 1] }}
+              className="flex items-center gap-1 p-4 bg-white border border-slate-200 rounded-2xl shadow-sm"
+            >
+              {[['5,000+', 'Candidates'], ['50+', 'Universities'], ['4.4/5', 'Satisfaction']].map(([val, lbl], i) => (
+                <div key={lbl} className={`flex-1 text-center ${i < 2 ? 'border-r border-slate-200' : ''}`}>
+                  <p className="text-xl font-bold text-slate-900">{val}</p>
+                  <p className="text-[10px] text-slate-400 uppercase tracking-wider font-medium">{lbl}</p>
                 </div>
               ))}
-            </div>
+            </motion.div>
           </div>
 
-          <p className="text-[10px] text-white/15">© 2025 Sophyra AI. All rights reserved.</p>
+          <motion.p
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.4, delay: 0.7 }}
+            className="text-[10px] text-slate-400"
+          >
+            © 2025 Sophyra AI. All rights reserved.
+          </motion.p>
         </div>
       </div>
 

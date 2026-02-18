@@ -71,15 +71,15 @@ export default function ValueProps() {
             <h2 className="text-3xl sm:text-4xl font-bold text-white mb-4 tracking-tight leading-[1.1]">
               Hyper-real practice that
               <br />
-              <span className="text-white/55">drives measurable improvement</span>
+              <span className="text-white/70">drives measurable improvement</span>
             </h2>
-            <p className="text-sm text-white/50 leading-relaxed">
+            <p className="text-sm text-white/60 leading-relaxed">
               Sophyra understands your background, adapts in real time, and evaluates with the rigor of a senior HR at a top-tier company.
             </p>
           </motion.div>
         </div>
 
-        <div className="grid md:grid-cols-2 gap-3 mb-4">
+        <div className="grid md:grid-cols-2 gap-4 mb-4">
           {features.map((feature, index) => {
             const Icon = feature.icon;
             const cfg = colorConfig[feature.color];
@@ -90,18 +90,21 @@ export default function ValueProps() {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ duration: 0.45, delay: index * 0.08 }}
-                className={`group relative bg-white/[0.02] border border-white/5 rounded-2xl p-6 ${cfg.card} hover:shadow-xl hover:bg-white/[0.03] transition-all duration-300`}
+                className={`group relative bg-white/[0.02] border border-white/8 rounded-2xl p-7 ${cfg.card} hover:shadow-2xl hover:bg-white/[0.04] transition-all duration-300 overflow-hidden`}
               >
-                <div className="flex items-start justify-between mb-4">
-                  <div className={`w-10 h-10 ${cfg.icon} rounded-xl flex items-center justify-center`}>
-                    <Icon className="w-4.5 h-4.5" />
+                <div className="absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-gradient-to-br from-white/[0.03] to-transparent" />
+                <div className="relative z-10">
+                  <div className="flex items-start justify-between mb-5">
+                    <div className={`w-11 h-11 ${cfg.icon} rounded-xl flex items-center justify-center`}>
+                      <Icon className="w-5 h-5" />
+                    </div>
+                    <span className={`text-[9px] font-semibold ${cfg.tag} border px-2.5 py-1 rounded-full tracking-wide uppercase`}>
+                      {feature.tag}
+                    </span>
                   </div>
-                  <span className={`text-[9px] font-semibold ${cfg.tag} border px-2 py-0.5 rounded-full tracking-wide uppercase`}>
-                    {feature.tag}
-                  </span>
+                  <h3 className="text-base font-bold text-white mb-2.5">{feature.title}</h3>
+                  <p className="text-xs text-white/60 leading-relaxed">{feature.description}</p>
                 </div>
-                <h3 className="text-base font-bold text-white mb-2">{feature.title}</h3>
-                <p className="text-xs text-white/55 leading-relaxed">{feature.description}</p>
               </motion.div>
             );
           })}
@@ -146,7 +149,7 @@ export default function ValueProps() {
                 <h2 className="text-3xl sm:text-4xl font-bold text-white mb-3 tracking-tight">
                   Big-Tech Grade Reports
                 </h2>
-                <p className="text-sm text-white/50 max-w-xl mx-auto leading-relaxed">
+                <p className="text-sm text-white/70 max-w-xl mx-auto leading-relaxed">
                   Every session generates a comprehensive performance certificate with the depth and precision expected from Google, Amazon, and McKinsey.
                 </p>
               </motion.div>
@@ -160,7 +163,7 @@ export default function ValueProps() {
                   </div>
                   <div>
                     <p className="text-xs font-bold text-white">Performance Certificate</p>
-                    <p className="text-[9px] text-white/45">Sophyra AI — Interview Intelligence Report</p>
+                    <p className="text-[9px] text-white">Sophyra AI — Interview Intelligence Report</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-1.5 bg-green-500/10 border border-green-500/20 px-2.5 py-1 rounded-full">

@@ -4,6 +4,7 @@ import { Mic, Brain, TrendingUp, ArrowRight, Star, CheckCircle, Zap, Shield } fr
 import { SplineScene } from './ui/splite';
 import { Spotlight } from './ui/spotlight';
 import { ShimmerButton } from './ui/shimmer-button';
+import InstitutionScroll from './InstitutionScroll';
 
 interface HeroProps {
   onStartMockTest: () => void;
@@ -339,18 +340,7 @@ export default function Hero({ onStartMockTest, onSignIn }: HeroProps) {
           )}
         </div>
 
-        <div className="relative z-10 border-t border-white/[0.04] py-5 overflow-hidden">
-          <p className="text-center text-[10px] text-white/50 font-medium tracking-widest uppercase mb-4">
-            Trusted by candidates from India's leading institutions
-          </p>
-          <div className="relative overflow-hidden">
-            <div className="flex items-center gap-12 animate-scroll-x whitespace-nowrap w-max">
-              {['IIT', 'IIM', 'BITS', 'NIT', 'VIT', 'IISC', 'NSIT', 'IIT', 'IIM', 'BITS', 'NIT', 'VIT', 'IISC', 'NSIT'].map((name, i) => (
-                <span key={i} className="text-base font-bold text-white/70 tracking-widest flex-shrink-0">{name}</span>
-              ))}
-            </div>
-          </div>
-        </div>
+        <InstitutionScroll />
       </section>
     </>
   );

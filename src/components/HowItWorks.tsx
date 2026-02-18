@@ -82,8 +82,6 @@ export default function HowItWorks() {
         </div>
 
         <div className="relative grid lg:grid-cols-3 gap-6">
-          <div className="absolute top-[4.5rem] left-[calc(33.33%-0.75rem)] right-[calc(33.33%-0.75rem)] h-px bg-gradient-to-r from-white/5 via-white/15 to-white/5 hidden lg:block" />
-
           {steps.map((step, index) => {
             const Icon = step.icon;
             const cfg = colorConfig[step.color];
@@ -96,30 +94,31 @@ export default function HowItWorks() {
                 transition={{ duration: 0.55, delay: index * 0.15 }}
                 className="relative group"
               >
-                <div className={`relative bg-white/[0.02] border border-white/5 rounded-3xl p-8 lg:p-10 h-full ${cfg.border} hover:bg-white/[0.04] transition-all duration-300 overflow-hidden`}>
+                <div className={`relative bg-white/[0.02] border border-white/8 rounded-3xl p-8 lg:p-10 h-full ${cfg.border} hover:bg-white/[0.04] hover:shadow-2xl transition-all duration-300 overflow-hidden`}>
                   <div className={`absolute inset-0 bg-gradient-to-br ${cfg.glow} to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-3xl`} />
+                  <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
 
                   <div className="relative z-10">
                     <div className="flex items-start justify-between mb-8">
-                      <span className={`text-8xl font-black ${cfg.number} select-none leading-none`}>
+                      <div className={`w-14 h-14 ${cfg.icon} rounded-2xl flex items-center justify-center shadow-xl flex-shrink-0`}>
+                        <Icon className="w-7 h-7 text-white" />
+                      </div>
+                      <span className={`text-6xl font-black ${cfg.number} select-none leading-none`}>
                         {step.number}
                       </span>
-                      <div className={`w-16 h-16 ${cfg.icon} rounded-2xl flex items-center justify-center shadow-2xl flex-shrink-0`}>
-                        <Icon className="w-8 h-8 text-white" />
-                      </div>
                     </div>
 
-                    <h3 className="text-2xl font-bold text-white mb-4 leading-tight">{step.title}</h3>
-                    <p className="text-base text-white/50 leading-relaxed mb-6">{step.description}</p>
+                    <h3 className="text-xl font-bold text-white mb-3 leading-tight">{step.title}</h3>
+                    <p className="text-sm text-white/55 leading-relaxed mb-6">{step.description}</p>
 
-                    <span className={`inline-flex items-center text-xs font-semibold ${cfg.tag} border px-3 py-1.5 rounded-full tracking-wide`}>
+                    <span className={`inline-flex items-center text-[11px] font-semibold ${cfg.tag} border px-3 py-1.5 rounded-full tracking-wide`}>
                       {step.highlight}
                     </span>
                   </div>
                 </div>
 
                 {index < steps.length - 1 && (
-                  <div className="hidden lg:flex absolute top-[4.5rem] -right-3 z-10 w-7 h-7 bg-slate-800 border border-white/10 rounded-full items-center justify-center shadow-lg">
+                  <div className="hidden lg:flex absolute top-10 -right-3 z-10 w-7 h-7 bg-slate-800/90 backdrop-blur-sm border border-white/10 rounded-full items-center justify-center shadow-lg">
                     <ArrowRight className="w-3.5 h-3.5 text-white/40" />
                   </div>
                 )}
