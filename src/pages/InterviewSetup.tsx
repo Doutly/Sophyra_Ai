@@ -108,6 +108,7 @@ export default function InterviewSetup() {
         company: formData.companyName || null,
         jdText: formData.jobDescription,
         resumeSummary: parsedData?.summary || null,
+        resumeSkills: parsedData?.skills?.slice(0, 15) || [],
         resumeDataId: resumeDataId,
         status: 'pending',
         createdAt: serverTimestamp(),

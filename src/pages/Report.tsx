@@ -3,7 +3,21 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { db } from '../lib/firebase';
 import { doc, getDoc, collection, addDoc, serverTimestamp } from 'firebase/firestore';
-import { Download, Share2, TrendingUp, AlertCircle, CheckCircle2, Target, ArrowLeft, Brain } from 'lucide-react';
+import {
+  Download,
+  Share2,
+  TrendingUp,
+  AlertCircle,
+  CheckCircle2,
+  Target,
+  ArrowLeft,
+  Brain,
+  Clock,
+  MessageSquare,
+  User,
+  ShieldCheck,
+  Lightbulb,
+} from 'lucide-react';
 
 interface Report {
   id: string;
@@ -24,7 +38,21 @@ interface Report {
     role: string;
     company: string | null;
     experience_level: string;
+    elevenLabsConversationId?: string;
   };
+}
+
+interface TranscriptEntry {
+  role: 'agent' | 'user';
+  message: string;
+  time_in_call_secs?: number;
+}
+
+interface ElevenLabsData {
+  transcript: TranscriptEntry[];
+  analysis: Record<string, unknown>;
+  call_duration_secs: number;
+  dynamic_variables: Record<string, unknown>;
 }
 
 export default function Report() {
@@ -33,9 +61,11 @@ export default function Report() {
   const { user } = useAuth();
 
   const [report, setReport] = useState<Report | null>(null);
+  const [elevenLabsData, setElevenLabsData] = useState<ElevenLabsData | null>(null);
   const [loading, setLoading] = useState(true);
   const [shareLink, setShareLink] = useState('');
   const [showShareDialog, setShowShareDialog] = useState(false);
+  const [activeTab, setActiveTab] = useState<'overview' | 'transcript'>('overview');
 
   useEffect(() => {
     if (!user) {
@@ -81,9 +111,22 @@ export default function Report() {
         sessions: {
           role: sessionData.role,
           company: sessionData.company || null,
-          experience_level: sessionData.experienceLevel
-        }
+          experience_level: sessionData.experienceLevel,
+          elevenLabsConversationId: sessionData.elevenLabsConversationId || null,
+        },
       });
+
+      if (sessionData.elevenLabsConversationId) {
+        try {
+          const transcriptRef = doc(db, 'interview_transcripts', sessionData.elevenLabsConversationId);
+          const transcriptSnap = await getDoc(transcriptRef);
+          if (transcriptSnap.exists()) {
+            setElevenLabsData(transcriptSnap.data() as ElevenLabsData);
+          }
+        } catch {
+          /* transcript not yet available, non-blocking */
+        }
+      }
     } catch (error) {
       console.error('Error loading report:', error);
       navigate('/dashboard');
@@ -99,16 +142,22 @@ export default function Report() {
     return { text: 'Needs Improvement', color: 'text-red-600', bg: 'bg-red-50', border: 'border-red-200' };
   };
 
+  const formatDuration = (secs: number) => {
+    const m = Math.floor(secs / 60);
+    const s = secs % 60;
+    return `${m}m ${s}s`;
+  };
+
   const generateShareLink = async () => {
     try {
       const shareToken = Math.random().toString(36).substring(7) + Date.now().toString(36);
 
       await addDoc(collection(db, 'shares'), {
         reportId: reportId!,
-        shareToken: shareToken,
+        shareToken,
         viewCount: 0,
         createdAt: serverTimestamp(),
-        expiresAt: null
+        expiresAt: null,
       });
 
       const link = `${window.location.origin}/shared/${shareToken}`;
@@ -157,6 +206,7 @@ export default function Report() {
   }
 
   const scoreBand = getScoreBand(report.overall_score);
+  const analysisEntries = elevenLabsData?.analysis ? Object.entries(elevenLabsData.analysis) : [];
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -194,9 +244,15 @@ export default function Report() {
                   {new Date(report.created_at).toLocaleDateString('en-US', {
                     year: 'numeric',
                     month: 'long',
-                    day: 'numeric'
+                    day: 'numeric',
                   })}
                 </p>
+                {elevenLabsData?.call_duration_secs ? (
+                  <div className="flex items-center space-x-1.5 mt-2 text-teal-200 text-sm">
+                    <Clock className="w-4 h-4" />
+                    <span>{formatDuration(elevenLabsData.call_duration_secs)} total duration</span>
+                  </div>
+                ) : null}
               </div>
               <div className="text-right">
                 <div className="text-6xl font-bold mb-2">{report.overall_score}</div>
@@ -208,123 +264,238 @@ export default function Report() {
             </div>
           </div>
 
-          <div className="p-8">
-            <div className="flex items-center justify-end space-x-3 mb-8">
+          <div className="border-b border-gray-200">
+            <div className="flex px-8">
               <button
-                onClick={generateShareLink}
-                className="flex items-center space-x-2 px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+                onClick={() => setActiveTab('overview')}
+                className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
+                  activeTab === 'overview'
+                    ? 'border-brand-electric text-brand-electric'
+                    : 'border-transparent text-gray-500 hover:text-gray-700'
+                }`}
               >
-                <Share2 className="w-4 h-4" />
-                <span className="text-sm font-medium">Share</span>
+                Overview
               </button>
-              <button
-                onClick={downloadPDF}
-                className="flex items-center space-x-2 px-4 py-2 text-white bg-brand-electric rounded-lg hover:bg-brand-electric-dark transition-colors"
-              >
-                <Download className="w-4 h-4" />
-                <span className="text-sm font-medium">Download PDF</span>
-              </button>
+              {elevenLabsData?.transcript && elevenLabsData.transcript.length > 0 && (
+                <button
+                  onClick={() => setActiveTab('transcript')}
+                  className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors flex items-center space-x-1.5 ${
+                    activeTab === 'transcript'
+                      ? 'border-brand-electric text-brand-electric'
+                      : 'border-transparent text-gray-500 hover:text-gray-700'
+                  }`}
+                >
+                  <MessageSquare className="w-4 h-4" />
+                  <span>Full Transcript</span>
+                </button>
+              )}
             </div>
+          </div>
 
-            <div className="mb-12">
-              <h2 className="text-2xl font-bold text-gray-900 mb-6 flex items-center">
-                <TrendingUp className="w-6 h-6 mr-2 text-brand-electric" />
-                Performance Breakdown
-              </h2>
-              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {Object.entries(report.performance_breakdown).map(([key, value]) => (
-                  <div key={key} className="bg-gray-50 rounded-xl p-6">
-                    <div className="flex items-center justify-between mb-3">
-                      <h3 className="text-sm font-semibold text-gray-700 capitalize">{key}</h3>
-                      <span className="text-2xl font-bold text-gray-900">{value}/10</span>
-                    </div>
-                    <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
-                      <div
-                        className="h-full bg-brand-electric transition-all"
-                        style={{ width: `${(value / 10) * 100}%` }}
-                      ></div>
+          <div className="p-8">
+            {activeTab === 'overview' && (
+              <>
+                <div className="flex items-center justify-end space-x-3 mb-8">
+                  <button
+                    onClick={generateShareLink}
+                    className="flex items-center space-x-2 px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+                  >
+                    <Share2 className="w-4 h-4" />
+                    <span className="text-sm font-medium">Share</span>
+                  </button>
+                  <button
+                    onClick={downloadPDF}
+                    className="flex items-center space-x-2 px-4 py-2 text-white bg-brand-electric rounded-lg hover:bg-brand-electric-dark transition-colors"
+                  >
+                    <Download className="w-4 h-4" />
+                    <span className="text-sm font-medium">Download PDF</span>
+                  </button>
+                </div>
+
+                <div className="mb-12">
+                  <h2 className="text-2xl font-bold text-gray-900 mb-6 flex items-center">
+                    <TrendingUp className="w-6 h-6 mr-2 text-brand-electric" />
+                    Performance Breakdown
+                  </h2>
+                  <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {Object.entries(report.performance_breakdown).map(([key, value]) => (
+                      <div key={key} className="bg-gray-50 rounded-xl p-6">
+                        <div className="flex items-center justify-between mb-3">
+                          <h3 className="text-sm font-semibold text-gray-700 capitalize">{key}</h3>
+                          <span className="text-2xl font-bold text-gray-900">{value}/10</span>
+                        </div>
+                        <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
+                          <div
+                            className="h-full bg-brand-electric transition-all"
+                            style={{ width: `${(value / 10) * 100}%` }}
+                          ></div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {analysisEntries.length > 0 && (
+                  <div className="mb-12">
+                    <h2 className="text-2xl font-bold text-gray-900 mb-6 flex items-center">
+                      <ShieldCheck className="w-6 h-6 mr-2 text-brand-electric" />
+                      AI Evaluation Summary
+                    </h2>
+                    <div className="grid md:grid-cols-2 gap-4">
+                      {analysisEntries.map(([key, value]) => (
+                        <div key={key} className="bg-gray-50 border border-gray-200 rounded-xl p-5">
+                          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
+                            {key.replace(/_/g, ' ')}
+                          </p>
+                          <p className="text-gray-800 text-sm leading-relaxed">
+                            {typeof value === 'object' ? JSON.stringify(value, null, 2) : String(value)}
+                          </p>
+                        </div>
+                      ))}
                     </div>
                   </div>
-                ))}
-              </div>
-            </div>
+                )}
 
-            <div className="grid md:grid-cols-2 gap-8 mb-12">
+                <div className="grid md:grid-cols-2 gap-8 mb-12">
+                  <div>
+                    <h2 className="text-2xl font-bold text-gray-900 mb-6 flex items-center">
+                      <CheckCircle2 className="w-6 h-6 mr-2 text-green-500" />
+                      Strengths
+                    </h2>
+                    <ul className="space-y-3">
+                      {report.strengths.map((strength, idx) => (
+                        <li
+                          key={idx}
+                          className="flex items-start space-x-3 p-4 bg-green-50 rounded-lg border border-green-100"
+                        >
+                          <div className="w-2 h-2 bg-green-500 rounded-full mt-2 flex-shrink-0"></div>
+                          <p className="text-gray-700 leading-relaxed">{strength}</p>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+
+                  <div>
+                    <h2 className="text-2xl font-bold text-gray-900 mb-6 flex items-center">
+                      <AlertCircle className="w-6 h-6 mr-2 text-yellow-500" />
+                      Areas for Improvement
+                    </h2>
+                    <ul className="space-y-3">
+                      {report.gaps.map((gap, idx) => (
+                        <li
+                          key={idx}
+                          className="flex items-start space-x-3 p-4 bg-yellow-50 rounded-lg border border-yellow-100"
+                        >
+                          <div className="w-2 h-2 bg-yellow-500 rounded-full mt-2 flex-shrink-0"></div>
+                          <p className="text-gray-700 leading-relaxed">{gap}</p>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+
+                <div className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl p-8 mb-8">
+                  <h2 className="text-2xl font-bold text-gray-900 mb-6 flex items-center">
+                    <Target className="w-6 h-6 mr-2 text-brand-electric" />
+                    Suggested Topics for Practice
+                  </h2>
+                  <div className="flex flex-wrap gap-3">
+                    {report.suggested_topics.map((topic, idx) => (
+                      <span
+                        key={idx}
+                        className="px-4 py-2 bg-white border border-gray-200 rounded-lg text-gray-700 font-medium shadow-sm hover:shadow-md transition-shadow"
+                      >
+                        {topic}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="border-t border-gray-200 pt-8">
+                  <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center">
+                    <Lightbulb className="w-5 h-5 mr-2 text-brand-electric" />
+                    Next Steps
+                  </h2>
+                  <div className="grid md:grid-cols-2 gap-4">
+                    <button
+                      onClick={() => navigate('/interview/setup')}
+                      className="p-6 bg-blue-50 border-2 border-blue-200 rounded-xl text-left hover:border-blue-300 hover:shadow-md transition-all group"
+                    >
+                      <h3 className="font-bold text-gray-900 mb-2 group-hover:text-brand-electric">
+                        Practice Again
+                      </h3>
+                      <p className="text-sm text-gray-600">
+                        Start a new mock interview to improve your scores
+                      </p>
+                    </button>
+                    <button
+                      onClick={generateShareLink}
+                      className="p-6 bg-gray-50 border-2 border-gray-200 rounded-xl text-left hover:border-gray-300 hover:shadow-md transition-all group"
+                    >
+                      <h3 className="font-bold text-gray-900 mb-2 group-hover:text-gray-700">
+                        Share Your Progress
+                      </h3>
+                      <p className="text-sm text-gray-600">Show your achievements on LinkedIn</p>
+                    </button>
+                  </div>
+                </div>
+              </>
+            )}
+
+            {activeTab === 'transcript' && elevenLabsData?.transcript && (
               <div>
-                <h2 className="text-2xl font-bold text-gray-900 mb-6 flex items-center">
-                  <CheckCircle2 className="w-6 h-6 mr-2 text-green-500" />
-                  Strengths
-                </h2>
-                <ul className="space-y-3">
-                  {report.strengths.map((strength, idx) => (
-                    <li key={idx} className="flex items-start space-x-3 p-4 bg-green-50 rounded-lg border border-green-100">
-                      <div className="w-2 h-2 bg-green-500 rounded-full mt-2 flex-shrink-0"></div>
-                      <p className="text-gray-700 leading-relaxed">{strength}</p>
-                    </li>
+                <div className="flex items-center justify-between mb-6">
+                  <h2 className="text-2xl font-bold text-gray-900 flex items-center">
+                    <MessageSquare className="w-6 h-6 mr-2 text-brand-electric" />
+                    Full Interview Transcript
+                  </h2>
+                  {elevenLabsData.call_duration_secs > 0 && (
+                    <span className="text-sm text-gray-500 flex items-center space-x-1">
+                      <Clock className="w-4 h-4" />
+                      <span>{formatDuration(elevenLabsData.call_duration_secs)}</span>
+                    </span>
+                  )}
+                </div>
+
+                <div className="space-y-4">
+                  {elevenLabsData.transcript.map((entry, idx) => (
+                    <div
+                      key={idx}
+                      className={`flex ${entry.role === 'user' ? 'justify-end' : 'justify-start'}`}
+                    >
+                      <div
+                        className={`max-w-[80%] rounded-2xl px-5 py-3 ${
+                          entry.role === 'user'
+                            ? 'bg-brand-electric/10 border border-brand-electric/20'
+                            : 'bg-gray-100 border border-gray-200'
+                        }`}
+                      >
+                        <div className="flex items-center space-x-2 mb-1.5">
+                          {entry.role === 'agent' ? (
+                            <Brain className="w-3.5 h-3.5 text-brand-electric" />
+                          ) : (
+                            <User className="w-3.5 h-3.5 text-gray-500" />
+                          )}
+                          <span
+                            className={`text-xs font-semibold ${
+                              entry.role === 'user' ? 'text-brand-electric' : 'text-gray-500'
+                            }`}
+                          >
+                            {entry.role === 'agent' ? 'Sophyra AI' : 'You'}
+                          </span>
+                          {entry.time_in_call_secs != null && (
+                            <span className="text-xs text-gray-400 ml-auto pl-4">
+                              {formatDuration(entry.time_in_call_secs)}
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-gray-800 text-sm leading-relaxed">{entry.message}</p>
+                      </div>
+                    </div>
                   ))}
-                </ul>
+                </div>
               </div>
-
-              <div>
-                <h2 className="text-2xl font-bold text-gray-900 mb-6 flex items-center">
-                  <AlertCircle className="w-6 h-6 mr-2 text-yellow-500" />
-                  Areas for Improvement
-                </h2>
-                <ul className="space-y-3">
-                  {report.gaps.map((gap, idx) => (
-                    <li key={idx} className="flex items-start space-x-3 p-4 bg-yellow-50 rounded-lg border border-yellow-100">
-                      <div className="w-2 h-2 bg-yellow-500 rounded-full mt-2 flex-shrink-0"></div>
-                      <p className="text-gray-700 leading-relaxed">{gap}</p>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            </div>
-
-            <div className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl p-8 mb-8">
-              <h2 className="text-2xl font-bold text-gray-900 mb-6 flex items-center">
-                <Target className="w-6 h-6 mr-2 text-brand-electric" />
-                Suggested Topics for Practice
-              </h2>
-              <div className="flex flex-wrap gap-3">
-                {report.suggested_topics.map((topic, idx) => (
-                  <span
-                    key={idx}
-                    className="px-4 py-2 bg-white border border-gray-200 rounded-lg text-gray-700 font-medium shadow-sm hover:shadow-md transition-shadow"
-                  >
-                    {topic}
-                  </span>
-                ))}
-              </div>
-            </div>
-
-            <div className="border-t border-gray-200 pt-8">
-              <h2 className="text-xl font-bold text-gray-900 mb-4">Next Steps</h2>
-              <div className="grid md:grid-cols-2 gap-4">
-                <button
-                  onClick={() => navigate('/interview/setup')}
-                  className="p-6 bg-blue-50 border-2 border-blue-200 rounded-xl text-left hover:border-blue-300 hover:shadow-md transition-all group"
-                >
-                  <h3 className="font-bold text-gray-900 mb-2 group-hover:text-brand-electric">
-                    Practice Again
-                  </h3>
-                  <p className="text-sm text-gray-600">
-                    Start a new mock interview to improve your scores
-                  </p>
-                </button>
-                <button
-                  onClick={generateShareLink}
-                  className="p-6 bg-gray-50 border-2 border-gray-200 rounded-xl text-left hover:border-gray-300 hover:shadow-md transition-all group"
-                >
-                  <h3 className="font-bold text-gray-900 mb-2 group-hover:text-gray-700">
-                    Share Your Progress
-                  </h3>
-                  <p className="text-sm text-gray-600">
-                    Show your achievements on LinkedIn
-                  </p>
-                </button>
-              </div>
-            </div>
+            )}
           </div>
         </div>
       </div>
@@ -333,9 +504,7 @@ export default function Report() {
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-2xl p-8 max-w-md w-full">
             <h3 className="text-2xl font-bold text-gray-900 mb-4">Share Your Report</h3>
-            <p className="text-gray-600 mb-6">
-              Anyone with this link can view your interview report
-            </p>
+            <p className="text-gray-600 mb-6">Anyone with this link can view your interview report</p>
             <div className="bg-gray-50 rounded-lg p-4 mb-6 break-all text-sm text-gray-700">
               {shareLink}
             </div>

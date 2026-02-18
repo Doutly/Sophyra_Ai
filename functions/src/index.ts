@@ -130,6 +130,20 @@ export const elevenLabsWebhook = functions
           { merge: true }
         );
 
+      const sessionsSnapshot = await db
+        .collection('sessions')
+        .where('elevenLabsConversationId', '==', conversationId)
+        .limit(1)
+        .get();
+
+      if (!sessionsSnapshot.empty) {
+        const sessionDoc = sessionsSnapshot.docs[0];
+        await sessionDoc.ref.update({
+          transcriptId: conversationId,
+          transcriptReady: true,
+        });
+      }
+
       res.status(200).json({ received: true, conversation_id: conversationId });
     } catch (err) {
       console.error('Webhook error:', err);

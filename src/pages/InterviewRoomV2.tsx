@@ -204,7 +204,7 @@ export default function InterviewRoomV2() {
 
       const signedUrl = await getSignedUrl(AGENT_ID);
 
-      await conversation.startSession({
+      const convId = await conversation.startSession({
         signedUrl,
         dynamicVariables: {
           candidate_name: candidateNameRef.current,
@@ -214,11 +214,6 @@ export default function InterviewRoomV2() {
           job_description: jd,
           resume_skills: session.resumeSkills?.slice(0, 10).join(', ') || '',
           resume_summary: session.resumeSummary?.slice(0, 200) || '',
-        },
-        overrides: {
-          agent: {
-            firstMessage: `Hi ${candidateNameRef.current}! I'm Sophyra, your AI interviewer today. You're preparing for the ${role}${company && company !== 'a company' ? ' role at ' + company : ''}. Let's begin — can you tell me a bit about yourself?`,
-          },
         },
       });
 
@@ -232,6 +227,7 @@ export default function InterviewRoomV2() {
       await updateDoc(doc(db, 'sessions', sessionId!), {
         started_at: Timestamp.now(),
         status: 'in_progress',
+        ...(convId ? { elevenLabsConversationId: convId } : {}),
       });
     } catch (err: any) {
       console.error('Failed to start session:', err);
