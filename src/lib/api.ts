@@ -1,7 +1,7 @@
 import { httpsCallable } from 'firebase/functions';
 import { functions } from './firebase';
 
-const GEMINI_API_KEY = 'AIzaSyDaS7WX4dPCaz5vv_X6Spf67ev4VH9AmWo';
+const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY || '';
 
 export async function generateInterviewQuestion(params: {
   jobRole: string;

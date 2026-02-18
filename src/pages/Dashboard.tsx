@@ -1,8 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { db } from '../lib/firebase';
-import { collection, query, where, orderBy, limit as firestoreLimit, getDocs, doc, getDoc, onSnapshot } from 'firebase/firestore';
+import { collection, query, where, orderBy, limit as firestoreLimit, doc, getDoc, onSnapshot } from 'firebase/firestore';
 import { Play, FileText, Share2, Download, TrendingUp, Target, Lightbulb, LogOut, User as UserIcon, Ticket, Calendar, Clock, AlertCircle } from 'lucide-react';
 import StatusBadge from '../components/StatusBadge';
 
@@ -59,9 +59,15 @@ export default function Dashboard() {
   const [reports, setReports] = useState<Report[]>([]);
   const [tips, setTips] = useState<Tip | null>(null);
   const [mockRequests, setMockRequests] = useState<MockInterviewRequest[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [userName, setUserName] = useState('');
+  const unsubscribersRef = useRef<Array<() => void>>([]);
+
+  const cleanupListeners = () => {
+    unsubscribersRef.current.forEach(fn => fn());
+    unsubscribersRef.current = [];
+  };
 
   useEffect(() => {
     if (!user) {
@@ -70,23 +76,26 @@ export default function Dashboard() {
     }
 
     const timeoutId = setTimeout(() => {
-      if (loading) {
-        setLoading(false);
-        setError('Loading took too long. Please try refreshing the page.');
-      }
-    }, 10000);
+      setLoading(false);
+      setError('Loading took too long. Please try refreshing the page.');
+    }, 15000);
 
-    loadDashboardData().finally(() => {
+    loadDashboardData().then(() => {
       clearTimeout(timeoutId);
     });
 
-    return () => clearTimeout(timeoutId);
+    return () => {
+      clearTimeout(timeoutId);
+      cleanupListeners();
+    };
   }, [user, navigate]);
 
   const loadDashboardData = async () => {
     if (!user) return;
 
+    setLoading(true);
     setError(null);
+    cleanupListeners();
 
     try {
       const userRef = doc(db, 'users', user.uid);
@@ -96,12 +105,14 @@ export default function Dashboard() {
           if (snapshot.exists()) {
             setUserName(snapshot.data().name || '');
           }
+          setLoading(false);
         },
         (error) => {
           console.error('Error in user snapshot:', error);
-          setError('Failed to load user data. Please refresh the page.');
+          setLoading(false);
         }
       );
+      unsubscribersRef.current.push(unsubscribeUser);
 
       const sessionsQuery = query(
         collection(db, 'sessions'),
@@ -122,7 +133,7 @@ export default function Dashboard() {
                 firestoreLimit(10)
               );
 
-              onSnapshot(
+              const unsubscribeReports = onSnapshot(
                 reportsQuery,
                 async (reportsSnapshot) => {
                   try {
@@ -133,11 +144,18 @@ export default function Dashboard() {
                         const sessionSnap = await getDoc(sessionRef);
                         const sessionData = sessionSnap.exists() ? sessionSnap.data() : null;
 
+                        const createdAtRaw = reportData.createdAt;
+                        const createdAt = createdAtRaw?.toDate
+                          ? createdAtRaw.toDate().toISOString()
+                          : typeof createdAtRaw === 'string'
+                          ? createdAtRaw
+                          : new Date().toISOString();
+
                         return {
                           id: reportDoc.id,
                           session_id: reportData.sessionId,
                           overall_score: reportData.overallScore || 0,
-                          created_at: reportData.createdAt?.toDate()?.toISOString() || new Date().toISOString(),
+                          created_at: createdAt,
                           session: {
                             role: sessionData?.role || '',
                             company: sessionData?.company || null
@@ -155,6 +173,7 @@ export default function Dashboard() {
                   console.error('Error in reports snapshot:', error);
                 }
               );
+              unsubscribersRef.current.push(unsubscribeReports);
             } else {
               setReports([]);
             }
@@ -164,9 +183,9 @@ export default function Dashboard() {
         },
         (error) => {
           console.error('Error in sessions snapshot:', error);
-          setError('Failed to load interview sessions. Please refresh the page.');
         }
       );
+      unsubscribersRef.current.push(unsubscribeSessions);
 
       const tipsQuery = query(
         collection(db, 'tips'),
@@ -193,19 +212,19 @@ export default function Dashboard() {
           console.error('Error in tips snapshot:', error);
         }
       );
+      unsubscribersRef.current.push(unsubscribeTips);
 
       const requestsQuery = query(
         collection(db, 'mockInterviewRequests'),
         where('user_id', '==', user.uid),
         orderBy('created_at', 'desc')
-        // Removed firestoreLimit(5) to avoid composite index requirement
       );
 
       const unsubscribeRequests = onSnapshot(
         requestsQuery,
         (requestsSnapshot) => {
           const requestsData = requestsSnapshot.docs
-            .slice(0, 5) // Client-side limit to 5 items
+            .slice(0, 5)
             .map(d => {
               const data = d.data();
               return {
@@ -228,15 +247,8 @@ export default function Dashboard() {
           console.error('Error in requests snapshot:', error);
         }
       );
+      unsubscribersRef.current.push(unsubscribeRequests);
 
-      setLoading(false);
-
-      return () => {
-        unsubscribeUser();
-        unsubscribeSessions();
-        unsubscribeTips();
-        unsubscribeRequests();
-      };
     } catch (err: any) {
       console.error('Error loading dashboard:', err);
       setError(err.message || 'Failed to load dashboard data. Please try again.');
@@ -277,8 +289,6 @@ export default function Dashboard() {
           <div className="space-y-3">
             <button
               onClick={() => {
-                setLoading(true);
-                setError(null);
                 loadDashboardData();
               }}
               className="w-full px-6 py-3 bg-brand-electric text-white font-semibold rounded-lg hover:bg-brand-electric-dark transition-colors"

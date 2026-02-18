@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { db } from '../lib/firebase';
-import { collection, query, where, orderBy, onSnapshot, doc, updateDoc, Timestamp, getDocs } from 'firebase/firestore';
+import { collection, query, where, orderBy, onSnapshot, doc, getDoc, updateDoc, Timestamp } from 'firebase/firestore';
 import { LogOut, Ticket, Clock, Calendar, CheckCircle, XCircle, ExternalLink, User, Briefcase, Brain, Download, FileText } from 'lucide-react';
 import StatusBadge from '../components/StatusBadge';
 
@@ -81,10 +81,10 @@ export default function HRDashboard() {
 
             if (data.user_id && typeof data.user_id === 'string') {
               try {
-                const userQuery = query(collection(db, 'users'), where('__name__', '==', data.user_id));
-                const userSnapshot = await getDocs(userQuery);
-                if (!userSnapshot.empty && userSnapshot.docs[0]?.data()) {
-                  userData = userSnapshot.docs[0].data() as { name: string; email: string };
+                const userDocRef = doc(db, 'users', data.user_id);
+                const userDocSnap = await getDoc(userDocRef);
+                if (userDocSnap.exists()) {
+                  userData = userDocSnap.data() as { name: string; email: string };
                 }
               } catch (error) {
                 console.error('Error fetching user data:', error);

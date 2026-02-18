@@ -25,7 +25,7 @@ export class ResumeParser {
   private geminiApiKey: string;
 
   constructor(apiKey?: string) {
-    this.geminiApiKey = apiKey || import.meta.env.VITE_GEMINI_API_KEY || 'AIzaSyDaS7WX4dPCaz5vv_X6Spf67ev4VH9AmWo';
+    this.geminiApiKey = apiKey || import.meta.env.VITE_GEMINI_API_KEY || '';
   }
 
   async parseResume(file: File, options: ParseOptions = {}): Promise<ParsedResume> {

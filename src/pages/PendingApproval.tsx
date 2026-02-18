@@ -19,7 +19,7 @@ export default function PendingApproval() {
     }, 5000);
 
     return () => clearInterval(interval);
-  }, [refreshUserData]);
+  }, []);
 
   const handleSignOut = async () => {
     await signOut();

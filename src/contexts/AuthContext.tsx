@@ -79,7 +79,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       setUser(firebaseUser);
       if (firebaseUser) {
-        if (firebaseUser.email === 'mani@sophyra.in') {
+        if (firebaseUser.email === import.meta.env.VITE_ADMIN_EMAIL) {
           setRole('admin');
           setIsApproved(true);
         } else {

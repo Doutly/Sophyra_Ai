@@ -14,7 +14,6 @@ import HRDashboard from './pages/HRDashboard';
 import PendingApproval from './pages/PendingApproval';
 import Profile from './pages/Profile';
 import SharedReport from './pages/SharedReport';
-import ElevenLabsTest from './pages/ElevenLabsTest';
 
 function App() {
   return (
@@ -84,36 +83,44 @@ function App() {
             <Route
               path="/interview/setup"
               element={
-                <ProtectedRoute allowedRoles={['candidate']}>
-                  <InterviewSetup />
-                </ProtectedRoute>
+                <ErrorBoundary>
+                  <ProtectedRoute allowedRoles={['candidate']}>
+                    <InterviewSetup />
+                  </ProtectedRoute>
+                </ErrorBoundary>
               }
             />
 
             <Route
               path="/interview/:sessionId"
               element={
-                <ProtectedRoute allowedRoles={['candidate']}>
-                  <InterviewRoomV2 />
-                </ProtectedRoute>
+                <ErrorBoundary>
+                  <ProtectedRoute allowedRoles={['candidate']}>
+                    <InterviewRoomV2 />
+                  </ProtectedRoute>
+                </ErrorBoundary>
               }
             />
 
             <Route
               path="/interview/manual"
               element={
-                <ProtectedRoute allowedRoles={['candidate']}>
-                  <ManualMockInterview />
-                </ProtectedRoute>
+                <ErrorBoundary>
+                  <ProtectedRoute allowedRoles={['candidate']}>
+                    <ManualMockInterview />
+                  </ProtectedRoute>
+                </ErrorBoundary>
               }
             />
 
             <Route
               path="/report/:reportId"
               element={
-                <ProtectedRoute allowedRoles={['candidate']}>
-                  <Report />
-                </ProtectedRoute>
+                <ErrorBoundary>
+                  <ProtectedRoute allowedRoles={['candidate']}>
+                    <Report />
+                  </ProtectedRoute>
+                </ErrorBoundary>
               }
             />
 

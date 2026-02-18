@@ -56,7 +56,7 @@ export default function InterviewRoomV2() {
   const initializeAgent = async (sessionData: any) => {
     try {
       const context: InterviewContext = {
-        candidateName: user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'Candidate',
+        candidateName: user?.displayName || user?.email?.split('@')[0] || 'Candidate',
         jobRole: sessionData.role,
         experienceLevel: sessionData.experience_level,
         jobDescription: sessionData.jd_text || 'General interview questions',
