@@ -1,11 +1,11 @@
-import { Linkedin, Twitter, Mail } from 'lucide-react';
+import { Linkedin, Twitter, Mail, ArrowRight } from 'lucide-react';
 
 export default function Footer() {
   const links = {
     product: [
-      { label: 'How It Works', href: '#' },
-      { label: 'Pricing', href: '#' },
-      { label: 'Demo', href: '#' },
+      { label: 'How It Works', href: '#how-it-works' },
+      { label: 'Pricing', href: '#pricing' },
+      { label: 'Reports', href: '#reports' },
       { label: 'For Universities', href: '#' },
     ],
     company: [
@@ -23,45 +23,44 @@ export default function Footer() {
   };
 
   return (
-    <footer className="bg-gray-900 text-gray-300">
+    <footer className="bg-slate-950 border-t border-white/5">
       <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12">
         <div className="py-16 grid md:grid-cols-2 lg:grid-cols-5 gap-12">
           <div className="lg:col-span-2 space-y-6">
             <div className="flex items-center space-x-3">
-              <img src="/lo.png" alt="Sophyra AI" className="w-10 h-10" />
-              <span className="text-2xl font-bold text-white">Sophyra AI</span>
+              <div className="relative">
+                <img src="/lo.png" alt="Sophyra AI" className="w-9 h-9 relative z-10" />
+                <div className="absolute inset-0 bg-blue-500/20 rounded-full blur-md" />
+              </div>
+              <span className="text-xl font-bold text-white">Sophyra AI</span>
             </div>
-            <p className="text-sm text-gray-400 leading-relaxed max-w-sm">
-              Practice interviews with an AI HR who actually feels human. Get enterprise-grade feedback and accelerate your career growth.
+            <p className="text-sm text-white/30 leading-relaxed max-w-sm">
+              Sophyra decides before the interviewer does. Practice with AI that thinks like a recruiter
+              and get Big-Tech grade feedback on every session.
             </p>
-            <div className="flex items-center space-x-4">
-              <a
-                href="#"
-                className="w-10 h-10 bg-gray-800 rounded-lg flex items-center justify-center hover:bg-gray-700 transition-colors"
-              >
-                <Linkedin className="w-5 h-5 text-gray-300" />
-              </a>
-              <a
-                href="#"
-                className="w-10 h-10 bg-gray-800 rounded-lg flex items-center justify-center hover:bg-gray-700 transition-colors"
-              >
-                <Twitter className="w-5 h-5 text-gray-300" />
-              </a>
-              <a
-                href="#"
-                className="w-10 h-10 bg-gray-800 rounded-lg flex items-center justify-center hover:bg-gray-700 transition-colors"
-              >
-                <Mail className="w-5 h-5 text-gray-300" />
-              </a>
+            <div className="flex items-center space-x-3">
+              {[
+                { icon: Linkedin, href: '#' },
+                { icon: Twitter, href: '#' },
+                { icon: Mail, href: '#' },
+              ].map(({ icon: Icon, href }, i) => (
+                <a
+                  key={i}
+                  href={href}
+                  className="w-9 h-9 bg-white/5 border border-white/5 rounded-lg flex items-center justify-center hover:bg-white/10 hover:border-white/10 transition-all"
+                >
+                  <Icon className="w-4 h-4 text-white/40" />
+                </a>
+              ))}
             </div>
           </div>
 
           <div>
-            <h4 className="text-sm font-bold text-white mb-4">Product</h4>
+            <h4 className="text-xs font-bold text-white/50 uppercase tracking-widest mb-5">Product</h4>
             <ul className="space-y-3">
               {links.product.map((link, index) => (
                 <li key={index}>
-                  <a href={link.href} className="text-sm text-gray-400 hover:text-white transition-colors">
+                  <a href={link.href} className="text-sm text-white/30 hover:text-white transition-colors">
                     {link.label}
                   </a>
                 </li>
@@ -70,11 +69,11 @@ export default function Footer() {
           </div>
 
           <div>
-            <h4 className="text-sm font-bold text-white mb-4">Company</h4>
+            <h4 className="text-xs font-bold text-white/50 uppercase tracking-widest mb-5">Company</h4>
             <ul className="space-y-3">
               {links.company.map((link, index) => (
                 <li key={index}>
-                  <a href={link.href} className="text-sm text-gray-400 hover:text-white transition-colors">
+                  <a href={link.href} className="text-sm text-white/30 hover:text-white transition-colors">
                     {link.label}
                   </a>
                 </li>
@@ -83,11 +82,11 @@ export default function Footer() {
           </div>
 
           <div>
-            <h4 className="text-sm font-bold text-white mb-4">Legal</h4>
+            <h4 className="text-xs font-bold text-white/50 uppercase tracking-widest mb-5">Legal</h4>
             <ul className="space-y-3">
               {links.legal.map((link, index) => (
                 <li key={index}>
-                  <a href={link.href} className="text-sm text-gray-400 hover:text-white transition-colors">
+                  <a href={link.href} className="text-sm text-white/30 hover:text-white transition-colors">
                     {link.label}
                   </a>
                 </li>
@@ -96,11 +95,12 @@ export default function Footer() {
           </div>
         </div>
 
-        <div className="border-t border-gray-800 py-8">
-          <div className="flex flex-col sm:flex-row items-center justify-between space-y-4 sm:space-y-0">
-            <p className="text-sm text-gray-500">© 2025 Sophyra AI. All rights reserved.</p>
-            <div className="flex items-center space-x-6">
-              <span className="text-xs text-gray-500">Made with precision for your success</span>
+        <div className="border-t border-white/5 py-6">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+            <p className="text-xs text-white/20">© 2025 Sophyra AI. All rights reserved.</p>
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-white/15">Made with precision for your success</span>
+              <ArrowRight className="w-3 h-3 text-white/10" />
             </div>
           </div>
         </div>
