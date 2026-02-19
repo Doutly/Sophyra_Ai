@@ -30,7 +30,7 @@ export default function Footer() {
           <div className="lg:col-span-2 space-y-8">
             <div className="flex items-center space-x-3">
               <div className="relative">
-                <img src="/lo.png" alt="Sophyra AI" className="w-11 h-11 relative z-10" />
+                <img src="/Adobe_Express_-_file.png" alt="Sophyra AI" className="w-11 h-11 relative z-10" style={{mixBlendMode: 'multiply'}} />
                 <div className="absolute inset-0 bg-blue-500/20 rounded-full blur-md" />
               </div>
               <span className="text-2xl font-bold text-white">Sophyra AI</span>

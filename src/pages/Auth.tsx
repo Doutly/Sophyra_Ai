@@ -194,7 +194,7 @@ export default function Auth() {
             className="flex items-center gap-2.5"
           >
             <div className="relative">
-              <img src="/lo.png" alt="Sophyra AI" className="w-8 h-8 relative z-10" />
+              <img src="/Adobe_Express_-_file.png" alt="Sophyra AI" className="w-8 h-8 relative z-10" style={{mixBlendMode: 'darken'}} />
               <div className="absolute inset-0 bg-blue-400/25 rounded-full blur-sm" />
             </div>
             <span className="text-base font-bold text-slate-800">Sophyra AI</span>
@@ -291,7 +291,7 @@ export default function Auth() {
           <div className="mb-6">
             <div className="lg:hidden flex items-center gap-2 mb-6">
               <div className="relative">
-                <img src="/lo.png" alt="Sophyra AI" className="w-7 h-7 relative z-10" />
+                <img src="/Adobe_Express_-_file.png" alt="Sophyra AI" className="w-7 h-7 relative z-10" style={{mixBlendMode: 'darken'}} />
                 <div className="absolute inset-0 bg-blue-400/20 rounded-full blur-sm" />
               </div>
               <span className="text-sm font-bold text-slate-900">Sophyra AI</span>

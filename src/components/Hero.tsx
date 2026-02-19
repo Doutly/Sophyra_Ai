@@ -65,7 +65,7 @@ function NavBar({ onStartMockTest, onSignIn }: HeroProps) {
       <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12 py-3 flex items-center justify-between">
         <div className="flex items-center space-x-2.5 flex-shrink-0">
           <div className="relative">
-            <img src="/lo.png" alt="Sophyra AI" className="w-8 h-8 relative z-10" />
+            <img src="/Adobe_Express_-_file.png" alt="Sophyra AI" className="w-8 h-8 relative z-10" style={{mixBlendMode: 'multiply'}} />
             <div className="absolute inset-0 bg-blue-500/30 rounded-full blur-sm" />
           </div>
           <span className="text-base font-bold tracking-tight text-white">Sophyra AI</span>

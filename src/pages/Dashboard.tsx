@@ -359,7 +359,7 @@ export default function Dashboard() {
       <aside className="w-60 bg-white border-r border-slate-100 flex flex-col fixed h-full z-10 shadow-sm">
         <div className="px-5 py-5 border-b border-slate-100">
           <div className="flex items-center space-x-2.5">
-            <img src="/lo.png" alt="Sophyra AI" className="w-8 h-8 rounded-lg" />
+            <img src="/Adobe_Express_-_file.png" alt="Sophyra AI" className="w-8 h-8 rounded-lg" style={{mixBlendMode: 'darken'}} />
             <span className="text-[15px] font-bold text-slate-900 tracking-tight">Sophyra AI</span>
           </div>
         </div>
@@ -548,7 +548,7 @@ export default function Dashboard() {
                   </div>
                   <div className="hidden lg:block">
                     <div className="w-32 h-32 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center">
-                      <img src="/lo.png" alt="Sophyra" className="w-24 h-24 opacity-80" />
+                      <img src="/Adobe_Express_-_file.png" alt="Sophyra" className="w-24 h-24 opacity-80" style={{mixBlendMode: 'multiply'}} />
                     </div>
                   </div>
                 </div>

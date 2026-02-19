@@ -183,7 +183,7 @@ export default function Profile() {
         <div className="max-w-5xl mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
-              <img src="/lo.png" alt="Sophyra AI" className="w-8 h-8 rounded-lg" />
+              <img src="/Adobe_Express_-_file.png" alt="Sophyra AI" className="w-8 h-8 rounded-lg" style={{mixBlendMode: 'darken'}} />
               <span className="text-[15px] font-bold text-slate-900 tracking-tight">Sophyra AI</span>
             </div>
             <button

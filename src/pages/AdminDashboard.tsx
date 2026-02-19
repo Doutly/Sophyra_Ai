@@ -400,7 +400,7 @@ export default function AdminDashboard() {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="relative">
-                <img src="/lo.png" alt="Sophyra AI" className="w-7 h-7 relative z-10" />
+                <img src="/Adobe_Express_-_file.png" alt="Sophyra AI" className="w-7 h-7 relative z-10" style={{mixBlendMode: 'multiply'}} />
                 <div className="absolute inset-0 bg-blue-500/25 rounded-full blur-sm" />
               </div>
               <span className={`text-sm font-bold ${th.navText}`}>Sophyra AI</span>

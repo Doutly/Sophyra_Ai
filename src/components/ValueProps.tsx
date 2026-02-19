@@ -248,7 +248,7 @@ export default function ValueProps() {
 
                 <div className="mt-4 pt-4 border-t border-white/5 flex items-center justify-between">
                   <div className="flex items-center gap-1.5">
-                    <img src="/lo.png" alt="Sophyra AI" className="w-5 h-5 opacity-40" />
+                    <img src="/Adobe_Express_-_file.png" alt="Sophyra AI" className="w-5 h-5 opacity-40" style={{mixBlendMode: 'multiply'}} />
                     <span className="text-[9px] text-white/40">Certified by Sophyra AI</span>
                   </div>
                   <div className="flex items-center gap-0.5">
