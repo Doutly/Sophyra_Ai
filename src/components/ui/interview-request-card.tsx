@@ -181,7 +181,7 @@ export const InterviewRequestCard = ({
             )}
           >
             <Play className="h-3.5 w-3.5" />
-            {status === "approved" ? "Start Interview" : status === "rejected" ? "Request Rejected" : "View Interview"}
+            {status === "rejected" ? "Request Rejected" : "Start Interview"}
           </button>
         </div>
       </div>
