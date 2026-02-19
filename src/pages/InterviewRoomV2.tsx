@@ -20,32 +20,7 @@ import {
 } from 'lucide-react';
 
 const AGENT_ID = import.meta.env.VITE_ELEVENLABS_AGENT_ID;
-const ELEVENLABS_API_KEY = import.meta.env.VITE_ELEVENLABS_API_KEY;
 const MAX_JD_LENGTH = 800;
-
-async function getSignedUrl(agentId: string): Promise<string> {
-  if (!agentId) throw new Error('ElevenLabs Agent ID is not configured.');
-  if (!ELEVENLABS_API_KEY) throw new Error('ElevenLabs API key is not configured.');
-
-  const response = await fetch(
-    `https://api.elevenlabs.io/v1/convai/conversation/get_signed_url?agent_id=${agentId}`,
-    {
-      method: 'GET',
-      headers: {
-        'xi-api-key': ELEVENLABS_API_KEY,
-      },
-    }
-  );
-
-  if (!response.ok) {
-    const errorText = await response.text().catch(() => response.statusText);
-    throw new Error(`Failed to get signed URL: ${errorText}`);
-  }
-
-  const data = await response.json();
-  if (!data.signed_url) throw new Error('No signed URL returned from ElevenLabs.');
-  return data.signed_url;
-}
 
 interface TranscriptMessage {
   id: string;
@@ -132,7 +107,9 @@ export default function InterviewRoomV2() {
     onError: (message: string, context?: unknown) => {
       console.error('ElevenLabs error:', message, context);
       connectingRef.current = false;
+      startedRef.current = false;
       setConnecting(false);
+      setStarted(false);
       setStartError('Connection error. Please try again.');
     },
   });
@@ -211,15 +188,16 @@ export default function InterviewRoomV2() {
     connectingRef.current = true;
 
     try {
+      await navigator.mediaDevices.getUserMedia({ audio: true });
+
       const rawJd = session.jdText || 'General interview questions';
       const jd = rawJd.length > MAX_JD_LENGTH ? rawJd.slice(0, MAX_JD_LENGTH) + '...' : rawJd;
       const company = session.company || 'a company';
       const role = session.role || 'the position';
 
-      const signedUrl = await getSignedUrl(AGENT_ID);
-
       const convId = await conversation.startSession({
-        signedUrl,
+        agentId: AGENT_ID,
+        connectionType: 'webrtc',
         dynamicVariables: {
           candidate_name: candidateNameRef.current,
           company,
