@@ -59,6 +59,8 @@ export default function InterviewRoomV2() {
   const connectedAtRef = useRef<number | null>(null);
 
   const conversation = useConversation({
+    agentId: AGENT_ID,
+    connectionType: 'websocket',
     micMuted: !micEnabled,
     onConnect: () => {
       connectingRef.current = false;
@@ -196,8 +198,6 @@ export default function InterviewRoomV2() {
       const role = session.role || 'the position';
 
       const convId = await conversation.startSession({
-        agentId: AGENT_ID,
-        connectionType: 'webrtc',
         dynamicVariables: {
           candidate_name: candidateNameRef.current,
           company,
