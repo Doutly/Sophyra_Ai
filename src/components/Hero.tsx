@@ -1,9 +1,10 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Mic, Brain, TrendingUp, ArrowRight, Star, CheckCircle, Zap, Shield } from 'lucide-react';
+import { Mic, Brain, TrendingUp, ArrowRight, Star, CheckCircle, Zap, Shield, BookOpen, Tag, FileText } from 'lucide-react';
 import { SplineScene } from './ui/splite';
 import { Spotlight } from './ui/spotlight';
 import { ShimmerButton } from './ui/shimmer-button';
+import { TubelightNavBar } from './ui/tubelight-navbar';
 import InstitutionScroll from './InstitutionScroll';
 
 interface HeroProps {
@@ -35,6 +36,12 @@ function FloatingMetric({ className, children, delay = 0 }: { className?: string
   );
 }
 
+const navItems = [
+  { name: 'How It Works', url: '#how-it-works', icon: BookOpen },
+  { name: 'Pricing', url: '#pricing', icon: Tag },
+  { name: 'Reports', url: '#reports', icon: FileText },
+];
+
 function NavBar({ onStartMockTest, onSignIn }: HeroProps) {
   const [scrolled, setScrolled] = useState(false);
 
@@ -51,12 +58,12 @@ function NavBar({ onStartMockTest, onSignIn }: HeroProps) {
       transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
       className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${
         scrolled
-          ? 'bg-white/5 backdrop-blur-2xl border-b border-white/10 shadow-lg shadow-black/20'
-          : 'bg-white/[0.02] backdrop-blur-md border-b border-white/5'
+          ? 'bg-[#030712]/80 backdrop-blur-2xl border-b border-white/10 shadow-lg shadow-black/20'
+          : 'bg-transparent backdrop-blur-sm border-b border-white/5'
       }`}
     >
-      <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12 py-3.5 flex items-center justify-between">
-        <div className="flex items-center space-x-2.5">
+      <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12 py-3 flex items-center justify-between">
+        <div className="flex items-center space-x-2.5 flex-shrink-0">
           <div className="relative">
             <img src="/lo.png" alt="Sophyra AI" className="w-8 h-8 relative z-10" />
             <div className="absolute inset-0 bg-blue-500/30 rounded-full blur-sm" />
@@ -64,31 +71,25 @@ function NavBar({ onStartMockTest, onSignIn }: HeroProps) {
           <span className="text-base font-bold tracking-tight text-white">Sophyra AI</span>
         </div>
 
-        <div className="hidden md:flex items-center space-x-6">
-          {['How It Works', 'Pricing', 'Reports'].map((item) => (
-            <a
-              key={item}
-              href={`#${item.toLowerCase().replace(' ', '-')}`}
-              className="text-xs font-medium text-white/50 hover:text-white/90 transition-colors"
-            >
-              {item}
-            </a>
-          ))}
-          <button onClick={onSignIn} className="text-xs font-medium text-white/50 hover:text-white/90 transition-colors">
+        <div className="hidden md:flex items-center absolute left-1/2 -translate-x-1/2">
+          <TubelightNavBar items={navItems} />
+        </div>
+
+        <div className="flex items-center gap-3 flex-shrink-0">
+          <button onClick={onSignIn} className="hidden md:block text-xs font-medium text-white/50 hover:text-white/90 transition-colors">
             Sign In
           </button>
           <button
             onClick={onStartMockTest}
-            className="group px-4 py-2 bg-blue-600/90 backdrop-blur-sm text-white text-xs font-semibold rounded-lg hover:bg-blue-500 transition-all shadow-lg shadow-blue-600/20 border border-blue-500/30 flex items-center gap-1.5"
+            className="group hidden md:flex px-4 py-2 bg-blue-600/90 backdrop-blur-sm text-white text-xs font-semibold rounded-lg hover:bg-blue-500 transition-all shadow-lg shadow-blue-600/20 border border-blue-500/30 items-center gap-1.5"
           >
             Get Started
             <ArrowRight className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
           </button>
+          <button onClick={onStartMockTest} className="md:hidden px-3.5 py-1.5 bg-blue-600/90 backdrop-blur-sm text-white text-xs font-semibold rounded-lg border border-blue-500/30">
+            Start Free
+          </button>
         </div>
-
-        <button onClick={onStartMockTest} className="md:hidden px-3.5 py-1.5 bg-blue-600/90 backdrop-blur-sm text-white text-xs font-semibold rounded-lg border border-blue-500/30">
-          Start Free
-        </button>
       </div>
     </motion.nav>
   );
