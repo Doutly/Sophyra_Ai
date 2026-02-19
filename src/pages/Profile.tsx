@@ -1,15 +1,16 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { doc, getDoc, updateDoc, Timestamp, collection, query, where, getDocs } from 'firebase/firestore';
 import { db } from '../lib/firebase';
-import { fileUploader } from '../lib/fileUpload';
-import { Mail, Briefcase, Target, Upload, Save, ArrowLeft, AlertCircle, CheckCircle } from 'lucide-react';
+import { fileUploader, optimizeImageBeforeUpload } from '../lib/fileUpload';
+import { Mail, Briefcase, Target, Upload, Save, ArrowLeft, AlertCircle, CheckCircle, Camera, X } from 'lucide-react';
 import { ProfileCard } from '../components/ui/profile-card';
 
 export default function Profile() {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const photoInputRef = useRef<HTMLInputElement>(null);
 
   const [formData, setFormData] = useState({
     name: '',
@@ -21,6 +22,9 @@ export default function Profile() {
   });
 
   const [resumeUrl, setResumeUrl] = useState<string | null>(null);
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
@@ -54,6 +58,7 @@ export default function Profile() {
           careerGoals: data.careerGoals || '',
         });
         setResumeUrl(data.resumeUrl || null);
+        setAvatarUrl(data.avatarUrl || null);
       } else {
         setFormData({
           name: user.displayName || '',
@@ -103,6 +108,63 @@ export default function Profile() {
       }
     } catch (e) {
       console.error('Error loading stats:', e);
+    }
+  };
+
+  const handlePhotoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 5 * 1024 * 1024) {
+      setError('Photo must be less than 5MB');
+      return;
+    }
+
+    if (!file.type.startsWith('image/')) {
+      setError('Only image files are allowed');
+      return;
+    }
+
+    setError('');
+    const previewUrl = URL.createObjectURL(file);
+    setAvatarPreview(previewUrl);
+
+    setUploadingPhoto(true);
+    try {
+      const optimized = await optimizeImageBeforeUpload(file, 400);
+      const filePath = `avatars/${user?.uid}/profile.jpg`;
+      const downloadURL = await fileUploader.uploadWithProgress(optimized, filePath);
+
+      setAvatarUrl(downloadURL);
+      setAvatarPreview(null);
+
+      const userDocRef = doc(db, 'users', user!.uid);
+      await updateDoc(userDocRef, {
+        avatarUrl: downloadURL,
+        updatedAt: Timestamp.now(),
+      });
+
+      setSuccess('Profile photo updated');
+      setTimeout(() => setSuccess(''), 3000);
+    } catch (err: any) {
+      setError(err.message || 'Failed to upload photo');
+      setAvatarPreview(null);
+    } finally {
+      setUploadingPhoto(false);
+    }
+  };
+
+  const handleRemovePhoto = async () => {
+    setAvatarUrl(null);
+    setAvatarPreview(null);
+    try {
+      const userDocRef = doc(db, 'users', user!.uid);
+      await updateDoc(userDocRef, {
+        avatarUrl: null,
+        updatedAt: Timestamp.now(),
+      });
+    } catch {
+      /* non-critical */
     }
   };
 
@@ -176,6 +238,7 @@ export default function Profile() {
   const jobTitle = formData.industry
     ? `${formData.experienceLevel ? formData.experienceLevel + ' · ' : ''}${formData.industry}`
     : formData.experienceLevel || 'Interview Candidate';
+  const currentAvatar = avatarPreview || avatarUrl || undefined;
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -222,6 +285,7 @@ export default function Profile() {
             <ProfileCard
               name={displayName}
               title={jobTitle}
+              avatarSrc={currentAvatar}
               interviewCount={interviewCount}
               avgScore={avgScore}
               experienceLevel={formData.experienceLevel}
@@ -230,6 +294,58 @@ export default function Profile() {
               }}
               bannerSrc="https://images.unsplash.com/photo-1521737711867-e3b97375f902?w=900&q=80&fit=crop"
             />
+
+            <div className="bg-white rounded-2xl p-5 shadow-sm border border-slate-100">
+              <h3 className="text-sm font-bold text-slate-900 mb-4">Profile Photo</h3>
+
+              <div className="flex flex-col items-center gap-4">
+                <div className="relative group">
+                  <div className="w-24 h-24 rounded-full overflow-hidden border-4 border-white shadow-md bg-gradient-to-br from-blue-500 to-cyan-400 flex items-center justify-center">
+                    {currentAvatar ? (
+                      <img src={currentAvatar} alt="Profile" className="w-full h-full object-cover" />
+                    ) : (
+                      <span className="text-2xl font-bold text-white">
+                        {displayName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) || 'U'}
+                      </span>
+                    )}
+                  </div>
+                  {uploadingPhoto && (
+                    <div className="absolute inset-0 rounded-full bg-black/40 flex items-center justify-center">
+                      <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                    </div>
+                  )}
+                </div>
+
+                <input
+                  ref={photoInputRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={handlePhotoChange}
+                  disabled={uploadingPhoto}
+                />
+
+                <div className="flex gap-2 w-full">
+                  <button
+                    onClick={() => photoInputRef.current?.click()}
+                    disabled={uploadingPhoto}
+                    className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 bg-brand-electric text-white text-xs font-semibold rounded-xl hover:bg-brand-electric-dark transition-colors disabled:opacity-50"
+                  >
+                    <Camera className="w-3.5 h-3.5" />
+                    {uploadingPhoto ? 'Uploading...' : 'Upload Photo'}
+                  </button>
+                  {(avatarUrl || avatarPreview) && (
+                    <button
+                      onClick={handleRemovePhoto}
+                      className="px-3 py-2 bg-red-50 text-red-500 border border-red-200 text-xs font-semibold rounded-xl hover:bg-red-100 transition-colors"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                </div>
+                <p className="text-[11px] text-slate-400 text-center">JPG, PNG or GIF. Max 5MB.</p>
+              </div>
+            </div>
 
             <div className="bg-white rounded-2xl p-5 shadow-sm border border-slate-100">
               <h3 className="text-sm font-bold text-slate-900 mb-4">Account Details</h3>

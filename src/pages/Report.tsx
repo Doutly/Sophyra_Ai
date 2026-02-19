@@ -3,20 +3,25 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { db } from '../lib/firebase';
 import { doc, getDoc, collection, addDoc, query, where, limit, getDocs, serverTimestamp } from 'firebase/firestore';
+import { motion } from 'framer-motion';
 import {
   Download,
   Share2,
-  TrendingUp,
-  AlertCircle,
-  CheckCircle2,
-  Target,
   ArrowLeft,
   Brain,
   Clock,
   MessageSquare,
   User,
-  ShieldCheck,
-  Lightbulb,
+  CheckCircle2,
+  AlertTriangle,
+  BookOpen,
+  RotateCcw,
+  Linkedin,
+  Copy,
+  X,
+  TrendingUp,
+  Award,
+  ChevronRight,
 } from 'lucide-react';
 
 interface Report {
@@ -62,9 +67,8 @@ function generateReportFromTranscript(
 ): Omit<Report, 'id' | 'session_id' | 'created_at' | 'sessions'> {
   const userMessages = transcript.filter(t => t.role === 'user').map(t => t.message).join(' ');
   const totalWords = userMessages.split(' ').length;
-  const avgWordsPerMessage = transcript.filter(t => t.role === 'user').length > 0
-    ? totalWords / transcript.filter(t => t.role === 'user').length
-    : 0;
+  const userTurns = transcript.filter(t => t.role === 'user');
+  const avgWordsPerMessage = userTurns.length > 0 ? totalWords / userTurns.length : 0;
 
   const clarityScore = Math.min(10, Math.max(1, Math.round(3 + (avgWordsPerMessage > 20 ? 4 : avgWordsPerMessage / 5) + Math.random() * 2)));
   const confidenceScore = Math.min(10, Math.max(1, Math.round(4 + Math.random() * 4)));
@@ -81,37 +85,37 @@ function generateReportFromTranscript(
   const strengths: string[] = [];
   const gaps: string[] = [];
 
-  if (clarityScore >= 7) strengths.push('Clear and articulate communication throughout the interview');
-  else gaps.push('Work on expressing ideas more clearly and concisely');
+  if (clarityScore >= 7) strengths.push('Communicated ideas clearly and articulately throughout the interview');
+  else gaps.push('Work on expressing ideas more clearly and concisely under pressure');
 
-  if (confidenceScore >= 7) strengths.push('Demonstrated strong confidence when answering questions');
-  else gaps.push('Build confidence through more practice sessions');
+  if (confidenceScore >= 7) strengths.push('Maintained strong composure and projected confidence when answering');
+  else gaps.push('Build confidence through deliberate practice and preparation routines');
 
-  if (relevanceScore >= 7) strengths.push('Provided highly relevant answers aligned with the role requirements');
-  else gaps.push('Focus on tailoring answers more specifically to the job requirements');
+  if (relevanceScore >= 7) strengths.push('Provided targeted, role-specific answers well-aligned to the position');
+  else gaps.push('Tailor responses more directly to the requirements of this specific role');
 
-  if (professionalismScore >= 7) strengths.push('Maintained professional demeanor and tone throughout');
-  else gaps.push('Improve professional communication style and etiquette');
+  if (professionalismScore >= 7) strengths.push('Demonstrated a polished, professional communication style throughout');
+  else gaps.push('Refine tone and phrasing to project greater executive presence');
 
-  if (domainScore >= 7) strengths.push('Showed solid domain knowledge and technical understanding');
-  else gaps.push('Deepen domain knowledge and technical expertise for this role');
+  if (domainScore >= 7) strengths.push('Displayed strong domain knowledge and technical depth for this role');
+  else gaps.push('Deepen technical expertise and domain fluency before the next round');
 
   if (analysisText.includes('structure') || analysisText.includes('star')) {
-    strengths.push('Good use of structured responses using the STAR method');
+    strengths.push('Used structured frameworks (STAR) to present experience effectively');
   } else {
-    gaps.push('Practice using the STAR method for behavioral questions');
+    gaps.push('Apply the STAR method consistently when answering behavioural questions');
   }
 
-  if (strengths.length === 0) strengths.push('Completed the full interview session showing commitment to growth');
-  if (gaps.length === 0) gaps.push('Continue practicing to maintain and improve your current performance level');
+  if (strengths.length === 0) strengths.push('Completed the full interview session, demonstrating commitment to preparation');
+  if (gaps.length === 0) gaps.push('Maintain current performance level by continuing regular practice sessions');
 
   const role = (sessionData.role as string) || 'the role';
   const suggested_topics = [
-    `Technical skills for ${role}`,
-    'Behavioral interview questions',
-    'Company research and culture fit',
-    'STAR method for storytelling',
-    'Salary negotiation tactics',
+    `Core technical competencies for ${role}`,
+    'Behavioural interview frameworks (STAR)',
+    'Company research and strategic culture fit',
+    'Situational leadership and decision-making',
+    'Compensation negotiation and offer strategy',
   ];
 
   return {
@@ -141,23 +145,113 @@ function generateDefaultReport(sessionData: Record<string, unknown>): Omit<Repor
       domain: 7,
     },
     strengths: [
-      'Completed the full interview session',
-      'Demonstrated commitment to interview preparation',
-      'Engaged actively with all interview questions',
+      'Completed the full interview session, demonstrating commitment to preparation',
+      'Maintained professional communication style throughout the session',
+      'Engaged actively with all interview questions posed by the evaluator',
     ],
     gaps: [
-      'Practice structuring answers with the STAR method',
-      'Work on providing more specific examples from experience',
-      'Research the company and role more thoroughly before interviews',
+      'Apply the STAR method consistently when answering behavioural questions',
+      'Provide more specific, quantified examples drawn from prior experience',
+      'Conduct deeper research on the company, role, and industry landscape',
     ],
     suggested_topics: [
-      `Technical skills for ${role}`,
-      'Behavioral interview questions',
-      'Company research and culture fit',
-      'STAR method for storytelling',
-      'Salary negotiation',
+      `Core technical competencies for ${role}`,
+      'Behavioural interview frameworks (STAR)',
+      'Company research and strategic culture fit',
+      'Situational leadership and decision-making',
+      'Compensation negotiation and offer strategy',
     ],
   };
+}
+
+const metricLabels: Record<string, string> = {
+  clarity: 'Communication Clarity',
+  confidence: 'Confidence & Composure',
+  relevance: 'Answer Relevance',
+  professionalism: 'Professionalism',
+  domain: 'Domain Knowledge',
+};
+
+const metricDescriptions: Record<string, string> = {
+  clarity: 'Articulation, structure, and ease of understanding',
+  confidence: 'Tone, composure, and conviction under questioning',
+  relevance: 'Alignment between answers and role requirements',
+  professionalism: 'Etiquette, language, and executive presence',
+  domain: 'Technical depth and industry-specific expertise',
+};
+
+function ScoreRing({ score }: { score: number }) {
+  const radius = 52;
+  const circumference = 2 * Math.PI * radius;
+  const offset = circumference - (score / 100) * circumference;
+
+  const color = score >= 85 ? '#10b981' : score >= 70 ? '#3b82f6' : score >= 50 ? '#f59e0b' : '#ef4444';
+
+  return (
+    <div className="relative inline-flex items-center justify-center">
+      <svg width="130" height="130" className="-rotate-90">
+        <circle cx="65" cy="65" r={radius} fill="none" stroke="#e2e8f0" strokeWidth="8" />
+        <motion.circle
+          cx="65"
+          cy="65"
+          r={radius}
+          fill="none"
+          stroke={color}
+          strokeWidth="8"
+          strokeLinecap="round"
+          strokeDasharray={circumference}
+          initial={{ strokeDashoffset: circumference }}
+          animate={{ strokeDashoffset: offset }}
+          transition={{ duration: 1.2, ease: 'easeOut' }}
+        />
+      </svg>
+      <div className="absolute text-center">
+        <motion.div
+          className="text-3xl font-bold text-slate-900 leading-none"
+          initial={{ opacity: 0, scale: 0.8 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ delay: 0.5 }}
+        >
+          {score}
+        </motion.div>
+        <div className="text-xs text-slate-400 mt-0.5 font-medium">/ 100</div>
+      </div>
+    </div>
+  );
+}
+
+function MetricBar({ label, description, value, index }: { label: string; description: string; value: number; index: number }) {
+  const color = value >= 8 ? 'bg-emerald-500' : value >= 6 ? 'bg-blue-500' : value >= 4 ? 'bg-amber-500' : 'bg-red-500';
+  const textColor = value >= 8 ? 'text-emerald-600' : value >= 6 ? 'text-blue-600' : value >= 4 ? 'text-amber-600' : 'text-red-600';
+  const bgLight = value >= 8 ? 'bg-emerald-50' : value >= 6 ? 'bg-blue-50' : value >= 4 ? 'bg-amber-50' : 'bg-red-50';
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, x: -16 }}
+      animate={{ opacity: 1, x: 0 }}
+      transition={{ delay: 0.1 * index }}
+      className="flex items-center gap-5 p-4 rounded-xl bg-white border border-slate-100 hover:border-slate-200 hover:shadow-sm transition-all"
+    >
+      <div className={`w-10 h-10 rounded-lg ${bgLight} flex items-center justify-center flex-shrink-0`}>
+        <span className={`text-sm font-bold ${textColor}`}>{value}</span>
+      </div>
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center justify-between mb-1.5">
+          <span className="text-sm font-semibold text-slate-800">{label}</span>
+          <span className="text-xs text-slate-400 font-medium">{value}/10</span>
+        </div>
+        <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
+          <motion.div
+            className={`h-full rounded-full ${color}`}
+            initial={{ width: 0 }}
+            animate={{ width: `${(value / 10) * 100}%` }}
+            transition={{ duration: 0.8, delay: 0.1 * index, ease: 'easeOut' }}
+          />
+        </div>
+        <p className="text-[11px] text-slate-400 mt-1">{description}</p>
+      </div>
+    </motion.div>
+  );
 }
 
 export default function Report() {
@@ -171,6 +265,7 @@ export default function Report() {
   const [generatingReport, setGeneratingReport] = useState(false);
   const [shareLink, setShareLink] = useState('');
   const [showShareDialog, setShowShareDialog] = useState(false);
+  const [copied, setCopied] = useState(false);
   const [activeTab, setActiveTab] = useState<'overview' | 'transcript'>('overview');
 
   useEffect(() => {
@@ -224,9 +319,7 @@ export default function Report() {
             if (transcriptSnap.exists()) {
               setElevenLabsData(transcriptSnap.data() as ElevenLabsData);
             }
-          } catch {
-            /* transcript not yet available */
-          }
+          } catch { /* not yet available */ }
         }
         setLoading(false);
         return;
@@ -277,9 +370,7 @@ export default function Report() {
             if (transcriptSnap.exists()) {
               setElevenLabsData(transcriptSnap.data() as ElevenLabsData);
             }
-          } catch {
-            /* transcript not yet available */
-          }
+          } catch { /* not yet available */ }
         }
 
         navigate(`/report/${existingReport.id}`, { replace: true });
@@ -299,9 +390,7 @@ export default function Report() {
             elevenLabsDataLocal = transcriptSnap.data() as ElevenLabsData;
             setElevenLabsData(elevenLabsDataLocal);
           }
-        } catch {
-          /* transcript not yet available */
-        }
+        } catch { /* not yet available */ }
       }
 
       const reportPayload = elevenLabsDataLocal
@@ -344,9 +433,7 @@ export default function Report() {
           category: sessionData.role || 'General',
           createdAt: serverTimestamp(),
         });
-      } catch {
-        /* tips generation failure is non-blocking */
-      }
+      } catch { /* non-blocking */ }
 
       navigate(`/report/${newReportRef.id}`, { replace: true });
       setGeneratingReport(false);
@@ -360,10 +447,10 @@ export default function Report() {
   };
 
   const getScoreBand = (score: number) => {
-    if (score >= 85) return { text: 'Excellent', color: 'text-green-600', bg: 'bg-green-50', border: 'border-green-200' };
-    if (score >= 70) return { text: 'Strong', color: 'text-blue-600', bg: 'bg-blue-50', border: 'border-blue-200' };
-    if (score >= 50) return { text: 'Good', color: 'text-yellow-600', bg: 'bg-yellow-50', border: 'border-yellow-200' };
-    return { text: 'Needs Improvement', color: 'text-red-600', bg: 'bg-red-50', border: 'border-red-200' };
+    if (score >= 85) return { text: 'Exceptional', color: 'text-emerald-700', bg: 'bg-emerald-50', border: 'border-emerald-200', dot: 'bg-emerald-500' };
+    if (score >= 70) return { text: 'Proficient', color: 'text-blue-700', bg: 'bg-blue-50', border: 'border-blue-200', dot: 'bg-blue-500' };
+    if (score >= 50) return { text: 'Developing', color: 'text-amber-700', bg: 'bg-amber-50', border: 'border-amber-200', dot: 'bg-amber-500' };
+    return { text: 'Needs Development', color: 'text-red-700', bg: 'bg-red-50', border: 'border-red-200', dot: 'bg-red-500' };
   };
 
   const formatDuration = (secs: number) => {
@@ -375,7 +462,6 @@ export default function Report() {
   const generateShareLink = async () => {
     try {
       const shareToken = Math.random().toString(36).substring(7) + Date.now().toString(36);
-
       await addDoc(collection(db, 'shares'), {
         reportId: reportId!,
         shareToken,
@@ -383,7 +469,6 @@ export default function Report() {
         createdAt: serverTimestamp(),
         expiresAt: null,
       });
-
       const link = `${window.location.origin}/shared/${shareToken}`;
       setShareLink(link);
       setShowShareDialog(true);
@@ -392,8 +477,10 @@ export default function Report() {
     }
   };
 
-  const downloadPDF = () => {
-    alert('PDF download will be implemented with a backend service');
+  const handleCopyLink = () => {
+    navigator.clipboard.writeText(shareLink);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
   };
 
   const shareToLinkedIn = () => {
@@ -403,17 +490,17 @@ export default function Report() {
 
   if (loading || generatingReport) {
     return (
-      <div className="min-h-screen bg-[#030712] flex items-center justify-center">
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
         <div className="text-center">
-          <div className="relative mx-auto mb-6 w-16 h-16">
-            <div className="w-16 h-16 border-2 border-blue-500/20 rounded-full"></div>
-            <div className="absolute inset-0 w-16 h-16 border-2 border-t-blue-500 rounded-full animate-spin"></div>
+          <div className="relative mx-auto mb-6 w-14 h-14">
+            <div className="w-14 h-14 border-2 border-slate-200 rounded-full"></div>
+            <div className="absolute inset-0 w-14 h-14 border-2 border-t-blue-500 rounded-full animate-spin"></div>
           </div>
-          <p className="text-white font-semibold mb-1">
-            {generatingReport ? 'Generating your report...' : 'Loading your report...'}
+          <p className="text-slate-800 font-semibold mb-1 text-sm">
+            {generatingReport ? 'Compiling your performance report...' : 'Loading report...'}
           </p>
           {generatingReport && (
-            <p className="text-white/40 text-sm">Analyzing your interview performance</p>
+            <p className="text-slate-400 text-xs">Analysing conversation data and scoring your responses</p>
           )}
         </div>
       </div>
@@ -422,13 +509,16 @@ export default function Report() {
 
   if (!report) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
         <div className="text-center">
-          <AlertCircle className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">Report Not Found</h2>
+          <div className="w-14 h-14 bg-slate-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+            <AlertTriangle className="w-7 h-7 text-slate-400" />
+          </div>
+          <h2 className="text-lg font-bold text-slate-900 mb-1">Report Not Found</h2>
+          <p className="text-slate-500 text-sm mb-4">This report may have been removed or the link is incorrect.</p>
           <button
             onClick={() => navigate('/dashboard')}
-            className="text-brand-electric hover:text-brand-electric-dark font-medium"
+            className="text-sm text-blue-600 hover:text-blue-700 font-semibold"
           >
             Back to Dashboard
           </button>
@@ -439,331 +529,410 @@ export default function Report() {
 
   const scoreBand = getScoreBand(report.overall_score);
   const analysisEntries = elevenLabsData?.analysis ? Object.entries(elevenLabsData.analysis) : [];
+  const reportDate = new Date(report.created_at).toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+  });
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <nav className="bg-white border-b border-gray-200">
-        <div className="max-w-5xl mx-auto px-6 py-4">
+    <div className="min-h-screen bg-slate-50">
+      <nav className="bg-white border-b border-slate-200 sticky top-0 z-20">
+        <div className="max-w-4xl mx-auto px-6 py-3.5">
           <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 bg-brand-electric rounded-lg flex items-center justify-center">
-                <Brain className="w-6 h-6 text-white" />
-              </div>
-              <span className="text-2xl font-bold text-gray-900">Sophyra AI</span>
-            </div>
             <button
               onClick={() => navigate('/dashboard')}
-              className="flex items-center space-x-2 text-gray-600 hover:text-gray-900"
+              className="flex items-center space-x-2 text-slate-500 hover:text-slate-800 transition-colors text-sm font-medium group"
             >
-              <ArrowLeft className="w-5 h-5" />
-              <span className="text-sm font-medium">Back to Dashboard</span>
+              <ArrowLeft className="w-4 h-4 group-hover:-translate-x-0.5 transition-transform" />
+              <span>Back to Dashboard</span>
             </button>
+            <div className="flex items-center space-x-2">
+              <button
+                onClick={generateShareLink}
+                className="flex items-center space-x-1.5 px-3.5 py-2 text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg text-sm font-medium transition-colors"
+              >
+                <Share2 className="w-3.5 h-3.5" />
+                <span>Share</span>
+              </button>
+              <button
+                onClick={() => alert('PDF export will be available shortly')}
+                className="flex items-center space-x-1.5 px-3.5 py-2 text-white bg-slate-800 hover:bg-slate-900 rounded-lg text-sm font-medium transition-colors"
+              >
+                <Download className="w-3.5 h-3.5" />
+                <span>Download PDF</span>
+              </button>
+            </div>
           </div>
         </div>
       </nav>
 
-      <div className="max-w-5xl mx-auto px-6 py-12">
-        <div className="bg-white rounded-2xl shadow-lg border border-gray-200 overflow-hidden">
-          <div className="bg-gradient-to-br from-brand-electric to-brand-electric-dark p-8 text-white">
-            <div className="flex items-start justify-between mb-6">
-              <div>
-                <h1 className="text-3xl font-bold mb-2">Interview Performance Report</h1>
-                <p className="text-teal-100">
+      <div className="max-w-4xl mx-auto px-6 py-8 space-y-6">
+
+        <motion.div
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm"
+        >
+          <div className="h-1.5 bg-gradient-to-r from-blue-500 via-cyan-400 to-teal-400" />
+
+          <div className="p-7 md:p-8">
+            <div className="flex flex-col md:flex-row md:items-start gap-6">
+              <div className="flex-1">
+                <div className="flex items-center gap-2 mb-3">
+                  <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-widest">Interview Assessment</span>
+                  <span className="text-slate-200">|</span>
+                  <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-widest">{reportDate}</span>
+                </div>
+                <h1 className="text-2xl font-bold text-slate-900 mb-1">
                   {report.sessions.role}
-                  {report.sessions.company && ` at ${report.sessions.company}`}
+                  {report.sessions.company && (
+                    <span className="text-slate-400 font-normal"> · {report.sessions.company}</span>
+                  )}
+                </h1>
+                <p className="text-slate-500 text-sm mb-4">
+                  {report.sessions.experience_level} Level
+                  {elevenLabsData?.call_duration_secs ? (
+                    <span className="ml-3 inline-flex items-center gap-1 text-slate-400">
+                      <Clock className="w-3.5 h-3.5" />
+                      {formatDuration(elevenLabsData.call_duration_secs)} session
+                    </span>
+                  ) : null}
                 </p>
-                <p className="text-sm text-teal-100 mt-1">
-                  {new Date(report.created_at).toLocaleDateString('en-US', {
-                    year: 'numeric',
-                    month: 'long',
-                    day: 'numeric',
-                  })}
-                </p>
-                {elevenLabsData?.call_duration_secs ? (
-                  <div className="flex items-center space-x-1.5 mt-2 text-teal-200 text-sm">
-                    <Clock className="w-4 h-4" />
-                    <span>{formatDuration(elevenLabsData.call_duration_secs)} total duration</span>
-                  </div>
-                ) : null}
+
+                <div className={`inline-flex items-center gap-2 px-3.5 py-1.5 rounded-lg border ${scoreBand.bg} ${scoreBand.border}`}>
+                  <div className={`w-2 h-2 rounded-full ${scoreBand.dot}`} />
+                  <span className={`text-sm font-semibold ${scoreBand.color}`}>{scoreBand.text}</span>
+                </div>
               </div>
-              <div className="text-right">
-                <div className="text-6xl font-bold mb-2">{report.overall_score}</div>
-                <div className="text-teal-100 text-sm">out of 100</div>
+
+              <div className="flex flex-col items-center gap-1">
+                <ScoreRing score={report.overall_score} />
+                <p className="text-xs text-slate-400 font-medium">Overall Score</p>
               </div>
-            </div>
-            <div className={`inline-flex items-center px-4 py-2 ${scoreBand.bg} ${scoreBand.border} border rounded-full`}>
-              <span className={`font-semibold ${scoreBand.color}`}>{scoreBand.text}</span>
             </div>
           </div>
 
-          <div className="border-b border-gray-200">
-            <div className="flex px-8">
+          <div className="border-t border-slate-100">
+            <div className="flex px-7">
               <button
                 onClick={() => setActiveTab('overview')}
-                className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
+                className={`px-4 py-3 text-sm font-semibold border-b-2 transition-colors ${
                   activeTab === 'overview'
-                    ? 'border-brand-electric text-brand-electric'
-                    : 'border-transparent text-gray-500 hover:text-gray-700'
+                    ? 'border-blue-500 text-blue-600'
+                    : 'border-transparent text-slate-400 hover:text-slate-700'
                 }`}
               >
-                Overview
+                Performance Overview
               </button>
               {elevenLabsData?.transcript && elevenLabsData.transcript.length > 0 && (
                 <button
                   onClick={() => setActiveTab('transcript')}
-                  className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors flex items-center space-x-1.5 ${
+                  className={`px-4 py-3 text-sm font-semibold border-b-2 transition-colors flex items-center space-x-1.5 ${
                     activeTab === 'transcript'
-                      ? 'border-brand-electric text-brand-electric'
-                      : 'border-transparent text-gray-500 hover:text-gray-700'
+                      ? 'border-blue-500 text-blue-600'
+                      : 'border-transparent text-slate-400 hover:text-slate-700'
                   }`}
                 >
-                  <MessageSquare className="w-4 h-4" />
-                  <span>Full Transcript</span>
+                  <MessageSquare className="w-3.5 h-3.5" />
+                  <span>Transcript</span>
                 </button>
               )}
             </div>
           </div>
+        </motion.div>
 
-          <div className="p-8">
-            {activeTab === 'overview' && (
-              <>
-                <div className="flex items-center justify-end space-x-3 mb-8">
-                  <button
-                    onClick={generateShareLink}
-                    className="flex items-center space-x-2 px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
-                  >
-                    <Share2 className="w-4 h-4" />
-                    <span className="text-sm font-medium">Share</span>
-                  </button>
-                  <button
-                    onClick={downloadPDF}
-                    className="flex items-center space-x-2 px-4 py-2 text-white bg-brand-electric rounded-lg hover:bg-brand-electric-dark transition-colors"
-                  >
-                    <Download className="w-4 h-4" />
-                    <span className="text-sm font-medium">Download PDF</span>
-                  </button>
+        {activeTab === 'overview' && (
+          <>
+            <motion.div
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.1 }}
+              className="bg-white rounded-2xl border border-slate-200 p-7 shadow-sm"
+            >
+              <div className="flex items-center gap-2.5 mb-5">
+                <div className="w-8 h-8 bg-blue-50 rounded-lg flex items-center justify-center">
+                  <TrendingUp className="w-4 h-4 text-blue-500" />
                 </div>
-
-                <div className="mb-12">
-                  <h2 className="text-2xl font-bold text-gray-900 mb-6 flex items-center">
-                    <TrendingUp className="w-6 h-6 mr-2 text-brand-electric" />
-                    Performance Breakdown
-                  </h2>
-                  <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {Object.entries(report.performance_breakdown).map(([key, value]) => (
-                      <div key={key} className="bg-gray-50 rounded-xl p-6">
-                        <div className="flex items-center justify-between mb-3">
-                          <h3 className="text-sm font-semibold text-gray-700 capitalize">{key}</h3>
-                          <span className="text-2xl font-bold text-gray-900">{value}/10</span>
-                        </div>
-                        <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
-                          <div
-                            className="h-full bg-brand-electric transition-all"
-                            style={{ width: `${(value / 10) * 100}%` }}
-                          ></div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
+                <div>
+                  <h2 className="text-base font-bold text-slate-900">Performance Breakdown</h2>
+                  <p className="text-xs text-slate-400">Competency-level scoring across five dimensions</p>
                 </div>
+              </div>
 
-                {analysisEntries.length > 0 && (
-                  <div className="mb-12">
-                    <h2 className="text-2xl font-bold text-gray-900 mb-6 flex items-center">
-                      <ShieldCheck className="w-6 h-6 mr-2 text-brand-electric" />
-                      AI Evaluation Summary
-                    </h2>
-                    <div className="grid md:grid-cols-2 gap-4">
-                      {analysisEntries.map(([key, value]) => (
-                        <div key={key} className="bg-gray-50 border border-gray-200 rounded-xl p-5">
-                          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
-                            {key.replace(/_/g, ' ')}
-                          </p>
-                          <p className="text-gray-800 text-sm leading-relaxed">
-                            {typeof value === 'object' ? JSON.stringify(value, null, 2) : String(value)}
-                          </p>
-                        </div>
-                      ))}
-                    </div>
+              <div className="space-y-3">
+                {Object.entries(report.performance_breakdown).map(([key, value], index) => (
+                  <MetricBar
+                    key={key}
+                    label={metricLabels[key] || key}
+                    description={metricDescriptions[key] || ''}
+                    value={value}
+                    index={index}
+                  />
+                ))}
+              </div>
+            </motion.div>
+
+            {analysisEntries.length > 0 && (
+              <motion.div
+                initial={{ opacity: 0, y: 16 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.15 }}
+                className="bg-white rounded-2xl border border-slate-200 p-7 shadow-sm"
+              >
+                <div className="flex items-center gap-2.5 mb-5">
+                  <div className="w-8 h-8 bg-slate-50 rounded-lg flex items-center justify-center">
+                    <Brain className="w-4 h-4 text-slate-500" />
                   </div>
-                )}
-
-                <div className="grid md:grid-cols-2 gap-8 mb-12">
                   <div>
-                    <h2 className="text-2xl font-bold text-gray-900 mb-6 flex items-center">
-                      <CheckCircle2 className="w-6 h-6 mr-2 text-green-500" />
-                      Strengths
-                    </h2>
-                    <ul className="space-y-3">
-                      {report.strengths.map((strength, idx) => (
-                        <li
-                          key={idx}
-                          className="flex items-start space-x-3 p-4 bg-green-50 rounded-lg border border-green-100"
-                        >
-                          <div className="w-2 h-2 bg-green-500 rounded-full mt-2 flex-shrink-0"></div>
-                          <p className="text-gray-700 leading-relaxed">{strength}</p>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-
-                  <div>
-                    <h2 className="text-2xl font-bold text-gray-900 mb-6 flex items-center">
-                      <AlertCircle className="w-6 h-6 mr-2 text-yellow-500" />
-                      Areas for Improvement
-                    </h2>
-                    <ul className="space-y-3">
-                      {report.gaps.map((gap, idx) => (
-                        <li
-                          key={idx}
-                          className="flex items-start space-x-3 p-4 bg-yellow-50 rounded-lg border border-yellow-100"
-                        >
-                          <div className="w-2 h-2 bg-yellow-500 rounded-full mt-2 flex-shrink-0"></div>
-                          <p className="text-gray-700 leading-relaxed">{gap}</p>
-                        </li>
-                      ))}
-                    </ul>
+                    <h2 className="text-base font-bold text-slate-900">AI Evaluation Summary</h2>
+                    <p className="text-xs text-slate-400">Detailed assessments generated from your responses</p>
                   </div>
                 </div>
-
-                <div className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl p-8 mb-8">
-                  <h2 className="text-2xl font-bold text-gray-900 mb-6 flex items-center">
-                    <Target className="w-6 h-6 mr-2 text-brand-electric" />
-                    Suggested Topics for Practice
-                  </h2>
-                  <div className="flex flex-wrap gap-3">
-                    {report.suggested_topics.map((topic, idx) => (
-                      <span
-                        key={idx}
-                        className="px-4 py-2 bg-white border border-gray-200 rounded-lg text-gray-700 font-medium shadow-sm hover:shadow-md transition-shadow"
-                      >
-                        {topic}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="border-t border-gray-200 pt-8">
-                  <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center">
-                    <Lightbulb className="w-5 h-5 mr-2 text-brand-electric" />
-                    Next Steps
-                  </h2>
-                  <div className="grid md:grid-cols-2 gap-4">
-                    <button
-                      onClick={() => navigate('/interview/setup')}
-                      className="p-6 bg-blue-50 border-2 border-blue-200 rounded-xl text-left hover:border-blue-300 hover:shadow-md transition-all group"
-                    >
-                      <h3 className="font-bold text-gray-900 mb-2 group-hover:text-brand-electric">
-                        Practice Again
-                      </h3>
-                      <p className="text-sm text-gray-600">
-                        Start a new mock interview to improve your scores
+                <div className="grid md:grid-cols-2 gap-3">
+                  {analysisEntries.map(([key, value]) => (
+                    <div key={key} className="bg-slate-50 border border-slate-100 rounded-xl p-4">
+                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">
+                        {key.replace(/_/g, ' ')}
                       </p>
-                    </button>
-                    <button
-                      onClick={generateShareLink}
-                      className="p-6 bg-gray-50 border-2 border-gray-200 rounded-xl text-left hover:border-gray-300 hover:shadow-md transition-all group"
-                    >
-                      <h3 className="font-bold text-gray-900 mb-2 group-hover:text-gray-700">
-                        Share Your Progress
-                      </h3>
-                      <p className="text-sm text-gray-600">Show your achievements on LinkedIn</p>
-                    </button>
-                  </div>
-                </div>
-              </>
-            )}
-
-            {activeTab === 'transcript' && elevenLabsData?.transcript && (
-              <div>
-                <div className="flex items-center justify-between mb-6">
-                  <h2 className="text-2xl font-bold text-gray-900 flex items-center">
-                    <MessageSquare className="w-6 h-6 mr-2 text-brand-electric" />
-                    Full Interview Transcript
-                  </h2>
-                  {elevenLabsData.call_duration_secs > 0 && (
-                    <span className="text-sm text-gray-500 flex items-center space-x-1">
-                      <Clock className="w-4 h-4" />
-                      <span>{formatDuration(elevenLabsData.call_duration_secs)}</span>
-                    </span>
-                  )}
-                </div>
-
-                <div className="space-y-4">
-                  {elevenLabsData.transcript.map((entry, idx) => (
-                    <div
-                      key={idx}
-                      className={`flex ${entry.role === 'user' ? 'justify-end' : 'justify-start'}`}
-                    >
-                      <div
-                        className={`max-w-[80%] rounded-2xl px-5 py-3 ${
-                          entry.role === 'user'
-                            ? 'bg-brand-electric/10 border border-brand-electric/20'
-                            : 'bg-gray-100 border border-gray-200'
-                        }`}
-                      >
-                        <div className="flex items-center space-x-2 mb-1.5">
-                          {entry.role === 'agent' ? (
-                            <Brain className="w-3.5 h-3.5 text-brand-electric" />
-                          ) : (
-                            <User className="w-3.5 h-3.5 text-gray-500" />
-                          )}
-                          <span
-                            className={`text-xs font-semibold ${
-                              entry.role === 'user' ? 'text-brand-electric' : 'text-gray-500'
-                            }`}
-                          >
-                            {entry.role === 'agent' ? 'Sophyra AI' : 'You'}
-                          </span>
-                          {entry.time_in_call_secs != null && (
-                            <span className="text-xs text-gray-400 ml-auto pl-4">
-                              {formatDuration(entry.time_in_call_secs)}
-                            </span>
-                          )}
-                        </div>
-                        <p className="text-gray-800 text-sm leading-relaxed">{entry.message}</p>
-                      </div>
+                      <p className="text-slate-700 text-sm leading-relaxed">
+                        {typeof value === 'object' ? JSON.stringify(value, null, 2) : String(value)}
+                      </p>
                     </div>
                   ))}
                 </div>
-              </div>
+              </motion.div>
             )}
-          </div>
-        </div>
+
+            <div className="grid md:grid-cols-2 gap-5">
+              <motion.div
+                initial={{ opacity: 0, y: 16 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.2 }}
+                className="bg-white rounded-2xl border border-slate-200 p-7 shadow-sm"
+              >
+                <div className="flex items-center gap-2.5 mb-5">
+                  <div className="w-8 h-8 bg-emerald-50 rounded-lg flex items-center justify-center">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+                  </div>
+                  <div>
+                    <h2 className="text-base font-bold text-slate-900">Strengths</h2>
+                    <p className="text-xs text-slate-400">Areas where you excelled</p>
+                  </div>
+                </div>
+                <ul className="space-y-2.5">
+                  {report.strengths.map((strength, idx) => (
+                    <li key={idx} className="flex items-start gap-3">
+                      <div className="w-5 h-5 rounded-full bg-emerald-100 flex items-center justify-center flex-shrink-0 mt-0.5">
+                        <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full" />
+                      </div>
+                      <p className="text-slate-700 text-sm leading-relaxed">{strength}</p>
+                    </li>
+                  ))}
+                </ul>
+              </motion.div>
+
+              <motion.div
+                initial={{ opacity: 0, y: 16 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.25 }}
+                className="bg-white rounded-2xl border border-slate-200 p-7 shadow-sm"
+              >
+                <div className="flex items-center gap-2.5 mb-5">
+                  <div className="w-8 h-8 bg-amber-50 rounded-lg flex items-center justify-center">
+                    <AlertTriangle className="w-4 h-4 text-amber-500" />
+                  </div>
+                  <div>
+                    <h2 className="text-base font-bold text-slate-900">Areas for Development</h2>
+                    <p className="text-xs text-slate-400">Targeted feedback for improvement</p>
+                  </div>
+                </div>
+                <ul className="space-y-2.5">
+                  {report.gaps.map((gap, idx) => (
+                    <li key={idx} className="flex items-start gap-3">
+                      <div className="w-5 h-5 rounded-full bg-amber-100 flex items-center justify-center flex-shrink-0 mt-0.5">
+                        <div className="w-1.5 h-1.5 bg-amber-500 rounded-full" />
+                      </div>
+                      <p className="text-slate-700 text-sm leading-relaxed">{gap}</p>
+                    </li>
+                  ))}
+                </ul>
+              </motion.div>
+            </div>
+
+            <motion.div
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3 }}
+              className="bg-white rounded-2xl border border-slate-200 p-7 shadow-sm"
+            >
+              <div className="flex items-center gap-2.5 mb-5">
+                <div className="w-8 h-8 bg-blue-50 rounded-lg flex items-center justify-center">
+                  <BookOpen className="w-4 h-4 text-blue-500" />
+                </div>
+                <div>
+                  <h2 className="text-base font-bold text-slate-900">Recommended Focus Areas</h2>
+                  <p className="text-xs text-slate-400">Prioritised topics to prepare before your next interview</p>
+                </div>
+              </div>
+              <div className="space-y-2">
+                {report.suggested_topics.map((topic, idx) => (
+                  <div
+                    key={idx}
+                    className="flex items-center justify-between p-3.5 bg-slate-50 border border-slate-100 rounded-xl hover:border-slate-200 hover:bg-white transition-all group"
+                  >
+                    <div className="flex items-center gap-3">
+                      <span className="w-6 h-6 rounded-full bg-white border border-slate-200 text-[11px] font-bold text-slate-500 flex items-center justify-center flex-shrink-0">
+                        {idx + 1}
+                      </span>
+                      <span className="text-sm font-medium text-slate-700">{topic}</span>
+                    </div>
+                    <ChevronRight className="w-4 h-4 text-slate-300 group-hover:text-slate-400 transition-colors" />
+                  </div>
+                ))}
+              </div>
+            </motion.div>
+
+            <motion.div
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.35 }}
+              className="grid md:grid-cols-2 gap-4"
+            >
+              <button
+                onClick={() => navigate('/interview/setup')}
+                className="group flex items-center justify-between p-6 bg-white border-2 border-slate-200 hover:border-blue-400 rounded-2xl text-left transition-all hover:shadow-md"
+              >
+                <div>
+                  <div className="flex items-center gap-2 mb-1">
+                    <RotateCcw className="w-4 h-4 text-blue-500" />
+                    <h3 className="font-bold text-slate-900 text-sm">Practice Again</h3>
+                  </div>
+                  <p className="text-xs text-slate-500 leading-relaxed">
+                    Start a new mock interview to work on your identified development areas
+                  </p>
+                </div>
+                <ChevronRight className="w-5 h-5 text-slate-300 group-hover:text-blue-400 transition-colors flex-shrink-0 ml-3" />
+              </button>
+
+              <button
+                onClick={generateShareLink}
+                className="group flex items-center justify-between p-6 bg-white border-2 border-slate-200 hover:border-slate-400 rounded-2xl text-left transition-all hover:shadow-md"
+              >
+                <div>
+                  <div className="flex items-center gap-2 mb-1">
+                    <Award className="w-4 h-4 text-slate-500" />
+                    <h3 className="font-bold text-slate-900 text-sm">Share Your Results</h3>
+                  </div>
+                  <p className="text-xs text-slate-500 leading-relaxed">
+                    Showcase your interview performance and preparation on LinkedIn
+                  </p>
+                </div>
+                <ChevronRight className="w-5 h-5 text-slate-300 group-hover:text-slate-500 transition-colors flex-shrink-0 ml-3" />
+              </button>
+            </motion.div>
+          </>
+        )}
+
+        {activeTab === 'transcript' && elevenLabsData?.transcript && (
+          <motion.div
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="bg-white rounded-2xl border border-slate-200 p-7 shadow-sm"
+          >
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 bg-slate-50 rounded-lg flex items-center justify-center">
+                  <MessageSquare className="w-4 h-4 text-slate-500" />
+                </div>
+                <div>
+                  <h2 className="text-base font-bold text-slate-900">Full Interview Transcript</h2>
+                  <p className="text-xs text-slate-400">Complete conversation log from your session</p>
+                </div>
+              </div>
+              {elevenLabsData.call_duration_secs > 0 && (
+                <span className="text-xs text-slate-400 flex items-center gap-1">
+                  <Clock className="w-3.5 h-3.5" />
+                  {formatDuration(elevenLabsData.call_duration_secs)}
+                </span>
+              )}
+            </div>
+
+            <div className="space-y-4">
+              {elevenLabsData.transcript.map((entry, idx) => (
+                <div key={idx} className={`flex gap-3 ${entry.role === 'user' ? 'flex-row-reverse' : ''}`}>
+                  <div className={`w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 mt-1 ${
+                    entry.role === 'agent' ? 'bg-slate-800' : 'bg-blue-500'
+                  }`}>
+                    {entry.role === 'agent' ? (
+                      <Brain className="w-3.5 h-3.5 text-white" />
+                    ) : (
+                      <User className="w-3.5 h-3.5 text-white" />
+                    )}
+                  </div>
+                  <div className={`max-w-[75%] rounded-2xl px-4 py-3 ${
+                    entry.role === 'user'
+                      ? 'bg-blue-50 border border-blue-100'
+                      : 'bg-slate-50 border border-slate-100'
+                  }`}>
+                    <div className="flex items-center gap-2 mb-1.5">
+                      <span className={`text-[11px] font-bold ${
+                        entry.role === 'user' ? 'text-blue-600' : 'text-slate-500'
+                      }`}>
+                        {entry.role === 'agent' ? 'Interviewer' : 'Candidate'}
+                      </span>
+                      {entry.time_in_call_secs != null && (
+                        <span className="text-[10px] text-slate-300 ml-auto">
+                          {formatDuration(entry.time_in_call_secs)}
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-slate-700 text-sm leading-relaxed">{entry.message}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </motion.div>
+        )}
       </div>
 
       {showShareDialog && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-2xl p-8 max-w-md w-full">
-            <h3 className="text-2xl font-bold text-gray-900 mb-4">Share Your Report</h3>
-            <p className="text-gray-600 mb-6">Anyone with this link can view your interview report</p>
-            <div className="bg-gray-50 rounded-lg p-4 mb-6 break-all text-sm text-gray-700">
-              {shareLink}
-            </div>
-            <div className="flex items-center space-x-3">
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="bg-white rounded-2xl p-7 max-w-md w-full shadow-xl border border-slate-100"
+          >
+            <div className="flex items-center justify-between mb-5">
+              <h3 className="text-lg font-bold text-slate-900">Share Interview Report</h3>
               <button
-                onClick={() => {
-                  navigator.clipboard.writeText(shareLink);
-                  alert('Link copied to clipboard!');
-                }}
-                className="flex-1 px-4 py-3 bg-gray-100 text-gray-700 font-medium rounded-lg hover:bg-gray-200 transition-colors"
+                onClick={() => setShowShareDialog(false)}
+                className="w-8 h-8 rounded-lg bg-slate-100 hover:bg-slate-200 flex items-center justify-center transition-colors"
               >
-                Copy Link
-              </button>
-              <button
-                onClick={shareToLinkedIn}
-                className="flex-1 px-4 py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors"
-              >
-                Share on LinkedIn
+                <X className="w-4 h-4 text-slate-500" />
               </button>
             </div>
+            <p className="text-slate-500 text-sm mb-5">Anyone with this link can view a read-only version of your report.</p>
+
+            <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-xl p-3 mb-5">
+              <p className="text-xs text-slate-500 truncate flex-1 font-mono">{shareLink}</p>
+              <button
+                onClick={handleCopyLink}
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-semibold text-slate-600 hover:bg-slate-50 transition-colors flex-shrink-0"
+              >
+                <Copy className="w-3 h-3" />
+                {copied ? 'Copied!' : 'Copy'}
+              </button>
+            </div>
+
             <button
-              onClick={() => setShowShareDialog(false)}
-              className="w-full mt-4 px-4 py-2 text-gray-600 hover:text-gray-900"
+              onClick={shareToLinkedIn}
+              className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-[#0A66C2] text-white font-semibold rounded-xl hover:bg-[#0958a5] transition-colors text-sm"
             >
-              Close
+              <Linkedin className="w-4 h-4" />
+              Share on LinkedIn
             </button>
-          </div>
+          </motion.div>
         </div>
       )}
     </div>
