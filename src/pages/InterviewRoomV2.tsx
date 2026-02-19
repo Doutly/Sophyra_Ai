@@ -1,9 +1,8 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { db, functions } from '../lib/firebase';
+import { db } from '../lib/firebase';
 import { doc, getDoc, updateDoc, Timestamp } from 'firebase/firestore';
-import { httpsCallable } from 'firebase/functions';
 import { useConversation } from '@elevenlabs/react';
 import {
   Mic,
@@ -20,17 +19,32 @@ import {
   Loader2,
 } from 'lucide-react';
 
-const AGENT_ID = import.meta.env.VITE_ELEVENLABS_AGENT_ID || 'agent_6401kf6a3faqejpbsks4a5h1j3da';
+const AGENT_ID = import.meta.env.VITE_ELEVENLABS_AGENT_ID;
+const ELEVENLABS_API_KEY = import.meta.env.VITE_ELEVENLABS_API_KEY;
 const MAX_JD_LENGTH = 800;
 
 async function getSignedUrl(agentId: string): Promise<string> {
-  const getSignedUrlFn = httpsCallable<{ agentId: string }, { signed_url: string }>(
-    functions,
-    'getElevenLabsSignedUrl'
+  if (!agentId) throw new Error('ElevenLabs Agent ID is not configured.');
+  if (!ELEVENLABS_API_KEY) throw new Error('ElevenLabs API key is not configured.');
+
+  const response = await fetch(
+    `https://api.elevenlabs.io/v1/convai/conversation/get_signed_url?agent_id=${agentId}`,
+    {
+      method: 'GET',
+      headers: {
+        'xi-api-key': ELEVENLABS_API_KEY,
+      },
+    }
   );
-  const result = await getSignedUrlFn({ agentId });
-  if (!result.data?.signed_url) throw new Error('No signed URL returned');
-  return result.data.signed_url;
+
+  if (!response.ok) {
+    const errorText = await response.text().catch(() => response.statusText);
+    throw new Error(`Failed to get signed URL: ${errorText}`);
+  }
+
+  const data = await response.json();
+  if (!data.signed_url) throw new Error('No signed URL returned from ElevenLabs.');
+  return data.signed_url;
 }
 
 interface TranscriptMessage {

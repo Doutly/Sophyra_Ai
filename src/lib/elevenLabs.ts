@@ -1,4 +1,4 @@
-const ELEVEN_LABS_API_KEY = import.meta.env.VITE_ELEVENLABS_API_KEY || '3962ab55c2cce53b25a1777ffb58e2dc8ea7eb3cd7a6f2c18e94dcd3c384e5e2';
+const ELEVEN_LABS_API_KEY = import.meta.env.VITE_ELEVENLABS_API_KEY;
 const VOICE_ID = 'EXAVITQu4vr4xnSDxMaL';
 
 export interface VoiceConfig {
