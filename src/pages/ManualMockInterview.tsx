@@ -3,9 +3,11 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { db } from '../lib/firebase';
 import { collection, addDoc, serverTimestamp, doc, getDoc } from 'firebase/firestore';
-import { Briefcase, Clock, FileText, Send, Loader, ArrowLeft, CheckCircle, Copy, Calendar } from 'lucide-react';
+import { Briefcase, Clock, FileText, Send, Loader, ArrowLeft, CheckCircle } from 'lucide-react';
 import BentoCard from '../components/BentoCard';
 import BentoGrid from '../components/BentoGrid';
+
+import { InterviewRequestCard } from '../components/ui/interview-request-card';
 
 export default function ManualMockInterview() {
   const { user } = useAuth();
@@ -25,6 +27,7 @@ export default function ManualMockInterview() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
   const [ticketNumber, setTicketNumber] = useState('');
+  const [candidateName, setCandidateName] = useState('');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -72,6 +75,7 @@ export default function ManualMockInterview() {
       });
 
       setTicketNumber(generatedTicketNumber);
+      setCandidateName(userData.name || user!.displayName || user!.email || 'Candidate');
       setSuccess(true);
     } catch (err: any) {
       console.error('Error submitting request:', err);
@@ -93,84 +97,56 @@ export default function ManualMockInterview() {
   };
 
   if (success) {
+    const interviewUrl = `${window.location.origin}/interview/${ticketNumber}`;
     return (
-      <div className="min-h-screen bg-swiss-base-near">
-        <div className="max-w-3xl mx-auto px-6 py-12">
-          <BentoCard variant="featured" className="text-center animate-scale-in">
-            <div className="py-8">
-              <div className="w-20 h-20 bg-swiss-status-approved rounded-full mx-auto mb-6 flex items-center justify-center animate-pulse-slow">
-                <CheckCircle className="w-12 h-12 text-swiss-status-approved-text" />
-              </div>
-
-              <h1 className="text-3xl font-bold text-gray-900 mb-4">
-                Request Submitted Successfully!
-              </h1>
-
-              <p className="text-gray-600 mb-8">
-                Your mock interview request has been received and is now under review
-              </p>
-
-              <div className="bg-white border-2 border-brand-electric rounded-lg p-6 mb-8 inline-block">
-                <p className="text-sm text-gray-500 mb-2">Your Ticket Number</p>
-                <div className="flex items-center space-x-3">
-                  <span className="text-2xl font-bold text-brand-electric">{ticketNumber}</span>
-                  <button
-                    onClick={copyTicketNumber}
-                    className="p-2 hover:bg-brand-electric-light rounded-lg transition-colors"
-                  >
-                    <Copy className="w-5 h-5 text-brand-electric" />
-                  </button>
-                </div>
-              </div>
-
-              <BentoGrid columns={3} gap="sm" className="mb-8">
-                <BentoCard className="text-center">
-                  <Calendar className="w-8 h-8 text-brand-electric mx-auto mb-2" />
-                  <p className="text-sm font-medium text-gray-700">Review Time</p>
-                  <p className="text-xs text-gray-500">24-48 hours</p>
-                </BentoCard>
-
-                <BentoCard className="text-center">
-                  <FileText className="w-8 h-8 text-brand-electric mx-auto mb-2" />
-                  <p className="text-sm font-medium text-gray-700">Status</p>
-                  <p className="text-xs text-gray-500">Pending Review</p>
-                </BentoCard>
-
-                <BentoCard className="text-center">
-                  <Briefcase className="w-8 h-8 text-brand-electric mx-auto mb-2" />
-                  <p className="text-sm font-medium text-gray-700">Role</p>
-                  <p className="text-xs text-gray-500">{formData.jobRole}</p>
-                </BentoCard>
-              </BentoGrid>
-
-              <div className="space-y-3">
-                <button
-                  onClick={() => navigate('/dashboard')}
-                  className="w-full px-6 py-3 bg-brand-electric text-white font-semibold rounded-lg hover:bg-brand-electric-dark transition-all"
-                >
-                  Return to Dashboard
-                </button>
-
-                <button
-                  onClick={() => {
-                    setSuccess(false);
-                    setFormData({
-                      jobRole: '',
-                      companyName: '',
-                      experienceLevel: 'fresher',
-                      jobDescription: '',
-                      preferredDate: '',
-                      preferredTime: '',
-                      additionalNotes: '',
-                    });
-                  }}
-                  className="w-full px-6 py-3 border border-gray-300 text-gray-700 font-medium rounded-lg hover:bg-gray-50 transition-all"
-                >
-                  Submit Another Request
-                </button>
-              </div>
+      <div className="min-h-screen bg-slate-50">
+        <div className="max-w-lg mx-auto px-6 py-12">
+          <div className="flex flex-col items-center mb-6">
+            <div className="flex items-center gap-2 px-3 py-1.5 bg-emerald-50 border border-emerald-200 rounded-full mb-4">
+              <CheckCircle className="w-4 h-4 text-emerald-600" />
+              <span className="text-sm font-semibold text-emerald-700">Submitted Successfully</span>
             </div>
-          </BentoCard>
+            <h1 className="text-2xl font-bold text-slate-900 text-center">Your Request is Under Review</h1>
+            <p className="text-sm text-slate-500 text-center mt-1">We'll get back to you within 24–48 hours</p>
+          </div>
+
+          <InterviewRequestCard
+            candidateName={candidateName}
+            jobRole={formData.jobRole}
+            companyName={formData.companyName || null}
+            ticketNumber={ticketNumber}
+            status="pending"
+            preferredDate={formData.preferredDate}
+            preferredTime={formData.preferredTime}
+            interviewUrl={interviewUrl}
+          />
+
+          <div className="mt-4 space-y-3">
+            <button
+              onClick={() => navigate('/dashboard')}
+              className="w-full py-3 bg-brand-electric text-white text-sm font-semibold rounded-xl hover:bg-brand-electric-dark transition-all"
+            >
+              Return to Dashboard
+            </button>
+
+            <button
+              onClick={() => {
+                setSuccess(false);
+                setFormData({
+                  jobRole: '',
+                  companyName: '',
+                  experienceLevel: 'fresher',
+                  jobDescription: '',
+                  preferredDate: '',
+                  preferredTime: '',
+                  additionalNotes: '',
+                });
+              }}
+              className="w-full py-3 bg-white border border-slate-200 text-slate-700 text-sm font-semibold rounded-xl hover:bg-slate-50 transition-all"
+            >
+              Submit Another Request
+            </button>
+          </div>
         </div>
       </div>
     );
