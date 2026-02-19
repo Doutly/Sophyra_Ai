@@ -19,8 +19,6 @@ import {
   LogOut,
   User as UserIcon,
   Ticket,
-  Calendar,
-  Clock,
   AlertCircle,
   LayoutDashboard,
   TrendingUp,
@@ -32,8 +30,8 @@ import {
   ArrowUpRight,
   Settings,
 } from 'lucide-react';
-import StatusBadge from '../components/StatusBadge';
 import MockInterviewModal from '../components/MockInterviewModal';
+import { InterviewRequestCard } from '../components/ui/interview-request-card';
 
 const DEFAULT_TIPS = {
   identified_weaknesses: [
@@ -692,47 +690,31 @@ export default function Dashboard() {
                     </button>
                   </div>
                 ) : (
-                  <div className="divide-y divide-slate-50">
-                    {mockRequests.slice(0, 4).map((request) => (
-                      <div
+                  <div className="p-4 space-y-3">
+                    {mockRequests.slice(0, 3).map((request) => (
+                      <InterviewRequestCard
                         key={request.id}
-                        className="px-5 py-3.5 hover:bg-slate-50/50 transition-colors"
-                      >
-                        <div className="flex items-start justify-between mb-1.5">
-                          <p className="text-xs font-semibold text-slate-900 truncate flex-1 pr-2 leading-relaxed">
-                            {request.job_role}
-                          </p>
-                          <StatusBadge status={request.status} size="sm" />
-                        </div>
-                        <div className="flex items-center text-[11px] text-gray-400">
-                          <Calendar className="w-3 h-3 mr-1 flex-shrink-0" />
-                          <span>
-                            {new Date(request.preferred_date).toLocaleDateString('en-US', {
-                              month: 'short',
-                              day: 'numeric',
-                            })}
-                          </span>
-                        </div>
-                        {request.status === 'approved' && request.scheduled_date && (
-                          <div className="mt-2 pt-2 border-t border-slate-50">
-                            <p className="text-[11px] text-emerald-600 font-semibold flex items-center">
-                              <Clock className="w-3 h-3 mr-1" />
-                              {new Date(request.scheduled_date).toLocaleDateString('en-US', {
-                                month: 'short',
-                                day: 'numeric',
-                              })}{' '}
-                              at {request.scheduled_time}
-                            </p>
-                          </div>
-                        )}
-                      </div>
+                        candidateName={userName || user?.displayName || user?.email?.split('@')[0] || 'Candidate'}
+                        jobRole={request.job_role}
+                        companyName={request.company_name}
+                        ticketNumber={request.ticket_number}
+                        status={request.status}
+                        preferredDate={request.preferred_date}
+                        preferredTime={request.preferred_time}
+                        scheduledDate={request.scheduled_date}
+                        scheduledTime={request.scheduled_time}
+                        interviewUrl={`${window.location.origin}/interview/setup?ticket=${request.ticket_number}`}
+                        onStartInterview={() => {
+                          if (request.status === 'approved') {
+                            setShowInterviewModal(true);
+                          }
+                        }}
+                      />
                     ))}
-                    {mockRequests.length > 4 && (
-                      <div className="px-5 py-3">
-                        <button className="text-[11px] text-gray-500 font-semibold hover:text-gray-900 transition-colors">
-                          +{mockRequests.length - 4} more
-                        </button>
-                      </div>
+                    {mockRequests.length > 3 && (
+                      <p className="text-[11px] text-center text-slate-400 font-semibold pt-1">
+                        +{mockRequests.length - 3} more requests
+                      </p>
                     )}
                   </div>
                 )}
