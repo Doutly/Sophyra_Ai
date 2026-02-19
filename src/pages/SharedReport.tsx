@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { db } from '../lib/firebase';
-import { doc, getDoc, updateDoc, increment } from 'firebase/firestore';
+import { doc, getDoc, updateDoc, increment, collection, query, where, limit, getDocs } from 'firebase/firestore';
 import { TrendingUp, AlertCircle, CheckCircle2, Target, ExternalLink, Brain } from 'lucide-react';
 
 interface SharedReportData {
@@ -45,16 +45,21 @@ export default function SharedReport() {
     }
 
     try {
-      const shareRef = doc(db, 'shares', shareToken);
-      const shareSnap = await getDoc(shareRef);
+      const sharesQuery = query(
+        collection(db, 'shares'),
+        where('shareToken', '==', shareToken),
+        limit(1)
+      );
+      const sharesSnap = await getDocs(sharesQuery);
 
-      if (!shareSnap.exists()) {
+      if (sharesSnap.empty) {
         setError('Share link not found');
         setLoading(false);
         return;
       }
 
-      const shareData = shareSnap.data();
+      const shareDoc = sharesSnap.docs[0];
+      const shareData = shareDoc.data();
 
       if (shareData.expiresAt && shareData.expiresAt.toDate() < new Date()) {
         setError('This share link has expired');
@@ -62,7 +67,7 @@ export default function SharedReport() {
         return;
       }
 
-      await updateDoc(shareRef, {
+      await updateDoc(shareDoc.ref, {
         viewCount: increment(1)
       });
 
