@@ -6,7 +6,8 @@ import { collection, onSnapshot, doc, getDoc, updateDoc, addDoc, serverTimestamp
 import {
   LogOut, Brain, Sun, Moon, ExternalLink, Download,
   ChevronRight, X, Star, FileText, Loader2, CheckCircle,
-  User, Briefcase, Calendar, Clock, Ticket
+  User, Briefcase, Calendar, Clock, Ticket, Search, Filter,
+  Mail, Building2, Target, BookOpen, SlidersHorizontal
 } from 'lucide-react';
 
 interface MockInterviewRequest {
@@ -18,6 +19,7 @@ interface MockInterviewRequest {
   experience_level: string;
   job_description: string;
   additional_notes: string;
+  interview_description?: string;
   status: string;
   booking_status: string;
   assigned_hr_id: string | null;
@@ -53,6 +55,7 @@ export interface HRFeedback {
   areas_for_improvement: string;
   hire_recommendation: string;
   private_notes: string;
+  interview_description: string;
 }
 
 export interface AIReport {
@@ -78,7 +81,7 @@ const COLUMN_CONFIG: {
 }[] = [
   {
     key: 'pool',
-    label: 'Available Pool',
+    label: 'Ticket Pool',
     color: 'text-cyan-400',
     headerBg: 'bg-cyan-500/10',
     border: 'border-cyan-500/20',
@@ -125,6 +128,7 @@ const COLUMN_CONFIG: {
 
 const RATING_OPTIONS = ['Excellent', 'Good', 'Average', 'Needs Improvement'];
 const HIRE_OPTIONS = ['Strong Hire', 'Hire', 'Maybe', 'No Hire'];
+const EXP_LEVELS = ['fresher', 'mid', 'senior', 'Entry Level', 'Mid Level', 'Senior Level', 'Executive'];
 
 export default function HRDashboard() {
   const navigate = useNavigate();
@@ -133,6 +137,11 @@ export default function HRDashboard() {
   const [allTickets, setAllTickets] = useState<MockInterviewRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filterExp, setFilterExp] = useState('');
+  const [filterHire, setFilterHire] = useState('');
+  const [showFilters, setShowFilters] = useState(false);
 
   const [showBookingModal, setShowBookingModal] = useState(false);
   const [selectedTicket, setSelectedTicket] = useState<MockInterviewRequest | null>(null);
@@ -153,11 +162,15 @@ export default function HRDashboard() {
     areas_for_improvement: '',
     hire_recommendation: '',
     private_notes: '',
+    interview_description: '',
   });
   const [generatingAI, setGeneratingAI] = useState(false);
   const [aiReport, setAiReport] = useState<AIReport | null>(null);
   const [savingFeedback, setSavingFeedback] = useState(false);
   const [feedbackSaved, setFeedbackSaved] = useState(false);
+
+  const [profileTicket, setProfileTicket] = useState<MockInterviewRequest | null>(null);
+  const profileRef = useRef<HTMLDivElement>(null);
 
   const [dragOver, setDragOver] = useState<KanbanColumn | null>(null);
   const dragTicketRef = useRef<MockInterviewRequest | null>(null);
@@ -173,7 +186,7 @@ export default function HRDashboard() {
           try {
             const uSnap = await getDoc(doc(db, 'users', data.user_id));
             if (uSnap.exists()) userData = uSnap.data() as { name: string; email: string };
-          } catch { /* ignore */ }
+          } catch { }
         }
         return {
           id: docSnap.id,
@@ -184,6 +197,7 @@ export default function HRDashboard() {
           experience_level: data.experience_level || '',
           job_description: data.job_description || '',
           additional_notes: data.additional_notes || '',
+          interview_description: data.interview_description || '',
           status: data.status || 'pending',
           booking_status: data.booking_status || 'unclaimed',
           assigned_hr_id: data.assigned_hr_id || null,
@@ -207,16 +221,48 @@ export default function HRDashboard() {
     return unsubscribe;
   }, [user, navigate]);
 
-  const getColumnTickets = (col: KanbanColumn): MockInterviewRequest[] => {
-    switch (col) {
-      case 'pool': return allTickets.filter(r => !r.assigned_hr_id && r.booking_status === 'unclaimed' && r.status === 'approved');
-      case 'claimed': return allTickets.filter(r => r.booking_status === 'claimed' && r.claimed_by === user?.uid);
-      case 'assigned': return allTickets.filter(r => r.assigned_hr_id === user?.uid && r.status === 'approved' && (r.booking_status === 'unclaimed' || r.claimed_by === user?.uid));
-      case 'scheduled': return allTickets.filter(r => r.booking_status === 'booked' && r.claimed_by === user?.uid);
-      case 'completed': return allTickets.filter(r => r.booking_status === 'completed' && r.claimed_by === user?.uid);
-      default: return [];
-    }
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (profileRef.current && !profileRef.current.contains(e.target as Node)) {
+        setProfileTicket(null);
+      }
+    };
+    if (profileTicket) document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [profileTicket]);
+
+  const matchesSearch = (ticket: MockInterviewRequest) => {
+    if (!searchQuery.trim()) return true;
+    const q = searchQuery.toLowerCase();
+    const name = (ticket.candidate_info?.name || ticket.users.name || '').toLowerCase();
+    const email = (ticket.users.email || '').toLowerCase();
+    const ticketNum = (ticket.ticket_number || '').toLowerCase();
+    const role = (ticket.job_role || '').toLowerCase();
+    const company = (ticket.company_name || '').toLowerCase();
+    const exp = (ticket.experience_level || '').toLowerCase();
+    return name.includes(q) || email.includes(q) || ticketNum.includes(q) || role.includes(q) || company.includes(q) || exp.includes(q);
   };
+
+  const matchesFilters = (ticket: MockInterviewRequest) => {
+    if (filterExp && ticket.experience_level !== filterExp) return false;
+    if (filterHire && ticket.hr_feedback?.hire_recommendation !== filterHire) return false;
+    return true;
+  };
+
+  const getColumnTickets = (col: KanbanColumn): MockInterviewRequest[] => {
+    let tickets: MockInterviewRequest[] = [];
+    switch (col) {
+      case 'pool': tickets = allTickets.filter(r => !r.assigned_hr_id && r.booking_status === 'unclaimed' && r.status === 'approved'); break;
+      case 'claimed': tickets = allTickets.filter(r => r.booking_status === 'claimed' && r.claimed_by === user?.uid); break;
+      case 'assigned': tickets = allTickets.filter(r => r.assigned_hr_id === user?.uid && r.status === 'approved' && (r.booking_status === 'unclaimed' || r.claimed_by === user?.uid)); break;
+      case 'scheduled': tickets = allTickets.filter(r => r.booking_status === 'booked' && r.claimed_by === user?.uid); break;
+      case 'completed': tickets = allTickets.filter(r => r.booking_status === 'completed' && r.claimed_by === user?.uid); break;
+    }
+    return tickets.filter(t => matchesSearch(t) && matchesFilters(t));
+  };
+
+  const totalFiltered = COLUMN_CONFIG.reduce((sum, col) => sum + getColumnTickets(col.key).length, 0);
+  const hasActiveFilters = searchQuery.trim() || filterExp || filterHire;
 
   const handleClaim = async (ticketId: string) => {
     setActionLoading(ticketId);
@@ -278,25 +324,26 @@ export default function HRDashboard() {
       areas_for_improvement: '',
       hire_recommendation: '',
       private_notes: '',
+      interview_description: '',
     });
     setShowFeedbackModal(true);
   };
 
-  const isFeedbackComplete = () => {
+  const isFeedbackComplete = (f: HRFeedback) => {
     return (
-      feedback.overall_rating > 0 &&
-      feedback.communication !== '' &&
-      feedback.technical_knowledge !== '' &&
-      feedback.problem_solving !== '' &&
-      feedback.cultural_fit !== '' &&
-      feedback.key_strengths.trim() !== '' &&
-      feedback.areas_for_improvement.trim() !== '' &&
-      feedback.hire_recommendation !== ''
+      f.overall_rating > 0 &&
+      f.communication !== '' &&
+      f.technical_knowledge !== '' &&
+      f.problem_solving !== '' &&
+      f.cultural_fit !== '' &&
+      f.key_strengths.trim() !== '' &&
+      f.areas_for_improvement.trim() !== '' &&
+      f.hire_recommendation !== ''
     );
   };
 
   const generateAIReport = async () => {
-    if (!feedbackTicket || !isFeedbackComplete()) return;
+    if (!feedbackTicket || !isFeedbackComplete(feedback)) return;
     setGeneratingAI(true);
     const candidateName = feedbackTicket.candidate_info?.name || feedbackTicket.users.name;
     const prompt = `You are an expert HR consultant. Generate a structured interview report based on the following data.
@@ -306,6 +353,7 @@ Role: ${feedbackTicket.job_role}
 Company: ${feedbackTicket.company_name || 'Not specified'}
 Experience Level: ${feedbackTicket.experience_level}
 Job Description: ${feedbackTicket.job_description || 'Not provided'}
+${feedback.interview_description ? `Interview Notes: ${feedback.interview_description}` : ''}
 
 HR Evaluation:
 - Overall Rating: ${feedback.overall_rating}/5 stars
@@ -344,10 +392,7 @@ Return ONLY valid JSON with this exact structure:
       const raw = data?.candidates?.[0]?.content?.parts?.[0]?.text || '{}';
       const clean = raw.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
       const parsed = JSON.parse(clean);
-      const report: AIReport = {
-        ...parsed,
-        report_generated_at: new Date().toISOString(),
-      };
+      const report: AIReport = { ...parsed, report_generated_at: new Date().toISOString() };
       setAiReport(report);
     } catch (err) {
       console.error('AI report generation failed:', err);
@@ -417,25 +462,17 @@ Return ONLY valid JSON with this exact structure:
     }
   };
 
-  const handleDragStart = (ticket: MockInterviewRequest) => {
-    dragTicketRef.current = ticket;
-  };
+  const handleDragStart = (ticket: MockInterviewRequest) => { dragTicketRef.current = ticket; };
 
   const handleDrop = async (col: KanbanColumn) => {
     const ticket = dragTicketRef.current;
     if (!ticket) return;
     setDragOver(null);
     dragTicketRef.current = null;
-
-    if (col === 'claimed' && ticket.booking_status === 'unclaimed') {
-      await handleClaim(ticket.id);
-    } else if (col === 'pool' && ticket.claimed_by === user?.uid && ticket.booking_status === 'claimed') {
-      await handleRelease(ticket.id);
-    } else if (col === 'scheduled' && ticket.booking_status === 'claimed') {
-      openBooking(ticket);
-    } else if (col === 'completed' && ticket.booking_status === 'booked') {
-      openFeedback(ticket);
-    }
+    if (col === 'claimed' && ticket.booking_status === 'unclaimed') await handleClaim(ticket.id);
+    else if (col === 'pool' && ticket.claimed_by === user?.uid && ticket.booking_status === 'claimed') await handleRelease(ticket.id);
+    else if (col === 'scheduled' && ticket.booking_status === 'claimed') openBooking(ticket);
+    else if (col === 'completed' && ticket.booking_status === 'booked') openFeedback(ticket);
   };
 
   const th = {
@@ -449,6 +486,7 @@ Return ONLY valid JSON with this exact structure:
     btn: darkMode ? 'bg-white/[0.04] border-white/[0.08] text-white/60 hover:text-white/90 hover:bg-white/[0.07]' : 'bg-gray-100 border-gray-200 text-gray-600 hover:bg-gray-200',
     modalBg: darkMode ? 'bg-[#0d1117] border-white/10' : 'bg-white border-gray-200',
     modalInput: darkMode ? 'bg-white/[0.04] border-white/[0.08] text-white/80 placeholder-white/20 focus:border-blue-500/40' : 'bg-gray-50 border-gray-200 text-gray-900 focus:border-blue-500',
+    searchBg: darkMode ? 'bg-white/[0.04] border-white/[0.08] text-white/80 placeholder-white/25 focus:border-blue-500/40' : 'bg-white border-gray-200 text-gray-900 placeholder-gray-400 focus:border-blue-500',
   };
 
   if (loading) {
@@ -498,25 +536,103 @@ Return ONLY valid JSON with this exact structure:
       </nav>
 
       <div className="px-4 py-5">
-        <div className="mb-5 flex items-center justify-between flex-wrap gap-3">
+        <div className="mb-4 flex items-start justify-between flex-wrap gap-3">
           <div>
             <h1 className={`text-xl font-bold ${th.navText}`}>Interview Board</h1>
             <p className={`text-xs mt-0.5 ${th.cardFaint}`}>Drag tickets between columns to update status</p>
           </div>
           <div className="flex items-center gap-2 flex-wrap">
-            {COLUMN_CONFIG.map(col => (
-              <div key={col.key} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border ${col.headerBg} ${col.border}`}>
-                <div className={`w-1.5 h-1.5 rounded-full ${col.dotColor}`} />
-                <span className={`text-[11px] font-semibold ${col.color}`}>{col.label}</span>
-                <span className={`text-[11px] font-bold ${col.color} opacity-70`}>{getColumnTickets(col.key).length}</span>
-              </div>
-            ))}
+            {COLUMN_CONFIG.map(col => {
+              const count = getColumnTickets(col.key).length;
+              return (
+                <div key={col.key} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border ${col.headerBg} ${col.border}`}>
+                  <div className={`w-1.5 h-1.5 rounded-full ${col.dotColor}`} />
+                  <span className={`text-[11px] font-semibold ${col.color}`}>{col.label}</span>
+                  <span className={`text-[11px] font-bold ${col.color} opacity-70`}>{count}</span>
+                </div>
+              );
+            })}
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 xl:grid-cols-5 gap-4 items-start">
+        <div className={`mb-4 rounded-xl border p-3 ${darkMode ? 'bg-white/[0.02] border-white/[0.06]' : 'bg-white border-gray-200'}`}>
+          <div className="flex items-center gap-3 flex-wrap">
+            <div className="flex-1 min-w-[200px] relative">
+              <Search className={`absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 ${th.cardFaint}`} />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+                placeholder="Search by name, ticket ID, role, company..."
+                className={`w-full pl-8 pr-3 py-2 border rounded-lg text-xs focus:outline-none transition-all ${th.searchBg}`}
+              />
+              {searchQuery && (
+                <button onClick={() => setSearchQuery('')} className={`absolute right-2.5 top-1/2 -translate-y-1/2 ${th.cardFaint} hover:text-white/60`}>
+                  <X className="w-3 h-3" />
+                </button>
+              )}
+            </div>
+
+            <button
+              onClick={() => setShowFilters(!showFilters)}
+              className={`flex items-center gap-1.5 px-3 py-2 border rounded-lg text-xs font-medium transition-all ${showFilters || filterExp || filterHire ? 'border-blue-500/40 text-blue-400 bg-blue-500/10' : th.btn}`}
+            >
+              <SlidersHorizontal className="w-3.5 h-3.5" />
+              <span>Filters</span>
+              {(filterExp || filterHire) && (
+                <span className="w-1.5 h-1.5 rounded-full bg-blue-400 flex-shrink-0" />
+              )}
+            </button>
+
+            {hasActiveFilters && (
+              <div className={`text-xs ${th.cardFaint}`}>
+                {totalFiltered} result{totalFiltered !== 1 ? 's' : ''}
+              </div>
+            )}
+
+            {hasActiveFilters && (
+              <button
+                onClick={() => { setSearchQuery(''); setFilterExp(''); setFilterHire(''); }}
+                className="text-xs text-red-400 hover:text-red-300 transition-colors font-medium"
+              >
+                Clear all
+              </button>
+            )}
+          </div>
+
+          {showFilters && (
+            <div className={`mt-3 pt-3 border-t flex items-center gap-3 flex-wrap ${darkMode ? 'border-white/5' : 'border-gray-100'}`}>
+              <div className="flex items-center gap-1.5">
+                <Filter className={`w-3 h-3 ${th.cardFaint}`} />
+                <span className={`text-xs font-semibold ${th.cardFaint}`}>Experience:</span>
+              </div>
+              <select
+                value={filterExp}
+                onChange={e => setFilterExp(e.target.value)}
+                className={`px-2.5 py-1.5 border rounded-lg text-xs focus:outline-none transition-all ${th.modalInput} ${darkMode ? '[color-scheme:dark]' : ''}`}
+              >
+                <option value="">All levels</option>
+                {EXP_LEVELS.map(l => <option key={l} value={l}>{l}</option>)}
+              </select>
+
+              <div className="flex items-center gap-1.5">
+                <span className={`text-xs font-semibold ${th.cardFaint}`}>Hire status:</span>
+              </div>
+              <select
+                value={filterHire}
+                onChange={e => setFilterHire(e.target.value)}
+                className={`px-2.5 py-1.5 border rounded-lg text-xs focus:outline-none transition-all ${th.modalInput} ${darkMode ? '[color-scheme:dark]' : ''}`}
+              >
+                <option value="">All recommendations</option>
+                {HIRE_OPTIONS.map(o => <option key={o} value={o}>{o}</option>)}
+              </select>
+            </div>
+          )}
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3 items-start">
           {COLUMN_CONFIG.map(col => (
-            <KanbanColumn
+            <KanbanColumnComponent
               key={col.key}
               config={col}
               tickets={getColumnTickets(col.key)}
@@ -534,10 +650,94 @@ Return ONLY valid JSON with this exact structure:
               onSchedule={openBooking}
               onMarkDone={openFeedback}
               onViewReport={(ticket) => navigate(`/hr-report/${ticket.id}`)}
+              onViewProfile={(ticket) => setProfileTicket(ticket)}
             />
           ))}
         </div>
       </div>
+
+      {profileTicket && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div ref={profileRef} className={`border rounded-2xl max-w-sm w-full p-6 shadow-2xl ${th.modalBg}`}>
+            <div className="flex items-center justify-between mb-5">
+              <h3 className={`text-base font-bold ${th.navText}`}>Candidate Profile</h3>
+              <button onClick={() => setProfileTicket(null)} className={`p-1.5 rounded-lg transition-colors ${th.btn}`}>
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="flex items-center gap-3 mb-5">
+              <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center flex-shrink-0">
+                <span className="text-base font-bold text-white">
+                  {(profileTicket.candidate_info?.name || profileTicket.users.name || '?').charAt(0).toUpperCase()}
+                </span>
+              </div>
+              <div>
+                <p className={`text-sm font-bold ${th.navText}`}>{profileTicket.candidate_info?.name || profileTicket.users.name}</p>
+                <p className={`text-xs mt-0.5 ${th.cardFaint}`}>{profileTicket.users.email}</p>
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              {profileTicket.candidate_info?.industry && (
+                <div className="flex items-start gap-2.5">
+                  <Building2 className={`w-3.5 h-3.5 flex-shrink-0 mt-0.5 ${th.cardFaint}`} />
+                  <div>
+                    <p className={`text-[10px] font-semibold uppercase tracking-wider mb-0.5 ${th.cardFaint}`}>Industry</p>
+                    <p className={`text-xs ${th.cardSub}`}>{profileTicket.candidate_info.industry}</p>
+                  </div>
+                </div>
+              )}
+              {(profileTicket.candidate_info?.experience_level || profileTicket.experience_level) && (
+                <div className="flex items-start gap-2.5">
+                  <Target className={`w-3.5 h-3.5 flex-shrink-0 mt-0.5 ${th.cardFaint}`} />
+                  <div>
+                    <p className={`text-[10px] font-semibold uppercase tracking-wider mb-0.5 ${th.cardFaint}`}>Experience Level</p>
+                    <p className={`text-xs ${th.cardSub}`}>{profileTicket.candidate_info?.experience_level || profileTicket.experience_level}</p>
+                  </div>
+                </div>
+              )}
+              {profileTicket.candidate_info?.bio && (
+                <div className="flex items-start gap-2.5">
+                  <User className={`w-3.5 h-3.5 flex-shrink-0 mt-0.5 ${th.cardFaint}`} />
+                  <div>
+                    <p className={`text-[10px] font-semibold uppercase tracking-wider mb-0.5 ${th.cardFaint}`}>Bio</p>
+                    <p className={`text-xs leading-relaxed ${th.cardSub}`}>{profileTicket.candidate_info.bio}</p>
+                  </div>
+                </div>
+              )}
+              {profileTicket.candidate_info?.career_goals && (
+                <div className="flex items-start gap-2.5">
+                  <BookOpen className={`w-3.5 h-3.5 flex-shrink-0 mt-0.5 ${th.cardFaint}`} />
+                  <div>
+                    <p className={`text-[10px] font-semibold uppercase tracking-wider mb-0.5 ${th.cardFaint}`}>Career Goals</p>
+                    <p className={`text-xs leading-relaxed ${th.cardSub}`}>{profileTicket.candidate_info.career_goals}</p>
+                  </div>
+                </div>
+              )}
+              <div className="flex items-start gap-2.5">
+                <Mail className={`w-3.5 h-3.5 flex-shrink-0 mt-0.5 ${th.cardFaint}`} />
+                <div>
+                  <p className={`text-[10px] font-semibold uppercase tracking-wider mb-0.5 ${th.cardFaint}`}>Email</p>
+                  <p className={`text-xs ${th.cardSub}`}>{profileTicket.candidate_info?.email || profileTicket.users.email}</p>
+                </div>
+              </div>
+            </div>
+
+            {profileTicket.candidate_info?.resume_url && (
+              <a
+                href={profileTicket.candidate_info.resume_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mt-5 flex items-center justify-center gap-2 w-full px-4 py-2.5 bg-blue-600 text-white text-xs font-semibold rounded-xl hover:bg-blue-500 transition-colors"
+              >
+                <Download className="w-3.5 h-3.5" />
+                Download Resume
+              </a>
+            )}
+          </div>
+        </div>
+      )}
 
       {showBookingModal && selectedTicket && (
         <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
@@ -596,7 +796,7 @@ Return ONLY valid JSON with this exact structure:
           generatingAI={generatingAI}
           savingFeedback={savingFeedback}
           feedbackSaved={feedbackSaved}
-          isFeedbackComplete={isFeedbackComplete()}
+          isFeedbackComplete={isFeedbackComplete(feedback)}
           onFeedbackChange={setFeedback}
           onGenerateAI={generateAIReport}
           onSave={saveFeedback}
@@ -616,10 +816,10 @@ function Row({ label, value, th, mono }: { label: string; value: string; th: Rec
   );
 }
 
-function KanbanColumn({
+function KanbanColumnComponent({
   config, tickets, isDragOver, darkMode, th, actionLoading, userId,
   onDragStart, onDragOver, onDragLeave, onDrop,
-  onClaim, onRelease, onSchedule, onMarkDone, onViewReport,
+  onClaim, onRelease, onSchedule, onMarkDone, onViewReport, onViewProfile,
 }: {
   config: typeof COLUMN_CONFIG[0];
   tickets: MockInterviewRequest[];
@@ -637,10 +837,11 @@ function KanbanColumn({
   onSchedule: (t: MockInterviewRequest) => void;
   onMarkDone: (t: MockInterviewRequest) => void;
   onViewReport: (t: MockInterviewRequest) => void;
+  onViewProfile: (t: MockInterviewRequest) => void;
 }) {
   return (
     <div
-      className={`rounded-2xl border transition-all duration-200 min-h-[200px] ${config.colBg} ${config.border} ${isDragOver ? 'ring-2 ring-blue-500/30 scale-[1.01]' : ''}`}
+      className={`rounded-2xl border transition-all duration-200 flex flex-col ${config.colBg} ${config.border} ${isDragOver ? 'ring-2 ring-blue-500/30 scale-[1.005]' : ''}`}
       onDragOver={onDragOver}
       onDragLeave={onDragLeave}
       onDrop={onDrop}
@@ -653,7 +854,7 @@ function KanbanColumn({
         <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${config.headerBg} ${config.color}`}>{tickets.length}</span>
       </div>
 
-      <div className="p-2 space-y-2">
+      <div className="p-2 space-y-2 max-h-[calc(100vh-260px)] overflow-y-auto">
         {tickets.length === 0 && (
           <div className={`flex flex-col items-center justify-center py-10 text-center ${isDragOver ? 'opacity-100' : 'opacity-40'}`}>
             <Ticket className={`w-6 h-6 mb-2 ${config.color}`} />
@@ -675,6 +876,7 @@ function KanbanColumn({
             onSchedule={onSchedule}
             onMarkDone={onMarkDone}
             onViewReport={onViewReport}
+            onViewProfile={onViewProfile}
           />
         ))}
       </div>
@@ -687,11 +889,14 @@ const EXP_COLORS: Record<string, string> = {
   'Mid Level': 'text-amber-400 bg-amber-500/10 border-amber-500/20',
   'Senior Level': 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20',
   'Executive': 'text-rose-400 bg-rose-500/10 border-rose-500/20',
+  'fresher': 'text-sky-400 bg-sky-500/10 border-sky-500/20',
+  'mid': 'text-amber-400 bg-amber-500/10 border-amber-500/20',
+  'senior': 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20',
 };
 
 function TicketCard({
   ticket, columnKey, darkMode, th, actionLoading, userId,
-  onDragStart, onClaim, onRelease, onSchedule, onMarkDone, onViewReport,
+  onDragStart, onClaim, onRelease, onSchedule, onMarkDone, onViewReport, onViewProfile,
 }: {
   ticket: MockInterviewRequest;
   columnKey: KanbanColumn;
@@ -705,6 +910,7 @@ function TicketCard({
   onSchedule: (t: MockInterviewRequest) => void;
   onMarkDone: (t: MockInterviewRequest) => void;
   onViewReport: (t: MockInterviewRequest) => void;
+  onViewProfile: (t: MockInterviewRequest) => void;
 }) {
   const [expanded, setExpanded] = useState(false);
   const candidateName = ticket.candidate_info?.name || ticket.users.name;
@@ -723,10 +929,21 @@ function TicketCard({
             <p className={`text-xs font-semibold truncate ${th.cardText}`}>{candidateName}</p>
             <p className={`text-[10px] mt-0.5 truncate ${th.cardFaint}`}>{ticket.users.email}</p>
           </div>
-          <button onClick={() => setExpanded(!expanded)} className={`p-0.5 flex-shrink-0 transition-colors ${th.cardFaint} hover:text-white/60`}>
-            <ChevronRight className={`w-3.5 h-3.5 transition-transform ${expanded ? 'rotate-90' : ''}`} />
-          </button>
+          <div className="flex items-center gap-1 flex-shrink-0">
+            <button
+              onClick={(e) => { e.stopPropagation(); onViewProfile(ticket); }}
+              title="View candidate profile"
+              className={`p-1 rounded-lg transition-colors hover:bg-white/10 ${th.cardFaint} hover:text-blue-400`}
+            >
+              <User className="w-3.5 h-3.5" />
+            </button>
+            <button onClick={() => setExpanded(!expanded)} className={`p-0.5 transition-colors ${th.cardFaint} hover:text-white/60`}>
+              <ChevronRight className={`w-3.5 h-3.5 transition-transform ${expanded ? 'rotate-90' : ''}`} />
+            </button>
+          </div>
         </div>
+
+        <p className={`text-[10px] font-mono mb-2 ${th.cardFaint}`}>{ticket.ticket_number}</p>
 
         <div className="flex items-center gap-1.5 mb-2 flex-wrap">
           <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded border ${expColor}`}>
@@ -754,12 +971,17 @@ function TicketCard({
 
         {expanded && (
           <div className={`mt-3 pt-3 border-t space-y-2 ${darkMode ? 'border-white/5' : 'border-gray-100'}`}>
-            <p className={`text-[10px] font-mono ${th.cardFaint}`}>{ticket.ticket_number}</p>
             {ticket.candidate_info?.bio && (
               <p className={`text-[11px] leading-relaxed line-clamp-3 ${th.cardSub}`}>{ticket.candidate_info.bio}</p>
             )}
             {ticket.job_description && (
               <p className={`text-[11px] leading-relaxed line-clamp-3 ${th.cardFaint}`}>{ticket.job_description}</p>
+            )}
+            {ticket.interview_description && (
+              <div className={`p-2 rounded-lg ${darkMode ? 'bg-white/5' : 'bg-gray-50'}`}>
+                <p className={`text-[10px] font-semibold uppercase tracking-wider mb-1 ${th.cardFaint}`}>Interview Notes</p>
+                <p className={`text-[11px] leading-relaxed line-clamp-3 ${th.cardSub}`}>{ticket.interview_description}</p>
+              </div>
             )}
             {ticket.candidate_info?.resume_url && (
               <a href={ticket.candidate_info.resume_url} target="_blank" rel="noopener noreferrer"
@@ -864,6 +1086,13 @@ function FeedbackModal({
 
         <div className="p-5 space-y-6">
           <div>
+            <label className={`block text-xs font-medium mb-1.5 ${th.cardFaint}`}>Interview Description <span className={`text-[10px] ${th.cardFaint} opacity-60`}>(What happened during the interview)</span></label>
+            <textarea value={feedback.interview_description || ''} onChange={e => update('interview_description', e.target.value)}
+              rows={4} placeholder="Describe the interview session — topics discussed, candidate's demeanor, key moments, overall impression..."
+              className={`w-full px-3.5 py-2.5 border rounded-xl text-sm focus:outline-none transition-all resize-none ${th.modalInput}`} />
+          </div>
+
+          <div>
             <p className={`text-xs font-semibold uppercase tracking-widest mb-3 ${th.cardFaint}`}>Overall Rating</p>
             <div className="flex gap-1.5">
               {[1, 2, 3, 4, 5].map(n => (
@@ -962,8 +1191,11 @@ function FeedbackModal({
               {generatingAI ? 'Generating...' : 'Generate AI Report'}
             </button>
           )}
-          <button onClick={() => onSave(!isCompleted)} disabled={savingFeedback || !isFeedbackComplete}
-            className={`flex items-center gap-2 px-4 py-2.5 text-sm font-semibold rounded-xl transition-colors disabled:opacity-40 ${feedbackSaved ? 'bg-emerald-600 text-white' : 'bg-slate-700 text-white hover:bg-slate-600'}`}>
+          <button
+            onClick={() => onSave(!isCompleted)}
+            disabled={savingFeedback || !isFeedbackComplete}
+            className={`flex items-center gap-2 px-4 py-2.5 text-sm font-semibold rounded-xl transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${feedbackSaved ? 'bg-emerald-600 text-white' : 'bg-slate-700 text-white hover:bg-slate-600'}`}
+          >
             {savingFeedback ? <Loader2 className="w-4 h-4 animate-spin" /> : feedbackSaved ? <CheckCircle className="w-4 h-4" /> : null}
             {feedbackSaved ? 'Saved!' : savingFeedback ? 'Saving...' : isCompleted ? 'Update Feedback' : 'Save & Complete'}
           </button>

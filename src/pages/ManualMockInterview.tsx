@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { db } from '../lib/firebase';
 import { collection, addDoc, serverTimestamp, doc, getDoc } from 'firebase/firestore';
-import { Briefcase, Clock, FileText, Send, Loader, ArrowLeft, CheckCircle } from 'lucide-react';
+import { Briefcase, Clock, FileText, Send, Loader, ArrowLeft, CheckCircle, MessageSquare } from 'lucide-react';
 import BentoCard from '../components/BentoCard';
 import BentoGrid from '../components/BentoGrid';
 
@@ -18,6 +18,7 @@ export default function ManualMockInterview() {
     companyName: '',
     experienceLevel: 'fresher' as 'fresher' | 'mid' | 'senior',
     jobDescription: '',
+    interviewDescription: '',
     preferredDate: '',
     preferredTime: '',
     additionalNotes: '',
@@ -49,11 +50,12 @@ export default function ManualMockInterview() {
         company_name: formData.companyName,
         experience_level: formData.experienceLevel,
         job_description: formData.jobDescription,
+        interview_description: formData.interviewDescription,
         preferred_date: formData.preferredDate,
         preferred_time: formData.preferredTime,
         additional_notes: formData.additionalNotes,
         ticket_number: generatedTicketNumber,
-        status: 'pending',
+        status: 'approved',
         booking_status: 'unclaimed',
         assigned_hr_id: null,
         claimed_by: null,
@@ -106,8 +108,8 @@ export default function ManualMockInterview() {
               <CheckCircle className="w-4 h-4 text-emerald-600" />
               <span className="text-sm font-semibold text-emerald-700">Submitted Successfully</span>
             </div>
-            <h1 className="text-2xl font-bold text-slate-900 text-center">Your Request is Under Review</h1>
-            <p className="text-sm text-slate-500 text-center mt-1">We'll get back to you within 24–48 hours</p>
+            <h1 className="text-2xl font-bold text-slate-900 text-center">Request Submitted!</h1>
+            <p className="text-sm text-slate-500 text-center mt-1">Your ticket is now in the pool — an HR interviewer will claim it shortly</p>
           </div>
 
           <InterviewRequestCard
@@ -115,7 +117,7 @@ export default function ManualMockInterview() {
             jobRole={formData.jobRole}
             companyName={formData.companyName || null}
             ticketNumber={ticketNumber}
-            status="pending"
+            status="approved"
             preferredDate={formData.preferredDate}
             preferredTime={formData.preferredTime}
             interviewUrl={interviewUrl}
@@ -137,6 +139,7 @@ export default function ManualMockInterview() {
                   companyName: '',
                   experienceLevel: 'fresher',
                   jobDescription: '',
+                  interviewDescription: '',
                   preferredDate: '',
                   preferredTime: '',
                   additionalNotes: '',
@@ -235,22 +238,42 @@ export default function ManualMockInterview() {
                 Job Description
               </h2>
 
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  Job Description *
-                </label>
-                <textarea
-                  name="jobDescription"
-                  value={formData.jobDescription}
-                  onChange={handleChange}
-                  required
-                  rows={8}
-                  placeholder="Paste the complete job description here..."
-                  className="w-full px-4 py-3 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-electric focus:border-transparent placeholder-gray-400 resize-none transition-all"
-                />
-                <p className="text-xs text-gray-500 mt-2">
-                  Include responsibilities, requirements, and qualifications for best results
-                </p>
+              <div className="space-y-5">
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    Job Description *
+                  </label>
+                  <textarea
+                    name="jobDescription"
+                    value={formData.jobDescription}
+                    onChange={handleChange}
+                    required
+                    rows={8}
+                    placeholder="Paste the complete job description here..."
+                    className="w-full px-4 py-3 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-electric focus:border-transparent placeholder-gray-400 resize-none transition-all"
+                  />
+                  <p className="text-xs text-gray-500 mt-2">
+                    Include responsibilities, requirements, and qualifications for best results
+                  </p>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2 flex items-center gap-1.5">
+                    <MessageSquare className="w-4 h-4 text-brand-electric" />
+                    Interview Description (Optional)
+                  </label>
+                  <textarea
+                    name="interviewDescription"
+                    value={formData.interviewDescription}
+                    onChange={handleChange}
+                    rows={4}
+                    placeholder="Describe what you're looking for in this interview session — specific topics, challenges you want to practice, type of questions expected..."
+                    className="w-full px-4 py-3 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-electric focus:border-transparent placeholder-gray-400 resize-none transition-all"
+                  />
+                  <p className="text-xs text-gray-500 mt-2">
+                    Help the interviewer understand your goals and what you want to get out of this session
+                  </p>
+                </div>
               </div>
             </BentoCard>
 
@@ -334,7 +357,7 @@ export default function ManualMockInterview() {
               </button>
 
               <p className="text-sm text-gray-500 text-center mt-4">
-                Our team will review your request and contact you within 24-48 hours
+                Your request goes directly to the Ticket Pool — an HR interviewer will claim it shortly
               </p>
             </BentoCard>
           </BentoGrid>

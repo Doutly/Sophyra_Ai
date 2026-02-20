@@ -29,6 +29,8 @@ import {
   BarChart2,
   ArrowUpRight,
   Settings,
+  Menu,
+  X,
 } from 'lucide-react';
 import MockInterviewModal from '../components/MockInterviewModal';
 import { InterviewRequestCard } from '../components/ui/interview-request-card';
@@ -102,6 +104,7 @@ export default function Dashboard() {
   const [userName, setUserName] = useState('');
   const [showInterviewModal, setShowInterviewModal] = useState(false);
   const [showAllRequestsModal, setShowAllRequestsModal] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const unsubscribersRef = useRef<Array<() => void>>([]);
 
   const cleanupListeners = () => {
@@ -271,6 +274,7 @@ export default function Dashboard() {
   };
 
   const handleNavAction = (action?: string) => {
+    setSidebarOpen(false);
     if (action === 'interview') setShowInterviewModal(true);
     else if (action === 'reports' && reports.length > 0) navigate(`/report/${reports[0].id}`);
     else if (action === 'manual') navigate('/interview/manual');
@@ -362,12 +366,29 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen bg-slate-50 flex">
-      <aside className="w-60 bg-white border-r border-slate-100 flex flex-col fixed h-full z-10 shadow-sm">
-        <div className="px-5 py-5 border-b border-slate-100">
+      {sidebarOpen && (
+        <div
+          className="fixed inset-0 bg-black/40 z-20 lg:hidden"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+
+      <aside className={`
+        w-60 bg-white border-r border-slate-100 flex flex-col fixed h-full z-30 shadow-sm transition-transform duration-300
+        ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
+        lg:translate-x-0
+      `}>
+        <div className="px-5 py-5 border-b border-slate-100 flex items-center justify-between">
           <div className="flex items-center space-x-2.5">
             <img src="/Adobe_Express_-_file.png" alt="Sophyra AI" className="w-8 h-8 rounded-lg" style={{mixBlendMode: 'darken'}} />
             <span className="text-[15px] font-bold text-slate-900 tracking-tight">Sophyra AI</span>
           </div>
+          <button
+            onClick={() => setSidebarOpen(false)}
+            className="lg:hidden p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-50 transition-colors"
+          >
+            <X className="w-4 h-4" />
+          </button>
         </div>
 
         <nav className="flex-1 px-3 py-4 space-y-0.5">
@@ -389,7 +410,7 @@ export default function Dashboard() {
 
         <div className="px-3 py-4 border-t border-slate-100 space-y-0.5">
           <button
-            onClick={() => navigate('/profile')}
+            onClick={() => { navigate('/profile'); setSidebarOpen(false); }}
             className="w-full flex items-center space-x-3 px-3 py-2.5 rounded-xl text-sm font-medium text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-all"
           >
             <Settings className="w-4 h-4" />
@@ -416,31 +437,39 @@ export default function Dashboard() {
         </div>
       </aside>
 
-      <div className="flex-1 ml-60 flex flex-col min-h-screen">
-        <header className="bg-white border-b border-slate-100 px-8 py-4 flex items-center justify-between sticky top-0 z-10">
-          <div>
-            <h1 className="text-[17px] font-bold text-slate-900">
-              {greeting}, {firstNameDisplay}
-            </h1>
-            <p className="text-xs text-slate-400 mt-0.5">
-              {new Date().toLocaleDateString('en-US', {
-                weekday: 'long',
-                month: 'long',
-                day: 'numeric',
-              })}
-            </p>
+      <div className="flex-1 lg:ml-60 flex flex-col min-h-screen">
+        <header className="bg-white border-b border-slate-100 px-4 sm:px-6 lg:px-8 py-3 sm:py-4 flex items-center justify-between sticky top-0 z-10">
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setSidebarOpen(true)}
+              className="lg:hidden p-2 rounded-xl text-slate-500 hover:text-slate-700 hover:bg-slate-100 transition-colors"
+            >
+              <Menu className="w-5 h-5" />
+            </button>
+            <div>
+              <h1 className="text-[15px] sm:text-[17px] font-bold text-slate-900">
+                {greeting}, {firstNameDisplay}
+              </h1>
+              <p className="text-[11px] sm:text-xs text-slate-400 mt-0.5 hidden sm:block">
+                {new Date().toLocaleDateString('en-US', {
+                  weekday: 'long',
+                  month: 'long',
+                  day: 'numeric',
+                })}
+              </p>
+            </div>
           </div>
           <button
             onClick={() => setShowInterviewModal(true)}
-            className="flex items-center space-x-2 px-4 py-2.5 bg-brand-electric text-white text-sm font-semibold rounded-xl hover:bg-brand-electric-dark transition-all shadow-sm shadow-blue-500/20"
+            className="flex items-center space-x-1.5 sm:space-x-2 px-3 sm:px-4 py-2 sm:py-2.5 bg-brand-electric text-white text-xs sm:text-sm font-semibold rounded-xl hover:bg-brand-electric-dark transition-all shadow-sm shadow-blue-500/20"
           >
-            <Play className="w-3.5 h-3.5" />
+            <Play className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
             <span>New Interview</span>
           </button>
         </header>
 
-        <main className="flex-1 px-8 py-6 space-y-6">
-          <div className="grid grid-cols-4 gap-4">
+        <main className="flex-1 px-4 sm:px-6 lg:px-8 py-4 sm:py-6 space-y-4 sm:space-y-6">
+          <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
             {[
               {
                 label: 'Total Sessions',
@@ -495,73 +524,73 @@ export default function Dashboard() {
             ].map((stat) => (
               <div
                 key={stat.label}
-                className="bg-white rounded-2xl border border-slate-100 p-5 shadow-sm hover:shadow-md transition-shadow"
+                className="bg-white rounded-xl sm:rounded-2xl border border-slate-100 p-4 sm:p-5 shadow-sm hover:shadow-md transition-shadow"
               >
-                <div className="flex items-start justify-between mb-3">
-                  <div className={`w-9 h-9 rounded-xl ${stat.bg} flex items-center justify-center`}>
-                    <stat.icon className={`w-4 h-4 ${stat.color}`} />
+                <div className="flex items-start justify-between mb-2 sm:mb-3">
+                  <div className={`w-8 h-8 sm:w-9 sm:h-9 rounded-xl ${stat.bg} flex items-center justify-center`}>
+                    <stat.icon className={`w-3.5 h-3.5 sm:w-4 sm:h-4 ${stat.color}`} />
                   </div>
-                  <ArrowUpRight className="w-3.5 h-3.5 text-slate-300" />
+                  <ArrowUpRight className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-slate-300" />
                 </div>
-                <p className="text-2xl font-bold text-slate-900 mb-0.5">{stat.value}</p>
-                <p className="text-xs font-semibold text-slate-500 mb-1">{stat.label}</p>
-                <p className="text-[11px] text-slate-400">{stat.sub}</p>
+                <p className="text-xl sm:text-2xl font-bold text-slate-900 mb-0.5">{stat.value}</p>
+                <p className="text-[11px] sm:text-xs font-semibold text-slate-500 mb-0.5 sm:mb-1">{stat.label}</p>
+                <p className="text-[10px] sm:text-[11px] text-slate-400 leading-tight">{stat.sub}</p>
               </div>
             ))}
           </div>
 
-          <div className="grid grid-cols-12 gap-5">
-            <div className="col-span-8 space-y-5">
-              <div className="bg-gradient-to-br from-slate-800 to-brand-electric-dark rounded-2xl p-7 text-white relative overflow-hidden shadow-lg shadow-blue-900/20">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-5">
+            <div className="lg:col-span-8 space-y-4 sm:space-y-5">
+              <div className="bg-gradient-to-br from-slate-800 to-brand-electric-dark rounded-2xl p-5 sm:p-7 text-white relative overflow-hidden shadow-lg shadow-blue-900/20">
                 <div className="absolute inset-0 pointer-events-none">
-                  <div className="absolute top-0 right-0 w-80 h-80 rounded-full bg-white/5 transform translate-x-1/3 -translate-y-1/3"></div>
-                  <div className="absolute bottom-0 left-0 w-56 h-56 rounded-full bg-brand-electric/10 transform -translate-x-1/3 translate-y-1/3"></div>
+                  <div className="absolute top-0 right-0 w-64 sm:w-80 h-64 sm:h-80 rounded-full bg-white/5 transform translate-x-1/3 -translate-y-1/3"></div>
+                  <div className="absolute bottom-0 left-0 w-40 sm:w-56 h-40 sm:h-56 rounded-full bg-brand-electric/10 transform -translate-x-1/3 translate-y-1/3"></div>
                 </div>
                 <div className="relative z-10 flex items-center justify-between">
-                  <div>
-                    <div className="flex items-center space-x-2 mb-3">
-                      <div className="w-6 h-6 bg-white/10 rounded-lg flex items-center justify-center">
-                        <Zap className="w-3 h-3 text-white" />
+                  <div className="flex-1">
+                    <div className="flex items-center space-x-2 mb-2 sm:mb-3">
+                      <div className="w-5 h-5 sm:w-6 sm:h-6 bg-white/10 rounded-lg flex items-center justify-center">
+                        <Zap className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-white" />
                       </div>
-                      <span className="text-white/60 text-xs font-semibold uppercase tracking-wider">
+                      <span className="text-white/60 text-[10px] sm:text-xs font-semibold uppercase tracking-wider">
                         AI Mock Interview
                       </span>
                     </div>
-                    <h2 className="text-2xl font-bold mb-2 leading-tight">
+                    <h2 className="text-xl sm:text-2xl font-bold mb-1.5 sm:mb-2 leading-tight">
                       Practice makes
                       <br />
                       perfect
                     </h2>
-                    <p className="text-white/60 text-sm mb-6 max-w-xs">
+                    <p className="text-white/60 text-xs sm:text-sm mb-4 sm:mb-6 max-w-xs">
                       Sophyra adapts questions to your role, experience, and resume in real-time.
                     </p>
-                    <div className="flex items-center space-x-3 flex-wrap gap-y-2">
+                    <div className="flex items-center flex-wrap gap-2 sm:gap-3">
                       <button
                         onClick={() => setShowInterviewModal(true)}
-                        className="flex items-center space-x-2 px-5 py-2.5 bg-white text-slate-900 text-sm font-bold rounded-xl hover:bg-slate-100 transition-all shadow-sm"
+                        className="flex items-center space-x-2 px-4 sm:px-5 py-2 sm:py-2.5 bg-white text-slate-900 text-xs sm:text-sm font-bold rounded-xl hover:bg-slate-100 transition-all shadow-sm"
                       >
-                        <Play className="w-3.5 h-3.5" />
+                        <Play className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
                         <span>Start Interview</span>
                       </button>
                       <button
                         onClick={() => navigate('/interview/manual')}
-                        className="flex items-center space-x-2 px-5 py-2.5 bg-white/10 text-white text-sm font-semibold rounded-xl hover:bg-white/15 transition-all border border-white/10"
+                        className="flex items-center space-x-2 px-4 sm:px-5 py-2 sm:py-2.5 bg-white/10 text-white text-xs sm:text-sm font-semibold rounded-xl hover:bg-white/15 transition-all border border-white/10"
                       >
-                        <Ticket className="w-3.5 h-3.5" />
+                        <Ticket className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
                         <span>Request Manual</span>
                       </button>
                     </div>
                   </div>
-                  <div className="hidden lg:block">
-                    <div className="w-32 h-32 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center">
-                      <img src="/Adobe_Express_-_file.png" alt="Sophyra" className="w-24 h-24 opacity-80" style={{mixBlendMode: 'multiply'}} />
+                  <div className="hidden xl:block ml-4 flex-shrink-0">
+                    <div className="w-28 h-28 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center">
+                      <img src="/Adobe_Express_-_file.png" alt="Sophyra" className="w-20 h-20 opacity-80" style={{mixBlendMode: 'multiply'}} />
                     </div>
                   </div>
                 </div>
               </div>
 
               <div className="bg-white rounded-2xl border border-slate-100 shadow-sm">
-                <div className="px-6 py-4 border-b border-slate-50 flex items-center justify-between">
+                <div className="px-4 sm:px-6 py-4 border-b border-slate-50 flex items-center justify-between">
                   <div>
                     <h3 className="text-sm font-bold text-slate-900">Recent Reports</h3>
                     <p className="text-xs text-slate-400 mt-0.5">{reports.length} total interviews</p>
@@ -570,12 +599,12 @@ export default function Dashboard() {
                 </div>
 
                 {reports.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-14 px-6 text-center">
-                    <div className="w-14 h-14 bg-slate-50 rounded-2xl flex items-center justify-center mb-4">
-                      <FileText className="w-7 h-7 text-slate-300" />
+                  <div className="flex flex-col items-center justify-center py-10 sm:py-14 px-6 text-center">
+                    <div className="w-12 h-12 sm:w-14 sm:h-14 bg-slate-50 rounded-2xl flex items-center justify-center mb-3 sm:mb-4">
+                      <FileText className="w-6 h-6 sm:w-7 sm:h-7 text-slate-300" />
                     </div>
                     <p className="text-sm font-semibold text-slate-700 mb-1">No interviews yet</p>
-                    <p className="text-xs text-slate-400 mb-5 max-w-[200px]">
+                    <p className="text-xs text-slate-400 mb-4 sm:mb-5 max-w-[200px]">
                       Complete your first AI interview to see performance reports here.
                     </p>
                     <button
@@ -588,11 +617,11 @@ export default function Dashboard() {
                 ) : (
                   <>
                     {recentTrend.length > 1 && (
-                      <div className="px-6 py-4 border-b border-slate-50">
+                      <div className="px-4 sm:px-6 py-4 border-b border-slate-50">
                         <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">
                           Score Trend
                         </p>
-                        <div className="flex items-end space-x-2 h-12">
+                        <div className="flex items-end space-x-2 h-10 sm:h-12">
                           {recentTrend.map((r, i) => (
                             <div
                               key={r.id}
@@ -618,22 +647,22 @@ export default function Dashboard() {
                         <div
                           key={report.id}
                           onClick={() => navigate(`/report/${report.id}`)}
-                          className="flex items-center px-6 py-4 hover:bg-slate-50/70 cursor-pointer transition-colors group"
+                          className="flex items-center px-4 sm:px-6 py-3 sm:py-4 hover:bg-slate-50/70 cursor-pointer transition-colors group"
                         >
                           <div
-                            className={`w-10 h-10 rounded-xl border flex items-center justify-center flex-shrink-0 mr-4 ${getScoreBg(report.overall_score)}`}
+                            className={`w-9 h-9 sm:w-10 sm:h-10 rounded-xl border flex items-center justify-center flex-shrink-0 mr-3 sm:mr-4 ${getScoreBg(report.overall_score)}`}
                           >
                             <span
-                              className={`text-sm font-bold ${getScoreColor(report.overall_score)}`}
+                              className={`text-xs sm:text-sm font-bold ${getScoreColor(report.overall_score)}`}
                             >
                               {report.overall_score}
                             </span>
                           </div>
                           <div className="flex-1 min-w-0">
-                            <p className="text-sm font-semibold text-gray-900 truncate">
+                            <p className="text-xs sm:text-sm font-semibold text-gray-900 truncate">
                               {report.session.role}
                             </p>
-                            <p className="text-xs text-gray-400 mt-0.5">
+                            <p className="text-[10px] sm:text-xs text-gray-400 mt-0.5 truncate">
                               {report.session.company ? `${report.session.company} · ` : ''}
                               {new Date(report.created_at).toLocaleDateString('en-US', {
                                 month: 'short',
@@ -642,19 +671,19 @@ export default function Dashboard() {
                               })}
                             </p>
                           </div>
-                          <div className="flex items-center space-x-3">
+                          <div className="flex items-center space-x-2 sm:space-x-3 flex-shrink-0">
                             <span
-                              className={`text-xs font-semibold px-2.5 py-1 rounded-lg border ${getScoreBg(report.overall_score)} ${getScoreColor(report.overall_score)}`}
+                              className={`text-[10px] sm:text-xs font-semibold px-2 py-0.5 sm:py-1 rounded-lg border ${getScoreBg(report.overall_score)} ${getScoreColor(report.overall_score)}`}
                             >
                               {getScoreLabel(report.overall_score)}
                             </span>
-                            <ChevronRight className="w-4 h-4 text-slate-300 group-hover:text-slate-500 transition-colors" />
+                            <ChevronRight className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-slate-300 group-hover:text-slate-500 transition-colors" />
                           </div>
                         </div>
                       ))}
                     </div>
                     {reports.length > 5 && (
-                      <div className="px-6 py-3 border-t border-slate-50">
+                      <div className="px-4 sm:px-6 py-3 border-t border-slate-50">
                         <button
                           onClick={() => navigate(`/report/${reports[0].id}`)}
                           className="text-xs text-slate-500 font-semibold hover:text-slate-900 transition-colors flex items-center space-x-1"
@@ -669,9 +698,9 @@ export default function Dashboard() {
               </div>
             </div>
 
-            <div className="col-span-4 space-y-5">
+            <div className="lg:col-span-4 space-y-4 sm:space-y-5">
               <div className="bg-white rounded-2xl border border-slate-100 shadow-sm">
-                <div className="px-5 py-4 border-b border-slate-50 flex items-center justify-between">
+                <div className="px-4 sm:px-5 py-4 border-b border-slate-50 flex items-center justify-between">
                   <div>
                     <h3 className="text-sm font-bold text-slate-900">My Requests</h3>
                     <p className="text-xs text-slate-400 mt-0.5">Manual interviews</p>
@@ -680,7 +709,7 @@ export default function Dashboard() {
                 </div>
 
                 {mockRequests.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-10 px-5 text-center">
+                  <div className="flex flex-col items-center justify-center py-8 sm:py-10 px-5 text-center">
                     <div className="w-10 h-10 bg-slate-50 rounded-xl flex items-center justify-center mb-3">
                       <Ticket className="w-5 h-5 text-slate-300" />
                     </div>
@@ -696,7 +725,7 @@ export default function Dashboard() {
                     </button>
                   </div>
                 ) : (
-                  <div className="p-4 space-y-3">
+                  <div className="p-3 sm:p-4 space-y-3">
                     <InterviewRequestCard
                       candidateName={userName || user?.displayName || user?.email?.split('@')[0] || 'Candidate'}
                       jobRole={mockRequests[0].job_role}
@@ -730,7 +759,7 @@ export default function Dashboard() {
               </div>
 
               <div className="bg-white rounded-2xl border border-slate-100 shadow-sm">
-                <div className="px-5 py-4 border-b border-slate-50 flex items-center justify-between">
+                <div className="px-4 sm:px-5 py-4 border-b border-slate-50 flex items-center justify-between">
                   <div>
                     <h3 className="text-sm font-bold text-slate-900">Coaching Tips</h3>
                     <p className="text-xs text-slate-400 mt-0.5">
@@ -740,7 +769,7 @@ export default function Dashboard() {
                   <Lightbulb className="w-4 h-4 text-amber-400" />
                 </div>
 
-                <div className="p-5 space-y-4">
+                <div className="p-4 sm:p-5 space-y-4">
                   {!tips && (
                     <div className="flex items-start space-x-2 p-3 bg-blue-50 rounded-xl border border-blue-100">
                       <AlertCircle className="w-3.5 h-3.5 text-blue-500 flex-shrink-0 mt-0.5" />
