@@ -35,6 +35,7 @@ import {
 import MockInterviewModal from '../components/MockInterviewModal';
 import { InterviewRequestCard } from '../components/ui/interview-request-card';
 import { AllRequestsModal } from '../components/ui/AllRequestsModal';
+import ReportCard, { AllReportsModal, ReportCardSkeleton } from '../components/ui/ReportCard';
 
 const DEFAULT_TIPS = {
   identified_weaknesses: [
@@ -104,6 +105,7 @@ export default function Dashboard() {
   const [userName, setUserName] = useState('');
   const [showInterviewModal, setShowInterviewModal] = useState(false);
   const [showAllRequestsModal, setShowAllRequestsModal] = useState(false);
+  const [showAllReportsModal, setShowAllReportsModal] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const unsubscribersRef = useRef<Array<() => void>>([]);
 
@@ -287,27 +289,6 @@ export default function Dashboard() {
       : 0;
   const bestScore = reports.length > 0 ? Math.max(...reports.map((r) => r.overall_score)) : 0;
   const recentTrend = reports.slice(0, 5).reverse();
-
-  const getScoreColor = (score: number) => {
-    if (score >= 85) return 'text-emerald-600';
-    if (score >= 70) return 'text-blue-600';
-    if (score >= 50) return 'text-amber-600';
-    return 'text-red-500';
-  };
-
-  const getScoreBg = (score: number) => {
-    if (score >= 85) return 'bg-emerald-50 border-emerald-100';
-    if (score >= 70) return 'bg-blue-50 border-blue-100';
-    if (score >= 50) return 'bg-amber-50 border-amber-100';
-    return 'bg-red-50 border-red-100';
-  };
-
-  const getScoreLabel = (score: number) => {
-    if (score >= 85) return 'Excellent';
-    if (score >= 70) return 'Strong';
-    if (score >= 50) return 'Good';
-    return 'Needs Work';
-  };
 
   const getScoreBarColor = (score: number) => {
     if (score >= 85) return 'bg-emerald-500';
@@ -595,7 +576,18 @@ export default function Dashboard() {
                     <h3 className="text-sm font-bold text-slate-900">Recent Reports</h3>
                     <p className="text-xs text-slate-400 mt-0.5">{reports.length} total interviews</p>
                   </div>
-                  <TrendingUp className="w-4 h-4 text-slate-300" />
+                  <div className="flex items-center gap-2">
+                    {reports.length > 0 && (
+                      <button
+                        onClick={() => setShowAllReportsModal(true)}
+                        className="flex items-center gap-1 text-xs text-brand-electric font-semibold hover:text-brand-electric-dark transition-colors"
+                      >
+                        See all
+                        <ChevronRight className="w-3 h-3" />
+                      </button>
+                    )}
+                    <TrendingUp className="w-4 h-4 text-slate-300" />
+                  </div>
                 </div>
 
                 {reports.length === 0 ? (
@@ -617,11 +609,11 @@ export default function Dashboard() {
                 ) : (
                   <>
                     {recentTrend.length > 1 && (
-                      <div className="px-4 sm:px-6 py-4 border-b border-slate-50">
-                        <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">
+                      <div className="px-4 sm:px-6 py-3 border-b border-slate-50">
+                        <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-2.5">
                           Score Trend
                         </p>
-                        <div className="flex items-end space-x-2 h-10 sm:h-12">
+                        <div className="flex items-end space-x-2 h-8">
                           {recentTrend.map((r, i) => (
                             <div
                               key={r.id}
@@ -634,7 +626,7 @@ export default function Dashboard() {
                                 className={`w-full rounded-t-md transition-all ${getScoreBarColor(r.overall_score)} ${
                                   i === recentTrend.length - 1 ? 'opacity-100' : 'opacity-40'
                                 }`}
-                                style={{ height: `${Math.max(6, (r.overall_score / 100) * 40)}px` }}
+                                style={{ height: `${Math.max(5, (r.overall_score / 100) * 30)}px` }}
                               ></div>
                             </div>
                           ))}
@@ -642,57 +634,34 @@ export default function Dashboard() {
                       </div>
                     )}
 
-                    <div className="divide-y divide-slate-50">
-                      {reports.slice(0, 5).map((report) => (
-                        <div
-                          key={report.id}
-                          onClick={() => navigate(`/report/${report.id}`)}
-                          className="flex items-center px-4 sm:px-6 py-3 sm:py-4 hover:bg-slate-50/70 cursor-pointer transition-colors group"
-                        >
-                          <div
-                            className={`w-9 h-9 sm:w-10 sm:h-10 rounded-xl border flex items-center justify-center flex-shrink-0 mr-3 sm:mr-4 ${getScoreBg(report.overall_score)}`}
-                          >
-                            <span
-                              className={`text-xs sm:text-sm font-bold ${getScoreColor(report.overall_score)}`}
-                            >
-                              {report.overall_score}
-                            </span>
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <p className="text-xs sm:text-sm font-semibold text-gray-900 truncate">
-                              {report.session.role}
-                            </p>
-                            <p className="text-[10px] sm:text-xs text-gray-400 mt-0.5 truncate">
-                              {report.session.company ? `${report.session.company} · ` : ''}
-                              {new Date(report.created_at).toLocaleDateString('en-US', {
-                                month: 'short',
-                                day: 'numeric',
-                                year: 'numeric',
-                              })}
-                            </p>
-                          </div>
-                          <div className="flex items-center space-x-2 sm:space-x-3 flex-shrink-0">
-                            <span
-                              className={`text-[10px] sm:text-xs font-semibold px-2 py-0.5 sm:py-1 rounded-lg border ${getScoreBg(report.overall_score)} ${getScoreColor(report.overall_score)}`}
-                            >
-                              {getScoreLabel(report.overall_score)}
-                            </span>
-                            <ChevronRight className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-slate-300 group-hover:text-slate-500 transition-colors" />
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                    {reports.length > 5 && (
-                      <div className="px-4 sm:px-6 py-3 border-t border-slate-50">
-                        <button
-                          onClick={() => navigate(`/report/${reports[0].id}`)}
-                          className="text-xs text-slate-500 font-semibold hover:text-slate-900 transition-colors flex items-center space-x-1"
-                        >
-                          <span>View all {reports.length} reports</span>
-                          <ChevronRight className="w-3 h-3" />
-                        </button>
+                    <div className="p-4 sm:p-5">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        {loading
+                          ? [1, 2, 3, 4].map((i) => <ReportCardSkeleton key={i} />)
+                          : reports.slice(0, 6).map((report, i) => (
+                              <ReportCard
+                                key={report.id}
+                                id={report.id}
+                                overallScore={report.overall_score}
+                                role={report.session.role}
+                                company={report.session.company}
+                                createdAt={report.created_at}
+                                onClick={() => navigate(`/report/${report.id}`)}
+                                index={i}
+                              />
+                            ))}
                       </div>
-                    )}
+
+                      {reports.length > 6 && (
+                        <button
+                          onClick={() => setShowAllReportsModal(true)}
+                          className="w-full mt-4 flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-semibold text-slate-600 bg-slate-50 hover:bg-slate-100 border border-slate-200 hover:border-slate-300 transition-all"
+                        >
+                          <span>See all {reports.length} reports</span>
+                          <ChevronRight className="w-3.5 h-3.5" />
+                        </button>
+                      )}
+                    </div>
                   </>
                 )}
               </div>
@@ -840,6 +809,17 @@ export default function Dashboard() {
               setShowAllRequestsModal(false);
               setShowInterviewModal(true);
             }
+          }}
+        />
+      )}
+
+      {showAllReportsModal && (
+        <AllReportsModal
+          reports={reports}
+          onClose={() => setShowAllReportsModal(false)}
+          onSelectReport={(id) => {
+            setShowAllReportsModal(false);
+            navigate(`/report/${id}`);
           }}
         />
       )}

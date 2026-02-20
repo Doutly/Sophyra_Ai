@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { db } from '../lib/firebase';
+import { downloadReportPDF } from '../lib/pdfExport';
 import { doc, getDoc, collection, addDoc, query, where, limit, getDocs, serverTimestamp } from 'firebase/firestore';
 import { motion } from 'framer-motion';
 import {
@@ -267,6 +268,7 @@ export default function Report() {
   const [showShareDialog, setShowShareDialog] = useState(false);
   const [copied, setCopied] = useState(false);
   const [activeTab, setActiveTab] = useState<'overview' | 'transcript'>('overview');
+  const [downloadingPDF, setDownloadingPDF] = useState(false);
 
   useEffect(() => {
     if (!user) {
@@ -484,8 +486,24 @@ export default function Report() {
   };
 
   const shareToLinkedIn = () => {
-    const url = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(shareLink || window.location.href)}`;
+    const shareUrl = shareLink || window.location.href;
+    const message = report
+      ? `I just completed an AI mock interview on Sophyra AI and scored ${report.overall_score}/100 for ${report.sessions.role}! Check my full performance report:`
+      : `I just completed an AI mock interview on Sophyra AI! Check my performance report:`;
+    const url = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(shareUrl)}&summary=${encodeURIComponent(message)}`;
     window.open(url, '_blank');
+  };
+
+  const handleDownloadPDF = async () => {
+    if (!report || downloadingPDF) return;
+    setDownloadingPDF(true);
+    try {
+      await downloadReportPDF(report, reportId || 'report');
+    } catch (err) {
+      console.error('PDF export error:', err);
+    } finally {
+      setDownloadingPDF(false);
+    }
   };
 
   if (loading || generatingReport) {
@@ -556,11 +574,21 @@ export default function Report() {
                 <span>Share</span>
               </button>
               <button
-                onClick={() => alert('PDF export will be available shortly')}
-                className="flex items-center space-x-1.5 px-3.5 py-2 text-white bg-slate-800 hover:bg-slate-900 rounded-lg text-sm font-medium transition-colors"
+                onClick={handleDownloadPDF}
+                disabled={downloadingPDF}
+                className="flex items-center space-x-1.5 px-3.5 py-2 text-white bg-slate-800 hover:bg-slate-900 rounded-lg text-sm font-medium transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
               >
-                <Download className="w-3.5 h-3.5" />
-                <span>Download PDF</span>
+                {downloadingPDF ? (
+                  <>
+                    <div className="w-3.5 h-3.5 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+                    <span>Exporting...</span>
+                  </>
+                ) : (
+                  <>
+                    <Download className="w-3.5 h-3.5" />
+                    <span>Download PDF</span>
+                  </>
+                )}
               </button>
             </div>
           </div>
