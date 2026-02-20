@@ -44,7 +44,7 @@ const InfoItem = ({
 
 const statusConfig = {
   pending: { label: "Pending Review", classes: "bg-amber-50 text-amber-700 border-amber-200" },
-  approved: { label: "Approved", classes: "bg-emerald-50 text-emerald-700 border-emerald-200" },
+  approved: { label: "In Pool — Awaiting HR", classes: "bg-cyan-50 text-cyan-700 border-cyan-200" },
   rejected: { label: "Rejected", classes: "bg-red-50 text-red-700 border-red-200" },
   completed: { label: "Completed", classes: "bg-slate-100 text-slate-600 border-slate-200" },
 };
@@ -201,10 +201,10 @@ export const InterviewRequestCard = ({
           )}
 
           {isWaitingForSchedule && (
-            <div className="mt-3 flex items-center gap-2 p-2.5 bg-amber-50 rounded-xl border border-amber-100">
-              <Clock className="h-3.5 w-3.5 text-amber-600 flex-shrink-0" />
-              <p className="text-[11px] text-amber-700 font-semibold">
-                Approved — waiting for HR to schedule your meeting
+            <div className="mt-3 flex items-center gap-2 p-2.5 bg-cyan-50 rounded-xl border border-cyan-100">
+              <Clock className="h-3.5 w-3.5 text-cyan-600 flex-shrink-0" />
+              <p className="text-[11px] text-cyan-700 font-semibold">
+                Your ticket is in the pool — an HR interviewer will claim and schedule it shortly
               </p>
             </div>
           )}

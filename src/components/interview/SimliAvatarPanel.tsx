@@ -21,21 +21,31 @@ interface SimliAvatarPanelProps {
 }
 
 async function fetchSessionToken(): Promise<string> {
-  const res = await fetch('https://api.simli.ai/startAudioToVideoSession', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      apiKey: SIMLI_API_KEY,
-      faceId: SIMLI_FACE_ID,
-      handleSilence: true,
-      maxSessionLength: 600,
-      maxIdleTime: 180,
-    }),
-  });
-  if (!res.ok) throw new Error(`Simli session request failed: ${res.status}`);
-  const data = await res.json();
-  if (!data.session_token) throw new Error('No session token in response');
-  return data.session_token;
+  const attemptFetch = async (): Promise<string> => {
+    const res = await fetch('https://api.simli.ai/startAudioToVideoSession', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        apiKey: SIMLI_API_KEY,
+        faceId: SIMLI_FACE_ID,
+        handleSilence: true,
+        maxSessionLength: 600,
+        maxIdleTime: 180,
+        user_id: 'session_' + Date.now(),
+      }),
+    });
+    if (!res.ok) throw new Error(`Simli session request failed: ${res.status}`);
+    const data = await res.json();
+    if (!data.session_token) throw new Error('No session token in response');
+    return data.session_token;
+  };
+
+  try {
+    return await attemptFetch();
+  } catch (err) {
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    return await attemptFetch();
+  }
 }
 
 const SimliAvatarPanel = forwardRef<SimliAvatarPanelHandle, SimliAvatarPanelProps>(
@@ -116,7 +126,7 @@ const SimliAvatarPanel = forwardRef<SimliAvatarPanelHandle, SimliAvatarPanelProp
 
           client.on('startup_error', (msg: string) => {
             if (cancelled) return;
-            console.error('Simli startup error:', msg);
+            console.error('Simli startup error (full message):', msg);
             updateStatus('fallback');
             setVideoVisible(false);
           });
