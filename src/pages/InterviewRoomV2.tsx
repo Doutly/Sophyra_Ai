@@ -11,18 +11,23 @@ import {
   VideoOff,
   PhoneOff,
   MessageSquare,
-  X,
   Wifi,
   WifiOff,
   Brain,
-  AlertCircle,
-  Loader2,
+  Code2,
+  Users,
+  Volume2,
+  VolumeX,
+  CheckCircle2,
 } from 'lucide-react';
+import CodeEditorPanel from '../components/interview/CodeEditorPanel';
+import TranscriptSidebar from '../components/interview/TranscriptSidebar';
+import PreInterviewScreen from '../components/interview/PreInterviewScreen';
 
 const AGENT_ID = import.meta.env.VITE_ELEVENLABS_AGENT_ID;
 const MAX_JD_LENGTH = 800;
 
-interface TranscriptMessage {
+export interface TranscriptMessage {
   id: string;
   source: 'user' | 'ai';
   message: string;
@@ -41,7 +46,9 @@ export default function InterviewRoomV2() {
   const [ended, setEnded] = useState(false);
   const [micEnabled, setMicEnabled] = useState(true);
   const [cameraEnabled, setCameraEnabled] = useState(true);
+  const [speakerEnabled, setSpeakerEnabled] = useState(true);
   const [showTranscript, setShowTranscript] = useState(false);
+  const [showCodeEditor, setShowCodeEditor] = useState(false);
   const [transcript, setTranscript] = useState<TranscriptMessage[]>([]);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [cameraError, setCameraError] = useState(false);
@@ -50,7 +57,6 @@ export default function InterviewRoomV2() {
   const videoRef = useRef<HTMLVideoElement>(null);
   const localStreamRef = useRef<MediaStream | null>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const transcriptEndRef = useRef<HTMLDivElement>(null);
   const candidateNameRef = useRef('Candidate');
   const startedRef = useRef(false);
   const endedRef = useRef(false);
@@ -128,10 +134,6 @@ export default function InterviewRoomV2() {
       if (timerRef.current) clearInterval(timerRef.current);
     };
   }, [user, sessionId]);
-
-  useEffect(() => {
-    transcriptEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [transcript]);
 
   const initRoom = async () => {
     try {
@@ -300,46 +302,92 @@ export default function InterviewRoomV2() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-950 flex items-center justify-center">
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
         <div className="text-center">
           <div className="w-12 h-12 border-4 border-brand-electric border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-slate-400 text-sm">Preparing your interview room...</p>
+          <p className="text-slate-500 text-sm font-medium">Preparing your interview room...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!started && !ended) {
+    return (
+      <PreInterviewScreen
+        session={session}
+        candidateName={candidateNameRef.current}
+        videoRef={videoRef}
+        cameraEnabled={cameraEnabled}
+        cameraError={cameraError}
+        micEnabled={micEnabled}
+        connecting={connecting}
+        startError={startError}
+        onStart={handleStart}
+        onToggleCamera={toggleCamera}
+        onToggleMic={toggleMic}
+      />
+    );
+  }
+
+  if (ended) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+        <div className="bg-white rounded-3xl shadow-swiss-xl border border-slate-100 p-12 text-center max-w-sm w-full mx-4 animate-scale-in">
+          <div className="w-16 h-16 bg-green-50 rounded-full flex items-center justify-center mx-auto mb-5">
+            <CheckCircle2 className="w-8 h-8 text-green-500" />
+          </div>
+          <h2 className="text-2xl font-bold text-slate-900 mb-2">Interview Complete</h2>
+          <p className="text-slate-500 text-sm mb-2">
+            Duration: <span className="font-semibold text-slate-700">{formatTime(elapsedSeconds)}</span>
+          </p>
+          <p className="text-slate-400 text-sm mb-6">Generating your performance report...</p>
+          <div className="flex justify-center space-x-1.5">
+            {[0, 1, 2].map((i) => (
+              <div
+                key={i}
+                className="w-2 h-2 bg-brand-electric rounded-full animate-bounce"
+                style={{ animationDelay: `${i * 150}ms` }}
+              />
+            ))}
+          </div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-slate-950 flex flex-col select-none">
-      <header className="flex items-center justify-between px-6 py-4 border-b border-white/5">
+    <div className="h-screen bg-slate-50 flex flex-col overflow-hidden select-none">
+      <header className="flex-shrink-0 flex items-center justify-between px-5 py-3 bg-white border-b border-slate-200 shadow-swiss-sm">
         <div className="flex items-center space-x-3">
-          <div className="w-8 h-8 bg-brand-electric rounded-lg flex items-center justify-center">
+          <div className="w-8 h-8 bg-brand-electric rounded-lg flex items-center justify-center shadow-sm">
             <Brain className="w-4 h-4 text-white" />
           </div>
           <div>
-            <p className="text-white font-semibold text-sm leading-none">
+            <p className="text-slate-900 font-semibold text-sm leading-none">
               {session?.role || 'Mock Interview'}
             </p>
             {session?.company && (
-              <p className="text-slate-500 text-xs mt-0.5">{session.company}</p>
+              <p className="text-slate-400 text-xs mt-0.5">{session.company}</p>
             )}
           </div>
         </div>
 
-        <div className="flex items-center space-x-3">
+        <div className="flex items-center space-x-2">
           {started && !ended && (
-            <div className="flex items-center space-x-2 bg-white/5 border border-white/10 rounded-full px-3 py-1.5">
-              <span className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></span>
-              <span className="text-white text-sm font-mono tabular-nums">{formatTime(elapsedSeconds)}</span>
+            <div className="flex items-center space-x-2 bg-red-50 border border-red-100 rounded-full px-3.5 py-1.5">
+              <span className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
+              <span className="text-slate-800 text-sm font-mono font-semibold tabular-nums tracking-wider">
+                {formatTime(elapsedSeconds)}
+              </span>
             </div>
           )}
 
-          <div className={`flex items-center space-x-1.5 rounded-full px-3 py-1.5 text-xs font-medium ${
+          <div className={`flex items-center space-x-1.5 rounded-full px-3 py-1.5 text-xs font-medium border ${
             connectionStatus === 'connected'
-              ? 'bg-green-500/10 text-green-400 border border-green-500/20'
+              ? 'bg-green-50 text-green-700 border-green-200'
               : connectionStatus === 'connecting'
-              ? 'bg-yellow-500/10 text-yellow-400 border border-yellow-500/20'
-              : 'bg-slate-700/50 text-slate-400 border border-slate-600/30'
+              ? 'bg-amber-50 text-amber-700 border-amber-200'
+              : 'bg-slate-100 text-slate-500 border-slate-200'
           }`}>
             {connectionStatus === 'connected' ? (
               <Wifi className="w-3 h-3" />
@@ -347,214 +395,212 @@ export default function InterviewRoomV2() {
               <WifiOff className="w-3 h-3" />
             )}
             <span className="capitalize">
-              {connectionStatus === 'connected' ? 'Live' : connectionStatus === 'connecting' ? 'Connecting' : 'Ready'}
+              {connectionStatus === 'connected'
+                ? 'Live'
+                : connectionStatus === 'connecting'
+                ? 'Connecting'
+                : 'Ready'}
             </span>
           </div>
-
-          <button
-            onClick={() => setShowTranscript((v) => !v)}
-            className={`p-2 rounded-lg transition-all ${showTranscript ? 'bg-brand-electric text-white' : 'text-slate-400 hover:text-white hover:bg-white/5'}`}
-          >
-            <MessageSquare className="w-4 h-4" />
-          </button>
         </div>
       </header>
 
-      <main className="flex-1 flex overflow-hidden">
-        <div className="flex-1 p-4 flex items-center justify-center">
-          <div className="w-full max-w-5xl">
-            {!started && !ended ? (
-              <div className="flex flex-col items-center justify-center min-h-[60vh] text-center">
-                <div className="w-24 h-24 bg-brand-electric/10 border border-brand-electric/30 rounded-3xl flex items-center justify-center mb-6">
-                  <Brain className="w-12 h-12 text-brand-electric" />
+      <main className="flex-1 flex overflow-hidden min-h-0">
+        <div className="flex-1 flex flex-col overflow-hidden min-w-0">
+          <div className={`flex-1 p-4 grid gap-4 min-h-0 ${showCodeEditor ? 'grid-rows-[1fr_auto]' : 'grid-rows-[1fr]'}`}>
+            <div className="grid grid-cols-2 gap-4 min-h-0">
+              <div className="relative bg-slate-900 rounded-2xl overflow-hidden border border-slate-800 shadow-swiss-lg flex items-center justify-center min-h-0">
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="relative flex items-center justify-center">
+                    {isSpeaking && (
+                      <>
+                        <div className="absolute w-36 h-36 rounded-full bg-brand-electric/10 animate-ping" />
+                        <div className="absolute w-44 h-44 rounded-full bg-brand-electric/5 animate-ping" style={{ animationDelay: '300ms' }} />
+                      </>
+                    )}
+                    <div className={`w-28 h-28 rounded-full flex items-center justify-center transition-all duration-300 ${
+                      isSpeaking
+                        ? 'bg-brand-electric/20 border-2 border-brand-electric/50 shadow-blue-glow'
+                        : 'bg-slate-800 border border-slate-700'
+                    }`}>
+                      <Brain className={`w-14 h-14 transition-colors duration-300 ${isSpeaking ? 'text-brand-electric' : 'text-slate-500'}`} />
+                    </div>
+                  </div>
                 </div>
-                <h2 className="text-2xl font-bold text-white mb-2">Ready when you are</h2>
-                <p className="text-slate-400 text-sm mb-8 max-w-xs">
-                  Sophyra will conduct your {session?.role} interview. Make sure your microphone is on before starting.
-                </p>
 
-                {startError && (
-                  <div className="mb-6 flex items-start space-x-2 bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-3 max-w-sm w-full text-left">
-                    <AlertCircle className="w-4 h-4 text-red-400 flex-shrink-0 mt-0.5" />
-                    <p className="text-xs text-red-300">{startError}</p>
+                {isSpeaking && (
+                  <div className="absolute bottom-14 left-0 right-0 flex items-end justify-center space-x-0.5 h-8 px-8">
+                    {Array.from({ length: 16 }).map((_, i) => (
+                      <div
+                        key={i}
+                        className="flex-1 bg-brand-electric rounded-full animate-pulse"
+                        style={{
+                          height: `${25 + Math.sin(i * 0.8) * 60}%`,
+                          minHeight: '4px',
+                          animationDelay: `${i * 45}ms`,
+                          animationDuration: `${350 + i * 40}ms`,
+                        }}
+                      />
+                    ))}
                   </div>
                 )}
 
-                <div className="bg-white/5 border border-white/10 rounded-2xl p-5 mb-8 text-left max-w-sm w-full space-y-2">
-                  <p className="text-xs text-slate-400 font-semibold uppercase tracking-wider mb-3">What to expect</p>
-                  {['8 tailored questions for your role', 'Natural voice conversation', '15–20 minute session', 'Detailed performance report after'].map((item, i) => (
-                    <div key={i} className="flex items-center space-x-2 text-sm text-slate-300">
-                      <span className="w-1.5 h-1.5 bg-brand-electric rounded-full flex-shrink-0"></span>
-                      <span>{item}</span>
-                    </div>
-                  ))}
-                </div>
-
-                <button
-                  onClick={handleStart}
-                  disabled={connecting}
-                  className="px-10 py-4 bg-brand-electric text-white font-bold rounded-2xl hover:bg-brand-electric-dark transition-all shadow-lg shadow-brand-electric/30 text-base disabled:opacity-60 disabled:cursor-not-allowed flex items-center space-x-2"
-                >
-                  {connecting ? (
-                    <>
-                      <Loader2 className="w-5 h-5 animate-spin" />
-                      <span>Connecting...</span>
-                    </>
-                  ) : (
-                    <span>Start Interview</span>
-                  )}
-                </button>
-              </div>
-            ) : ended ? (
-              <div className="flex flex-col items-center justify-center min-h-[60vh] text-center">
-                <div className="w-20 h-20 bg-slate-800 rounded-full flex items-center justify-center mb-6">
-                  <PhoneOff className="w-10 h-10 text-slate-400" />
-                </div>
-                <h2 className="text-2xl font-bold text-white mb-2">Interview Complete</h2>
-                <p className="text-slate-400 text-sm">Generating your performance report...</p>
-                <div className="mt-4 flex space-x-1">
-                  {[0, 1, 2].map((i) => (
-                    <div key={i} className="w-2 h-2 bg-brand-electric rounded-full animate-bounce" style={{ animationDelay: `${i * 150}ms` }}></div>
-                  ))}
-                </div>
-              </div>
-            ) : (
-              <div className="grid grid-cols-2 gap-4 h-[calc(100vh-180px)]">
-                <div className="relative bg-slate-900 rounded-2xl overflow-hidden border border-white/5 flex items-center justify-center">
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <div className="relative">
-                      {isSpeaking && (
-                        <>
-                          <div className="absolute inset-0 rounded-full bg-brand-electric/10 animate-ping scale-150"></div>
-                          <div className="absolute inset-0 rounded-full bg-brand-electric/5 animate-ping scale-200" style={{ animationDelay: '200ms' }}></div>
-                        </>
-                      )}
-                      <div className={`w-28 h-28 rounded-full flex items-center justify-center transition-all ${isSpeaking ? 'bg-brand-electric/20 border-2 border-brand-electric/60 shadow-lg shadow-brand-electric/20' : 'bg-slate-800 border border-white/10'}`}>
-                        <Brain className={`w-14 h-14 transition-colors ${isSpeaking ? 'text-brand-electric' : 'text-slate-500'}`} />
-                      </div>
-                    </div>
-                  </div>
-
-                  {isSpeaking && (
-                    <div className="absolute bottom-16 left-0 right-0 flex items-end justify-center space-x-1 h-8">
-                      {Array.from({ length: 12 }).map((_, i) => (
-                        <div
-                          key={i}
-                          className="w-1 bg-brand-electric rounded-full animate-pulse"
-                          style={{
-                            height: `${20 + (i % 4) * 20}%`,
-                            animationDelay: `${i * 60}ms`,
-                            animationDuration: `${400 + i * 50}ms`,
-                          }}
-                        ></div>
-                      ))}
-                    </div>
-                  )}
-
-                  <div className="absolute bottom-4 left-4 bg-black/60 backdrop-blur-sm rounded-lg px-3 py-1.5 flex items-center space-x-2">
+                <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between">
+                  <div className="bg-black/60 backdrop-blur-sm rounded-lg px-3 py-1.5 flex items-center space-x-2">
+                    <div className={`w-1.5 h-1.5 rounded-full ${isSpeaking ? 'bg-green-400 animate-pulse' : 'bg-slate-500'}`} />
                     <span className="text-xs font-semibold text-white">Sophyra AI</span>
-                    {isSpeaking && <span className="text-xs text-brand-electric">Speaking...</span>}
+                    {isSpeaking && (
+                      <span className="text-xs text-brand-electric-light font-medium">Speaking...</span>
+                    )}
+                  </div>
+                  <div className="bg-black/40 backdrop-blur-sm rounded-md px-2 py-1">
+                    <span className="text-xs text-slate-400">HR Interviewer</span>
                   </div>
                 </div>
+              </div>
 
-                <div className="relative bg-slate-900 rounded-2xl overflow-hidden border border-white/5">
-                  <video
-                    ref={videoRef}
-                    autoPlay
-                    muted
-                    playsInline
-                    className={`w-full h-full object-cover scale-x-[-1] ${!cameraEnabled || cameraError ? 'hidden' : ''}`}
-                  />
+              <div className="relative bg-slate-900 rounded-2xl overflow-hidden border border-slate-800 shadow-swiss-lg min-h-0">
+                <video
+                  ref={videoRef}
+                  autoPlay
+                  muted
+                  playsInline
+                  className={`w-full h-full object-cover scale-x-[-1] ${!cameraEnabled || cameraError ? 'hidden' : ''}`}
+                />
 
-                  {(!cameraEnabled || cameraError) && (
-                    <div className="absolute inset-0 flex items-center justify-center bg-slate-900">
-                      <div className="w-20 h-20 rounded-full bg-slate-700 flex items-center justify-center">
-                        <span className="text-3xl font-bold text-slate-400">
+                {(!cameraEnabled || cameraError) && (
+                  <div className="absolute inset-0 flex items-center justify-center bg-slate-900">
+                    <div className="text-center">
+                      <div className="w-20 h-20 rounded-full bg-slate-700 border border-slate-600 flex items-center justify-center mx-auto mb-3">
+                        <span className="text-3xl font-bold text-slate-300">
                           {candidateNameRef.current.charAt(0).toUpperCase()}
                         </span>
                       </div>
+                      <p className="text-slate-500 text-xs">Camera off</p>
                     </div>
-                  )}
+                  </div>
+                )}
 
-                  <div className="absolute bottom-4 left-4 bg-black/60 backdrop-blur-sm rounded-lg px-3 py-1.5 flex items-center space-x-2">
+                <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between">
+                  <div className="bg-black/60 backdrop-blur-sm rounded-lg px-3 py-1.5 flex items-center space-x-2">
+                    <div className="w-1.5 h-1.5 rounded-full bg-blue-400" />
                     <span className="text-xs font-semibold text-white">{candidateNameRef.current}</span>
                     {!micEnabled && <MicOff className="w-3 h-3 text-red-400" />}
                   </div>
-
-                  {!micEnabled && (
-                    <div className="absolute top-3 right-3 bg-red-500/20 border border-red-500/40 rounded-full p-1.5">
-                      <MicOff className="w-3 h-3 text-red-400" />
-                    </div>
-                  )}
+                  <div className="bg-black/40 backdrop-blur-sm rounded-md px-2 py-1">
+                    <span className="text-xs text-slate-400">You</span>
+                  </div>
                 </div>
+
+                {!micEnabled && (
+                  <div className="absolute top-3 right-3 bg-red-500/20 border border-red-500/40 rounded-full p-1.5">
+                    <MicOff className="w-3 h-3 text-red-400" />
+                  </div>
+                )}
               </div>
+            </div>
+
+            {showCodeEditor && (
+              <CodeEditorPanel onClose={() => setShowCodeEditor(false)} />
             )}
           </div>
-        </div>
 
-        {showTranscript && (
-          <div className="w-80 border-l border-white/5 flex flex-col bg-slate-900">
-            <div className="flex items-center justify-between px-4 py-3 border-b border-white/5">
-              <h3 className="text-sm font-semibold text-white">Live Transcript</h3>
+          <footer className="flex-shrink-0 flex items-center justify-between px-5 py-3 bg-white border-t border-slate-200 shadow-swiss-sm">
+            <div className="flex items-center space-x-2">
+              <div className="flex items-center space-x-1.5 bg-slate-100 rounded-full px-3 py-1.5">
+                <Users className="w-3.5 h-3.5 text-slate-500" />
+                <span className="text-xs font-medium text-slate-600">2 participants</span>
+              </div>
               <button
-                onClick={() => setShowTranscript(false)}
-                className="text-slate-500 hover:text-white transition-colors"
+                onClick={() => setShowTranscript((v) => !v)}
+                className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all border ${
+                  showTranscript
+                    ? 'bg-brand-electric text-white border-brand-electric'
+                    : 'bg-white text-slate-600 border-slate-200 hover:border-slate-300 hover:bg-slate-50'
+                }`}
+                title="Toggle transcript"
               >
-                <X className="w-4 h-4" />
+                <MessageSquare className="w-3.5 h-3.5" />
+                <span>Transcript</span>
+                {transcript.length > 0 && (
+                  <span className={`text-xs rounded-full w-4 h-4 flex items-center justify-center font-bold ${showTranscript ? 'bg-white/20 text-white' : 'bg-brand-electric text-white'}`}>
+                    {transcript.length > 9 ? '9+' : transcript.length}
+                  </span>
+                )}
+              </button>
+              <button
+                onClick={() => setShowCodeEditor((v) => !v)}
+                className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all border ${
+                  showCodeEditor
+                    ? 'bg-slate-900 text-white border-slate-900'
+                    : 'bg-white text-slate-600 border-slate-200 hover:border-slate-300 hover:bg-slate-50'
+                }`}
+                title="Toggle code editor"
+              >
+                <Code2 className="w-3.5 h-3.5" />
+                <span>Code Editor</span>
               </button>
             </div>
 
-            <div className="flex-1 overflow-y-auto p-4 space-y-3">
-              {transcript.length === 0 ? (
-                <p className="text-xs text-slate-500 text-center mt-8">
-                  Transcript will appear here as the interview progresses
-                </p>
-              ) : (
-                transcript.map((msg) => (
-                  <div key={msg.id} className={`flex ${msg.source === 'user' ? 'justify-end' : 'justify-start'}`}>
-                    <div className={`max-w-[85%] rounded-2xl px-3 py-2 text-xs ${msg.source === 'user' ? 'bg-brand-electric/20 text-white border border-brand-electric/20' : 'bg-white/5 text-slate-300 border border-white/5'}`}>
-                      <p className={`text-[10px] font-semibold mb-1 ${msg.source === 'user' ? 'text-brand-electric-light' : 'text-slate-400'}`}>
-                        {msg.source === 'user' ? 'You' : 'Sophyra'}
-                      </p>
-                      <p className="leading-relaxed">{msg.message}</p>
-                    </div>
-                  </div>
-                ))
-              )}
-              <div ref={transcriptEndRef} />
+            <div className="flex items-center space-x-2">
+              <button
+                onClick={toggleMic}
+                className={`w-11 h-11 rounded-full flex items-center justify-center transition-all border shadow-swiss-sm ${
+                  micEnabled
+                    ? 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50 hover:border-slate-300'
+                    : 'bg-red-50 border-red-200 text-red-500 hover:bg-red-100'
+                }`}
+                title={micEnabled ? 'Mute microphone' : 'Unmute microphone'}
+              >
+                {micEnabled ? <Mic className="w-4.5 h-4.5" /> : <MicOff className="w-4.5 h-4.5" />}
+              </button>
+
+              <button
+                onClick={toggleCamera}
+                disabled={cameraError}
+                className={`w-11 h-11 rounded-full flex items-center justify-center transition-all border shadow-swiss-sm ${
+                  cameraEnabled && !cameraError
+                    ? 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50 hover:border-slate-300'
+                    : 'bg-red-50 border-red-200 text-red-500 hover:bg-red-100'
+                } disabled:opacity-40 disabled:cursor-not-allowed`}
+                title={cameraEnabled ? 'Turn off camera' : 'Turn on camera'}
+              >
+                {cameraEnabled && !cameraError ? <Video className="w-4.5 h-4.5" /> : <VideoOff className="w-4.5 h-4.5" />}
+              </button>
+
+              <button
+                onClick={() => setSpeakerEnabled((v) => !v)}
+                className={`w-11 h-11 rounded-full flex items-center justify-center transition-all border shadow-swiss-sm ${
+                  speakerEnabled
+                    ? 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50 hover:border-slate-300'
+                    : 'bg-red-50 border-red-200 text-red-500 hover:bg-red-100'
+                }`}
+                title={speakerEnabled ? 'Mute speaker' : 'Unmute speaker'}
+              >
+                {speakerEnabled ? <Volume2 className="w-4.5 h-4.5" /> : <VolumeX className="w-4.5 h-4.5" />}
+              </button>
             </div>
-          </div>
+
+            <div className="flex items-center">
+              <button
+                onClick={confirmEnd}
+                className="flex items-center space-x-2 h-11 px-5 bg-red-500 hover:bg-red-600 active:bg-red-700 text-white font-semibold rounded-full transition-all shadow-sm text-sm"
+              >
+                <PhoneOff className="w-4 h-4" />
+                <span>End Interview</span>
+              </button>
+            </div>
+          </footer>
+        </div>
+
+        {showTranscript && (
+          <TranscriptSidebar
+            transcript={transcript}
+            candidateName={candidateNameRef.current}
+            onClose={() => setShowTranscript(false)}
+          />
         )}
       </main>
-
-      {started && !ended && (
-        <footer className="flex items-center justify-center space-x-4 px-6 py-4 border-t border-white/5">
-          <button
-            onClick={toggleMic}
-            className={`w-12 h-12 rounded-full flex items-center justify-center transition-all ${micEnabled ? 'bg-white/10 hover:bg-white/15 text-white border border-white/10' : 'bg-red-500/20 border border-red-500/40 text-red-400 hover:bg-red-500/30'}`}
-            title={micEnabled ? 'Mute microphone' : 'Unmute microphone'}
-          >
-            {micEnabled ? <Mic className="w-5 h-5" /> : <MicOff className="w-5 h-5" />}
-          </button>
-
-          <button
-            onClick={toggleCamera}
-            disabled={cameraError}
-            className={`w-12 h-12 rounded-full flex items-center justify-center transition-all ${cameraEnabled && !cameraError ? 'bg-white/10 hover:bg-white/15 text-white border border-white/10' : 'bg-red-500/20 border border-red-500/40 text-red-400 hover:bg-red-500/30'} disabled:opacity-40 disabled:cursor-not-allowed`}
-            title={cameraEnabled ? 'Turn off camera' : 'Turn on camera'}
-          >
-            {cameraEnabled && !cameraError ? <Video className="w-5 h-5" /> : <VideoOff className="w-5 h-5" />}
-          </button>
-
-          <button
-            onClick={confirmEnd}
-            className="h-12 px-6 bg-red-500 hover:bg-red-600 text-white font-semibold rounded-full flex items-center space-x-2 transition-all shadow-lg shadow-red-500/20"
-          >
-            <PhoneOff className="w-5 h-5" />
-            <span className="text-sm">End Interview</span>
-          </button>
-        </footer>
-      )}
     </div>
   );
 }
