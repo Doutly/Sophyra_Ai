@@ -41,14 +41,9 @@ export const getElevenLabsSignedUrl = functions
   });
 
 export const getSimliSessionToken = functions
-  .runWith({ secrets: ['SIMLI_API_KEY', 'SIMLI_FACE_ID'] })
   .https.onCall(async (_data, _context) => {
-    const apiKey = process.env.SIMLI_API_KEY;
-    const faceId = process.env.SIMLI_FACE_ID;
-
-    if (!apiKey || !faceId) {
-      throw new functions.https.HttpsError('internal', 'Simli credentials not configured');
-    }
+    const apiKey = 'ke47f43byck10xged4tx7rf';
+    const faceId = 'cace3ef7-a4c4-425d-a8cf-a5358eb0c427';
 
     const response = await fetch('https://api.simli.ai/startAudioToVideoSession', {
       method: 'POST',
