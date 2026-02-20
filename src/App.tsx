@@ -14,6 +14,7 @@ import HRDashboard from './pages/HRDashboard';
 import PendingApproval from './pages/PendingApproval';
 import Profile from './pages/Profile';
 import SharedReport from './pages/SharedReport';
+import HRReport from './pages/HRReport';
 
 function App() {
   return (
@@ -119,6 +120,17 @@ function App() {
                 <ErrorBoundary>
                   <ProtectedRoute allowedRoles={['candidate']}>
                     <Report />
+                  </ProtectedRoute>
+                </ErrorBoundary>
+              }
+            />
+
+            <Route
+              path="/hr-report/:ticketId"
+              element={
+                <ErrorBoundary>
+                  <ProtectedRoute allowedRoles={['hr']} requireApproval={true}>
+                    <HRReport />
                   </ProtectedRoute>
                 </ErrorBoundary>
               }

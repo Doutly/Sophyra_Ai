@@ -354,7 +354,6 @@ export default function InterviewRoomV2() {
           <SimliAvatarPanel
             ref={simliRef}
             isSpeaking={false}
-            userId={user?.uid}
             onStatusChange={setAvatarStatus}
           />
         </div>
@@ -459,7 +458,6 @@ export default function InterviewRoomV2() {
               <SimliAvatarPanel
                 ref={simliRef}
                 isSpeaking={isSpeaking}
-                userId={user?.uid}
               />
 
               <div className="relative bg-slate-900 rounded-2xl overflow-hidden border border-slate-800 shadow-swiss-lg min-h-0">
