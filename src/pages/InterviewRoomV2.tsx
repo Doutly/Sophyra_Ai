@@ -23,6 +23,7 @@ import {
 import CodeEditorPanel from '../components/interview/CodeEditorPanel';
 import TranscriptSidebar from '../components/interview/TranscriptSidebar';
 import PreInterviewScreen from '../components/interview/PreInterviewScreen';
+import SimliAvatarPanel, { SimliAvatarPanelHandle } from '../components/interview/SimliAvatarPanel';
 
 const AGENT_ID = import.meta.env.VITE_ELEVENLABS_AGENT_ID;
 const MAX_JD_LENGTH = 800;
@@ -63,6 +64,10 @@ export default function InterviewRoomV2() {
   const transcriptCountRef = useRef(0);
   const connectingRef = useRef(false);
   const connectedAtRef = useRef<number | null>(null);
+  const simliRef = useRef<SimliAvatarPanelHandle>(null);
+  const audioContextRef = useRef<AudioContext | null>(null);
+  const audioSourceRef = useRef<MediaStreamAudioSourceNode | null>(null);
+  const audioProcessorRef = useRef<ScriptProcessorNode | null>(null);
 
   const conversation = useConversation({
     agentId: AGENT_ID,
@@ -233,6 +238,21 @@ export default function InterviewRoomV2() {
     }
   };
 
+  const stopAudioBridge = useCallback(() => {
+    if (audioProcessorRef.current) {
+      audioProcessorRef.current.disconnect();
+      audioProcessorRef.current = null;
+    }
+    if (audioSourceRef.current) {
+      audioSourceRef.current.disconnect();
+      audioSourceRef.current = null;
+    }
+    if (audioContextRef.current) {
+      audioContextRef.current.close().catch(() => {});
+      audioContextRef.current = null;
+    }
+  }, []);
+
   const handleEnd = useCallback(async () => {
     if (endedRef.current) return;
     endedRef.current = true;
@@ -240,6 +260,14 @@ export default function InterviewRoomV2() {
     setEnded(true);
 
     if (timerRef.current) clearInterval(timerRef.current);
+
+    stopAudioBridge();
+
+    try {
+      await simliRef.current?.stop();
+    } catch {
+      /* ignore */
+    }
 
     try {
       const status = conversation.status;
@@ -265,7 +293,7 @@ export default function InterviewRoomV2() {
     setTimeout(() => {
       navigate(`/report/${sessionId}`);
     }, 2500);
-  }, [sessionId, conversation, navigate]);
+  }, [sessionId, conversation, navigate, stopAudioBridge]);
 
   const confirmEnd = () => {
     if (window.confirm('End the interview? Your progress will be saved.')) {
@@ -409,55 +437,10 @@ export default function InterviewRoomV2() {
         <div className="flex-1 flex flex-col overflow-hidden min-w-0">
           <div className={`flex-1 p-4 grid gap-4 min-h-0 ${showCodeEditor ? 'grid-rows-[1fr_auto]' : 'grid-rows-[1fr]'}`}>
             <div className="grid grid-cols-2 gap-4 min-h-0">
-              <div className="relative bg-slate-900 rounded-2xl overflow-hidden border border-slate-800 shadow-swiss-lg flex items-center justify-center min-h-0">
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <div className="relative flex items-center justify-center">
-                    {isSpeaking && (
-                      <>
-                        <div className="absolute w-36 h-36 rounded-full bg-brand-electric/10 animate-ping" />
-                        <div className="absolute w-44 h-44 rounded-full bg-brand-electric/5 animate-ping" style={{ animationDelay: '300ms' }} />
-                      </>
-                    )}
-                    <div className={`w-28 h-28 rounded-full flex items-center justify-center transition-all duration-300 ${
-                      isSpeaking
-                        ? 'bg-brand-electric/20 border-2 border-brand-electric/50 shadow-blue-glow'
-                        : 'bg-slate-800 border border-slate-700'
-                    }`}>
-                      <Brain className={`w-14 h-14 transition-colors duration-300 ${isSpeaking ? 'text-brand-electric' : 'text-slate-500'}`} />
-                    </div>
-                  </div>
-                </div>
-
-                {isSpeaking && (
-                  <div className="absolute bottom-14 left-0 right-0 flex items-end justify-center space-x-0.5 h-8 px-8">
-                    {Array.from({ length: 16 }).map((_, i) => (
-                      <div
-                        key={i}
-                        className="flex-1 bg-brand-electric rounded-full animate-pulse"
-                        style={{
-                          height: `${25 + Math.sin(i * 0.8) * 60}%`,
-                          minHeight: '4px',
-                          animationDelay: `${i * 45}ms`,
-                          animationDuration: `${350 + i * 40}ms`,
-                        }}
-                      />
-                    ))}
-                  </div>
-                )}
-
-                <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between">
-                  <div className="bg-black/60 backdrop-blur-sm rounded-lg px-3 py-1.5 flex items-center space-x-2">
-                    <div className={`w-1.5 h-1.5 rounded-full ${isSpeaking ? 'bg-green-400 animate-pulse' : 'bg-slate-500'}`} />
-                    <span className="text-xs font-semibold text-white">Sophyra AI</span>
-                    {isSpeaking && (
-                      <span className="text-xs text-brand-electric-light font-medium">Speaking...</span>
-                    )}
-                  </div>
-                  <div className="bg-black/40 backdrop-blur-sm rounded-md px-2 py-1">
-                    <span className="text-xs text-slate-400">HR Interviewer</span>
-                  </div>
-                </div>
-              </div>
+              <SimliAvatarPanel
+                ref={simliRef}
+                isSpeaking={isSpeaking}
+              />
 
               <div className="relative bg-slate-900 rounded-2xl overflow-hidden border border-slate-800 shadow-swiss-lg min-h-0">
                 <video
