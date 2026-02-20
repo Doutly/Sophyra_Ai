@@ -9,10 +9,12 @@ interface MockInterviewRequest {
   job_role: string;
   company_name: string | null;
   status: "pending" | "approved" | "rejected" | "completed";
+  booking_status: string;
   preferred_date: string;
   preferred_time: string;
   scheduled_date: string | null;
   scheduled_time: string | null;
+  meeting_room_link: string | null;
 }
 
 interface AllRequestsModalProps {
@@ -84,6 +86,8 @@ export const AllRequestsModal = ({
                   companyName={request.company_name}
                   ticketNumber={request.ticket_number}
                   status={request.status}
+                  bookingStatus={request.booking_status}
+                  meetingLink={request.meeting_room_link}
                   preferredDate={request.preferred_date}
                   preferredTime={request.preferred_time}
                   scheduledDate={request.scheduled_date}

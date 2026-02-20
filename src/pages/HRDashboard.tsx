@@ -58,6 +58,8 @@ export default function HRDashboard() {
   const [selectedTicket, setSelectedTicket] = useState<MockInterviewRequest | null>(null);
   const [bookingDate, setBookingDate] = useState('');
   const [bookingTime, setBookingTime] = useState('');
+  const [meetingLink, setMeetingLink] = useState('');
+  const [meetingLinkError, setMeetingLinkError] = useState(false);
   const [expandedTickets, setExpandedTickets] = useState<Set<string>>(new Set());
   const [darkMode, setDarkMode] = useState(true);
 
@@ -177,21 +179,29 @@ export default function HRDashboard() {
     setSelectedTicket(ticket);
     setBookingDate(ticket.preferred_date.split('T')[0]);
     setBookingTime(ticket.preferred_time);
+    setMeetingLink('');
+    setMeetingLinkError(false);
     setShowBookingModal(true);
   };
 
   const confirmBooking = async () => {
     if (!selectedTicket || !bookingDate || !bookingTime) return;
+    if (!meetingLink.trim()) {
+      setMeetingLinkError(true);
+      return;
+    }
+    setMeetingLinkError(false);
     setActionLoading(selectedTicket.id);
     try {
       await updateDoc(doc(db, 'mockInterviewRequests', selectedTicket.id), {
         scheduled_date: bookingDate,
         scheduled_time: bookingTime,
-        meeting_room_link: `https://meet.sophyra.ai/${selectedTicket.ticket_number}`,
+        meeting_room_link: meetingLink.trim(),
         booking_status: 'booked',
       });
       setShowBookingModal(false);
       setSelectedTicket(null);
+      setMeetingLink('');
     } catch (error) {
       console.error('Error booking interview:', error);
     } finally {
@@ -400,17 +410,24 @@ export default function HRDashboard() {
             </div>
           </div>
 
-          {activeTab === 'booked' && ticket.meeting_room_link && (
+          {activeTab === 'booked' && (
             <div className={`mt-4 pt-4 border-t ${th.border}`}>
-              <a
-                href={ticket.meeting_room_link}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 text-xs text-blue-400 hover:text-blue-300 transition-colors font-medium"
-              >
-                <ExternalLink className="w-3.5 h-3.5" />
-                Join Interview Room
-              </a>
+              {ticket.meeting_room_link ? (
+                <a
+                  href={ticket.meeting_room_link}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 px-3 py-1.5 bg-emerald-500/15 text-emerald-400 border border-emerald-500/25 text-xs font-semibold rounded-lg hover:bg-emerald-500/25 transition-colors"
+                >
+                  <ExternalLink className="w-3.5 h-3.5" />
+                  Join Interview Room
+                </a>
+              ) : (
+                <span className={`inline-flex items-center gap-2 text-xs font-medium ${th.cardFaint}`}>
+                  <ExternalLink className="w-3.5 h-3.5" />
+                  No meeting link set
+                </span>
+              )}
             </div>
           )}
 
@@ -584,7 +601,7 @@ export default function HRDashboard() {
             <div className="flex items-center justify-between mb-5">
               <h3 className={`text-base font-bold ${th.cardText}`}>Schedule Interview</h3>
               <button
-                onClick={() => { setShowBookingModal(false); setSelectedTicket(null); }}
+                onClick={() => { setShowBookingModal(false); setSelectedTicket(null); setMeetingLink(''); setMeetingLinkError(false); }}
                 className={`p-1.5 transition-colors rounded-lg ${darkMode ? 'text-white/25 hover:text-white/60 hover:bg-white/5' : 'text-gray-400 hover:text-gray-600 hover:bg-gray-100'}`}
               >
                 <X className="w-4 h-4" />
@@ -625,6 +642,21 @@ export default function HRDashboard() {
                   className={`w-full px-3.5 py-2.5 border rounded-xl text-sm focus:outline-none focus:border-blue-500/40 transition-all ${th.modalInput} ${darkMode ? '[color-scheme:dark]' : ''}`}
                 />
               </div>
+              <div>
+                <label className={`block text-xs font-medium mb-2 ${th.cardFaint}`}>
+                  Meeting Link <span className="text-red-400">*</span>
+                </label>
+                <input
+                  type="url"
+                  value={meetingLink}
+                  onChange={(e) => { setMeetingLink(e.target.value); if (e.target.value.trim()) setMeetingLinkError(false); }}
+                  placeholder="https://meet.google.com/..."
+                  className={`w-full px-3.5 py-2.5 border rounded-xl text-sm focus:outline-none transition-all ${meetingLinkError ? 'border-red-500/60 focus:border-red-500/60' : 'focus:border-blue-500/40'} ${th.modalInput}`}
+                />
+                {meetingLinkError && (
+                  <p className="mt-1.5 text-[11px] text-red-400 font-medium">Meeting link is required</p>
+                )}
+              </div>
             </div>
 
             <div className="flex gap-3">
@@ -636,7 +668,7 @@ export default function HRDashboard() {
                 {actionLoading === selectedTicket.id ? 'Booking...' : 'Confirm Booking'}
               </button>
               <button
-                onClick={() => { setShowBookingModal(false); setSelectedTicket(null); }}
+                onClick={() => { setShowBookingModal(false); setSelectedTicket(null); setMeetingLink(''); setMeetingLinkError(false); }}
                 className={`px-4 py-2.5 border text-sm font-medium rounded-xl transition-colors ${darkMode ? 'bg-white/[0.04] border-white/8 text-white/50 hover:bg-white/[0.07]' : 'bg-gray-100 border-gray-200 text-gray-600 hover:bg-gray-200'}`}
               >
                 Cancel

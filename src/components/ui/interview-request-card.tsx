@@ -1,6 +1,6 @@
 import * as React from "react";
 import { motion } from "framer-motion";
-import { Clock, ClipboardCopy, CheckCircle, QrCode, Play, Calendar, Briefcase, Building2 } from "lucide-react";
+import { Clock, ClipboardCopy, CheckCircle, QrCode, Play, Calendar, Briefcase, Building2, ExternalLink, AlertCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 
@@ -10,6 +10,8 @@ interface InterviewRequestCardProps {
   companyName?: string | null;
   ticketNumber: string;
   status: "pending" | "approved" | "rejected" | "completed";
+  bookingStatus?: string;
+  meetingLink?: string | null;
   preferredDate: string;
   preferredTime: string;
   scheduledDate?: string | null;
@@ -53,6 +55,8 @@ export const InterviewRequestCard = ({
   companyName,
   ticketNumber,
   status,
+  bookingStatus,
+  meetingLink,
   preferredDate,
   preferredTime,
   scheduledDate,
@@ -95,6 +99,61 @@ export const InterviewRequestCard = ({
     }
   };
 
+  const isBooked = bookingStatus === "booked";
+  const hasMeetingLink = isBooked && !!meetingLink;
+  const isWaitingForSchedule = status === "approved" && !isBooked;
+
+  const handleStartInterview = () => {
+    if (hasMeetingLink) {
+      window.open(meetingLink!, "_blank", "noopener,noreferrer");
+    } else if (onStartInterview) {
+      onStartInterview();
+    }
+  };
+
+  const getButtonConfig = () => {
+    if (status === "rejected") {
+      return {
+        label: "Request Rejected",
+        icon: null,
+        disabled: true,
+        className: "bg-slate-100 text-slate-400 cursor-not-allowed",
+      };
+    }
+    if (hasMeetingLink) {
+      return {
+        label: "Join Interview",
+        icon: ExternalLink,
+        disabled: false,
+        className: "bg-emerald-600 text-white hover:bg-emerald-700 shadow-sm shadow-emerald-500/20",
+      };
+    }
+    if (isBooked && !meetingLink) {
+      return {
+        label: "Meeting Not Yet Scheduled",
+        icon: Clock,
+        disabled: true,
+        className: "bg-slate-100 text-slate-400 cursor-not-allowed",
+      };
+    }
+    if (status === "approved") {
+      return {
+        label: "Start Interview",
+        icon: Play,
+        disabled: false,
+        className: "bg-brand-electric text-white hover:bg-brand-electric-dark shadow-sm shadow-blue-500/20",
+      };
+    }
+    return {
+      label: "Start Interview",
+      icon: Play,
+      disabled: true,
+      className: "bg-slate-800 text-white hover:bg-slate-900",
+    };
+  };
+
+  const buttonConfig = getButtonConfig();
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 16 }}
@@ -130,7 +189,7 @@ export const InterviewRequestCard = ({
             </div>
           </div>
 
-          {(scheduledDate || status === "approved") && (
+          {hasMeetingLink && (
             <div className="mt-3 flex items-center gap-2 p-2.5 bg-emerald-50 rounded-xl border border-emerald-100">
               <CheckCircle className="h-3.5 w-3.5 text-emerald-600 flex-shrink-0" />
               <div className="flex items-center gap-1 text-[11px] text-emerald-700 font-semibold">
@@ -138,6 +197,24 @@ export const InterviewRequestCard = ({
                 <span>{formatDate(displayDate)}</span>
                 {displayTime && <span>at {displayTime}</span>}
               </div>
+            </div>
+          )}
+
+          {isWaitingForSchedule && (
+            <div className="mt-3 flex items-center gap-2 p-2.5 bg-amber-50 rounded-xl border border-amber-100">
+              <Clock className="h-3.5 w-3.5 text-amber-600 flex-shrink-0" />
+              <p className="text-[11px] text-amber-700 font-semibold">
+                Approved — waiting for HR to schedule your meeting
+              </p>
+            </div>
+          )}
+
+          {isBooked && !meetingLink && (
+            <div className="mt-3 flex items-center gap-2 p-2.5 bg-blue-50 rounded-xl border border-blue-100">
+              <AlertCircle className="h-3.5 w-3.5 text-blue-600 flex-shrink-0" />
+              <p className="text-[11px] text-blue-700 font-semibold">
+                Interview scheduled — meeting link coming soon
+              </p>
             </div>
           )}
         </div>
@@ -169,19 +246,15 @@ export const InterviewRequestCard = ({
 
         <div className="px-5 pb-5">
           <button
-            onClick={onStartInterview}
-            disabled={status === "rejected"}
+            onClick={handleStartInterview}
+            disabled={buttonConfig.disabled}
             className={cn(
               "w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold transition-all",
-              status === "approved"
-                ? "bg-brand-electric text-white hover:bg-brand-electric-dark shadow-sm shadow-blue-500/20"
-                : status === "rejected"
-                ? "bg-slate-100 text-slate-400 cursor-not-allowed"
-                : "bg-slate-800 text-white hover:bg-slate-900"
+              buttonConfig.className
             )}
           >
-            <Play className="h-3.5 w-3.5" />
-            {status === "rejected" ? "Request Rejected" : "Start Interview"}
+            {buttonConfig.icon && <buttonConfig.icon className="h-3.5 w-3.5" />}
+            {buttonConfig.label}
           </button>
         </div>
       </div>

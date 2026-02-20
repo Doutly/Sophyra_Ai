@@ -74,10 +74,12 @@ interface MockInterviewRequest {
   job_role: string;
   company_name: string | null;
   status: 'pending' | 'approved' | 'rejected' | 'completed';
+  booking_status: string;
   preferred_date: string;
   preferred_time: string;
   scheduled_date: string | null;
   scheduled_time: string | null;
+  meeting_room_link: string | null;
   created_at: string;
 }
 
@@ -242,10 +244,12 @@ export default function Dashboard() {
               job_role: data.job_role || '',
               company_name: data.company_name || null,
               status: data.status || 'pending',
+              booking_status: data.booking_status || 'unclaimed',
               preferred_date: data.preferred_date || '',
               preferred_time: data.preferred_time || '',
               scheduled_date: data.scheduled_date || null,
               scheduled_time: data.scheduled_time || null,
+              meeting_room_link: data.meeting_room_link || null,
               created_at: data.created_at || new Date().toISOString(),
             };
           });
@@ -699,6 +703,8 @@ export default function Dashboard() {
                       companyName={mockRequests[0].company_name}
                       ticketNumber={mockRequests[0].ticket_number}
                       status={mockRequests[0].status}
+                      bookingStatus={mockRequests[0].booking_status}
+                      meetingLink={mockRequests[0].meeting_room_link}
                       preferredDate={mockRequests[0].preferred_date}
                       preferredTime={mockRequests[0].preferred_time}
                       scheduledDate={mockRequests[0].scheduled_date}
