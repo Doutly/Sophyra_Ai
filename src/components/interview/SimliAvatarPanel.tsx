@@ -16,11 +16,12 @@ export interface SimliAvatarPanelHandle {
 
 interface SimliAvatarPanelProps {
   isSpeaking: boolean;
+  userId?: string;
   candidateName?: string;
   onStatusChange?: (status: SimliAvatarStatus) => void;
 }
 
-async function fetchSessionToken(): Promise<string> {
+async function fetchSessionToken(userId?: string): Promise<string> {
   const res = await fetch('https://api.simli.ai/startAudioToVideoSession', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -30,6 +31,7 @@ async function fetchSessionToken(): Promise<string> {
       handleSilence: true,
       maxSessionLength: 600,
       maxIdleTime: 180,
+      ...(userId ? { user_id: userId } : {}),
     }),
   });
   if (!res.ok) throw new Error(`Simli session request failed: ${res.status}`);
@@ -39,7 +41,7 @@ async function fetchSessionToken(): Promise<string> {
 }
 
 const SimliAvatarPanel = forwardRef<SimliAvatarPanelHandle, SimliAvatarPanelProps>(
-  ({ isSpeaking, onStatusChange }, ref) => {
+  ({ isSpeaking, userId, onStatusChange }, ref) => {
     const videoRef = useRef<HTMLVideoElement>(null);
     const audioRef = useRef<HTMLAudioElement>(null);
     const simliClientRef = useRef<SimliClient | null>(null);
@@ -72,7 +74,7 @@ const SimliAvatarPanel = forwardRef<SimliAvatarPanelHandle, SimliAvatarPanelProp
         updateStatus('loading');
 
         try {
-          const token = await fetchSessionToken();
+          const token = await fetchSessionToken(userId);
           if (cancelled) return;
 
           const client = new SimliClient(
@@ -136,7 +138,7 @@ const SimliAvatarPanel = forwardRef<SimliAvatarPanelHandle, SimliAvatarPanelProp
         cancelled = true;
         cleanup();
       };
-    }, []);
+    }, [userId]);
 
     useImperativeHandle(ref, () => ({
       sendAudioData: (data: Uint8Array) => {

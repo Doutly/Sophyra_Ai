@@ -181,6 +181,13 @@ export default function InterviewRoomV2() {
     }
   };
 
+  useEffect(() => {
+    if (!videoRef.current || !localStreamRef.current) return;
+    if (videoRef.current.srcObject !== localStreamRef.current) {
+      videoRef.current.srcObject = localStreamRef.current;
+    }
+  });
+
   const stopCamera = () => {
     if (localStreamRef.current) {
       localStreamRef.current.getTracks().forEach((t) => t.stop());
@@ -347,6 +354,7 @@ export default function InterviewRoomV2() {
           <SimliAvatarPanel
             ref={simliRef}
             isSpeaking={false}
+            userId={user?.uid}
             onStatusChange={setAvatarStatus}
           />
         </div>
@@ -451,6 +459,7 @@ export default function InterviewRoomV2() {
               <SimliAvatarPanel
                 ref={simliRef}
                 isSpeaking={isSpeaking}
+                userId={user?.uid}
               />
 
               <div className="relative bg-slate-900 rounded-2xl overflow-hidden border border-slate-800 shadow-swiss-lg min-h-0">
