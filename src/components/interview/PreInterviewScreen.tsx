@@ -12,6 +12,7 @@ import {
   ArrowLeft,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { SimliAvatarStatus } from './SimliAvatarPanel';
 
 interface Props {
   session: any;
@@ -22,6 +23,7 @@ interface Props {
   micEnabled: boolean;
   connecting: boolean;
   startError: string | null;
+  avatarStatus: SimliAvatarStatus;
   onStart: () => void;
   onToggleCamera: () => void;
   onToggleMic: () => void;
@@ -36,11 +38,16 @@ export default function PreInterviewScreen({
   micEnabled,
   connecting,
   startError,
+  avatarStatus,
   onStart,
   onToggleCamera,
   onToggleMic,
 }: Props) {
   const navigate = useNavigate();
+
+  const avatarReady = avatarStatus === 'connected' || avatarStatus === 'speaking';
+  const avatarLoading = avatarStatus === 'idle' || avatarStatus === 'loading';
+  const avatarFailed = avatarStatus === 'fallback' || avatarStatus === 'error';
 
   const deviceChecks = [
     {
@@ -175,7 +182,7 @@ export default function PreInterviewScreen({
               </div>
 
               <div className="mb-6">
-                <p className="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-3">Device Check</p>
+                <p className="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-3">System Check</p>
                 <div className="space-y-2">
                   {deviceChecks.map((check) => (
                     <div
@@ -197,6 +204,28 @@ export default function PreInterviewScreen({
                       )}
                     </div>
                   ))}
+
+                  <div
+                    className={`flex items-center justify-between px-3 py-2 rounded-lg border text-sm ${
+                      avatarReady
+                        ? 'bg-green-50 border-green-100 text-green-700'
+                        : avatarFailed
+                        ? 'bg-amber-50 border-amber-100 text-amber-700'
+                        : 'bg-slate-50 border-slate-200 text-slate-500'
+                    }`}
+                  >
+                    <div className="flex items-center space-x-2">
+                      <Brain className="w-4 h-4" />
+                      <span className="font-medium">AI Avatar</span>
+                    </div>
+                    {avatarReady ? (
+                      <CheckCircle2 className="w-4 h-4 text-green-500" />
+                    ) : avatarFailed ? (
+                      <span className="text-xs font-medium">Fallback mode</span>
+                    ) : (
+                      <Loader2 className="w-4 h-4 animate-spin text-slate-400" />
+                    )}
+                  </div>
                 </div>
               </div>
 
@@ -223,6 +252,13 @@ export default function PreInterviewScreen({
                 <div className="flex items-start space-x-2 bg-red-50 border border-red-200 rounded-xl px-4 py-3 mb-4 text-left">
                   <AlertCircle className="w-4 h-4 text-red-400 flex-shrink-0 mt-0.5" />
                   <p className="text-xs text-red-600">{startError}</p>
+                </div>
+              )}
+
+              {avatarLoading && !connecting && (
+                <div className="flex items-center space-x-2 bg-blue-50 border border-blue-100 rounded-xl px-4 py-3 mb-4">
+                  <Loader2 className="w-4 h-4 text-blue-400 animate-spin flex-shrink-0" />
+                  <p className="text-xs text-blue-600 font-medium">Warming up your AI interviewer...</p>
                 </div>
               )}
 

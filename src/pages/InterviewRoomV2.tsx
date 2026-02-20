@@ -23,7 +23,7 @@ import {
 import CodeEditorPanel from '../components/interview/CodeEditorPanel';
 import TranscriptSidebar from '../components/interview/TranscriptSidebar';
 import PreInterviewScreen from '../components/interview/PreInterviewScreen';
-import SimliAvatarPanel, { SimliAvatarPanelHandle } from '../components/interview/SimliAvatarPanel';
+import SimliAvatarPanel, { SimliAvatarPanelHandle, SimliAvatarStatus } from '../components/interview/SimliAvatarPanel';
 
 const AGENT_ID = import.meta.env.VITE_ELEVENLABS_AGENT_ID;
 const MAX_JD_LENGTH = 800;
@@ -54,6 +54,7 @@ export default function InterviewRoomV2() {
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [cameraError, setCameraError] = useState(false);
   const [startError, setStartError] = useState<string | null>(null);
+  const [avatarStatus, setAvatarStatus] = useState<SimliAvatarStatus>('idle');
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const localStreamRef = useRef<MediaStream | null>(null);
@@ -341,19 +342,29 @@ export default function InterviewRoomV2() {
 
   if (!started && !ended) {
     return (
-      <PreInterviewScreen
-        session={session}
-        candidateName={candidateNameRef.current}
-        videoRef={videoRef}
-        cameraEnabled={cameraEnabled}
-        cameraError={cameraError}
-        micEnabled={micEnabled}
-        connecting={connecting}
-        startError={startError}
-        onStart={handleStart}
-        onToggleCamera={toggleCamera}
-        onToggleMic={toggleMic}
-      />
+      <>
+        <div className="hidden" aria-hidden="true">
+          <SimliAvatarPanel
+            ref={simliRef}
+            isSpeaking={false}
+            onStatusChange={setAvatarStatus}
+          />
+        </div>
+        <PreInterviewScreen
+          session={session}
+          candidateName={candidateNameRef.current}
+          videoRef={videoRef}
+          cameraEnabled={cameraEnabled}
+          cameraError={cameraError}
+          micEnabled={micEnabled}
+          connecting={connecting}
+          startError={startError}
+          avatarStatus={avatarStatus}
+          onStart={handleStart}
+          onToggleCamera={toggleCamera}
+          onToggleMic={toggleMic}
+        />
+      </>
     );
   }
 
