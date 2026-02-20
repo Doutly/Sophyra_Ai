@@ -1,9 +1,8 @@
 import { useEffect, useRef, useState, useCallback, forwardRef, useImperativeHandle } from 'react';
 import { SimliClient, LogLevel } from 'simli-client';
 import { Brain } from 'lucide-react';
-
-const SIMLI_API_KEY = import.meta.env.VITE_SIMLI_API_KEY;
-const SIMLI_FACE_ID = import.meta.env.VITE_SIMLI_FACE_ID;
+import { httpsCallable } from 'firebase/functions';
+import { functions } from '../../lib/firebase';
 
 export type SimliAvatarStatus = 'idle' | 'loading' | 'connected' | 'speaking' | 'error' | 'fallback';
 
@@ -20,24 +19,14 @@ interface SimliAvatarPanelProps {
   onStatusChange?: (status: SimliAvatarStatus) => void;
 }
 
+const getSimliSessionTokenFn = httpsCallable<unknown, { session_token: string }>(functions, 'getSimliSessionToken');
+
 async function fetchSessionToken(): Promise<string> {
   const attemptFetch = async (): Promise<string> => {
-    const res = await fetch('https://api.simli.ai/startAudioToVideoSession', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        apiKey: SIMLI_API_KEY,
-        faceId: SIMLI_FACE_ID,
-        handleSilence: true,
-        maxSessionLength: 600,
-        maxIdleTime: 180,
-        user_id: 'session_' + Date.now(),
-      }),
-    });
-    if (!res.ok) throw new Error(`Simli session request failed: ${res.status}`);
-    const data = await res.json();
-    if (!data.session_token) throw new Error('No session token in response');
-    return data.session_token;
+    const result = await getSimliSessionTokenFn({});
+    const token = result.data?.session_token;
+    if (!token) throw new Error('No session token in response');
+    return token;
   };
 
   try {

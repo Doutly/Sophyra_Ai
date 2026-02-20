@@ -40,6 +40,41 @@ export const getElevenLabsSignedUrl = functions
     return { signed_url: result.signed_url };
   });
 
+export const getSimliSessionToken = functions
+  .runWith({ secrets: ['SIMLI_API_KEY', 'SIMLI_FACE_ID'] })
+  .https.onCall(async (_data, _context) => {
+    const apiKey = process.env.SIMLI_API_KEY;
+    const faceId = process.env.SIMLI_FACE_ID;
+
+    if (!apiKey || !faceId) {
+      throw new functions.https.HttpsError('internal', 'Simli credentials not configured');
+    }
+
+    const response = await fetch('https://api.simli.ai/startAudioToVideoSession', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        apiKey,
+        faceId,
+        handleSilence: true,
+        maxSessionLength: 600,
+        maxIdleTime: 180,
+      }),
+    });
+
+    if (!response.ok) {
+      const errText = await response.text();
+      throw new functions.https.HttpsError('internal', `Simli API error ${response.status}: ${errText}`);
+    }
+
+    const result = await response.json();
+    if (!result.session_token) {
+      throw new functions.https.HttpsError('internal', 'No session token in Simli response');
+    }
+
+    return { session_token: result.session_token };
+  });
+
 export const elevenLabsWebhook = functions
   .runWith({ secrets: ['ELEVENLABS_WEBHOOK_SECRET'] })
   .https.onRequest(async (req, res) => {
