@@ -4,11 +4,15 @@ import { useAuth } from '../contexts/AuthContext';
 import { db } from '../lib/firebase';
 import { collection, onSnapshot, doc, getDoc, updateDoc, addDoc, serverTimestamp } from 'firebase/firestore';
 import {
-  LogOut, Brain, ExternalLink, Download,
+  LogOut, ExternalLink, Download,
   ChevronRight, X, Star, FileText, Loader2, CheckCircle,
-  User, Briefcase, Calendar, Clock, Ticket, Search, Filter,
-  Mail, Building2, Target, BookOpen, SlidersHorizontal, CalendarDays
+  User, Briefcase, Calendar, Clock, Ticket, Search,
+  Mail, Building2, Target, BookOpen, Brain, Inbox, UserCircle
 } from 'lucide-react';
+import HRProfileModal from '../components/ui/HRProfileModal';
+import TicketPoolModal from '../components/ui/TicketPoolModal';
+import TicketDetailModal from '../components/ui/TicketDetailModal';
+import ColumnAllTicketsModal from '../components/ui/ColumnAllTicketsModal';
 
 interface MockInterviewRequest {
   id: string;
@@ -68,17 +72,7 @@ export interface AIReport {
   report_generated_at: string;
 }
 
-type KanbanColumn = 'pool' | 'claimed' | 'scheduled' | 'completed' | 'assigned';
-type DateFilter = 'all' | 'today' | 'yesterday' | 'this_week' | 'this_month' | 'older';
-
-const DATE_FILTER_OPTIONS: { key: DateFilter; label: string }[] = [
-  { key: 'all', label: 'All Time' },
-  { key: 'today', label: 'Today' },
-  { key: 'yesterday', label: 'Yesterday' },
-  { key: 'this_week', label: 'This Week' },
-  { key: 'this_month', label: 'This Month' },
-  { key: 'older', label: 'Older' },
-];
+type KanbanColumn = 'claimed' | 'scheduled' | 'completed' | 'assigned';
 
 const COLUMN_CONFIG: {
   key: KanbanColumn;
@@ -91,14 +85,14 @@ const COLUMN_CONFIG: {
   headerText: string;
 }[] = [
   {
-    key: 'pool',
-    label: 'Ticket Pool',
-    color: 'text-cyan-600',
-    headerBg: 'bg-cyan-50',
-    border: 'border-cyan-200',
-    colBg: 'bg-cyan-50/40',
-    dotColor: 'bg-cyan-500',
-    headerText: 'text-cyan-700',
+    key: 'assigned',
+    label: 'Assigned to Me',
+    color: 'text-blue-600',
+    headerBg: 'bg-blue-50',
+    border: 'border-blue-200',
+    colBg: 'bg-blue-50/40',
+    dotColor: 'bg-blue-500',
+    headerText: 'text-blue-700',
   },
   {
     key: 'claimed',
@@ -109,16 +103,6 @@ const COLUMN_CONFIG: {
     colBg: 'bg-amber-50/40',
     dotColor: 'bg-amber-500',
     headerText: 'text-amber-700',
-  },
-  {
-    key: 'assigned',
-    label: 'Assigned to Me',
-    color: 'text-blue-600',
-    headerBg: 'bg-blue-50',
-    border: 'border-blue-200',
-    colBg: 'bg-blue-50/40',
-    dotColor: 'bg-blue-500',
-    headerText: 'text-blue-700',
   },
   {
     key: 'scheduled',
@@ -144,36 +128,14 @@ const COLUMN_CONFIG: {
 
 const RATING_OPTIONS = ['Excellent', 'Good', 'Average', 'Needs Improvement'];
 const HIRE_OPTIONS = ['Strong Hire', 'Hire', 'Maybe', 'No Hire'];
-const EXP_LEVELS = ['fresher', 'mid', 'senior', 'Entry Level', 'Mid Level', 'Senior Level', 'Executive'];
 
-function getDateRangeForFilter(filter: DateFilter): { start: Date | null; end: Date | null } {
-  const now = new Date();
-  const startOfDay = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate());
-  const endOfDay = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate(), 23, 59, 59, 999);
-
-  switch (filter) {
-    case 'today': {
-      return { start: startOfDay(now), end: endOfDay(now) };
-    }
-    case 'yesterday': {
-      const y = new Date(now); y.setDate(now.getDate() - 1);
-      return { start: startOfDay(y), end: endOfDay(y) };
-    }
-    case 'this_week': {
-      const day = now.getDay();
-      const monday = new Date(now); monday.setDate(now.getDate() - (day === 0 ? 6 : day - 1));
-      return { start: startOfDay(monday), end: endOfDay(now) };
-    }
-    case 'this_month': {
-      return { start: new Date(now.getFullYear(), now.getMonth(), 1), end: endOfDay(now) };
-    }
-    case 'older': {
-      const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-      return { start: null, end: new Date(startOfMonth.getTime() - 1) };
-    }
-    default:
-      return { start: null, end: null };
-  }
+interface HRProfile {
+  displayName: string;
+  bio: string;
+  hrExperience: string;
+  expertise: string;
+  linkedinUrl: string;
+  avatarUrl: string;
 }
 
 export default function HRDashboard() {
@@ -182,12 +144,15 @@ export default function HRDashboard() {
   const [allTickets, setAllTickets] = useState<MockInterviewRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const [hrProfile, setHrProfile] = useState<HRProfile | null>(null);
 
   const [searchQuery, setSearchQuery] = useState('');
-  const [filterExp, setFilterExp] = useState('');
-  const [filterHire, setFilterHire] = useState('');
-  const [showFilters, setShowFilters] = useState(false);
-  const [dateFilter, setDateFilter] = useState<DateFilter>('all');
+
+  const [showProfileModal, setShowProfileModal] = useState(false);
+  const [showTicketPoolModal, setShowTicketPoolModal] = useState(false);
+  const [detailTicket, setDetailTicket] = useState<MockInterviewRequest | null>(null);
+
+  const [columnAllModal, setColumnAllModal] = useState<KanbanColumn | null>(null);
 
   const [showBookingModal, setShowBookingModal] = useState(false);
   const [selectedTicket, setSelectedTicket] = useState<MockInterviewRequest | null>(null);
@@ -223,6 +188,24 @@ export default function HRDashboard() {
 
   useEffect(() => {
     if (!user) { navigate('/auth?mode=signin'); return; }
+    const fetchProfile = async () => {
+      try {
+        const snap = await getDoc(doc(db, 'users', user.uid));
+        if (snap.exists()) {
+          const d = snap.data();
+          setHrProfile({
+            displayName: d.displayName || d.name || '',
+            bio: d.bio || '',
+            hrExperience: d.hrExperience || '',
+            expertise: d.expertise || '',
+            linkedinUrl: d.linkedinUrl || '',
+            avatarUrl: d.avatarUrl || '',
+          });
+        }
+      } catch { /* ignore */ }
+    };
+    fetchProfile();
+
     const requestsRef = collection(db, 'mockInterviewRequests');
     const unsubscribe = onSnapshot(requestsRef, async (snapshot) => {
       const items = await Promise.all(snapshot.docs.map(async (docSnap) => {
@@ -285,40 +268,22 @@ export default function HRDashboard() {
     const ticketNum = (ticket.ticket_number || '').toLowerCase();
     const role = (ticket.job_role || '').toLowerCase();
     const company = (ticket.company_name || '').toLowerCase();
-    const exp = (ticket.experience_level || '').toLowerCase();
-    return name.includes(q) || email.includes(q) || ticketNum.includes(q) || role.includes(q) || company.includes(q) || exp.includes(q);
+    return name.includes(q) || email.includes(q) || ticketNum.includes(q) || role.includes(q) || company.includes(q);
   };
 
-  const matchesFilters = (ticket: MockInterviewRequest) => {
-    if (filterExp && ticket.experience_level !== filterExp) return false;
-    if (filterHire && ticket.hr_feedback?.hire_recommendation !== filterHire) return false;
-    return true;
-  };
-
-  const matchesDateFilter = (ticket: MockInterviewRequest) => {
-    if (dateFilter === 'all') return true;
-    const { start, end } = getDateRangeForFilter(dateFilter);
-    const created = ticket.created_at ? new Date(ticket.created_at) : null;
-    if (!created || isNaN(created.getTime())) return dateFilter === 'older';
-    if (start && created < start) return false;
-    if (end && created > end) return false;
-    return true;
-  };
+  const getPoolTickets = (): MockInterviewRequest[] =>
+    allTickets.filter(r => !r.assigned_hr_id && r.booking_status === 'unclaimed' && r.status === 'approved');
 
   const getColumnTickets = (col: KanbanColumn): MockInterviewRequest[] => {
     let tickets: MockInterviewRequest[] = [];
     switch (col) {
-      case 'pool': tickets = allTickets.filter(r => !r.assigned_hr_id && r.booking_status === 'unclaimed' && r.status === 'approved'); break;
       case 'claimed': tickets = allTickets.filter(r => r.booking_status === 'claimed' && r.claimed_by === user?.uid); break;
       case 'assigned': tickets = allTickets.filter(r => r.assigned_hr_id === user?.uid && r.status === 'approved' && (r.booking_status === 'unclaimed' || r.claimed_by === user?.uid)); break;
       case 'scheduled': tickets = allTickets.filter(r => r.booking_status === 'booked' && r.claimed_by === user?.uid); break;
       case 'completed': tickets = allTickets.filter(r => r.booking_status === 'completed' && r.claimed_by === user?.uid); break;
     }
-    return tickets.filter(t => matchesSearch(t) && matchesFilters(t) && matchesDateFilter(t));
+    return tickets.filter(t => matchesSearch(t));
   };
-
-  const totalFiltered = COLUMN_CONFIG.reduce((sum, col) => sum + getColumnTickets(col.key).length, 0);
-  const hasActiveFilters = searchQuery.trim() || filterExp || filterHire || dateFilter !== 'all';
 
   const handleClaim = async (ticketId: string) => {
     setActionLoading(ticketId);
@@ -328,6 +293,8 @@ export default function HRDashboard() {
         claimed_at: new Date().toISOString(),
         booking_status: 'claimed',
       });
+      setShowTicketPoolModal(false);
+      setDetailTicket(null);
     } finally { setActionLoading(null); }
   };
 
@@ -385,18 +352,16 @@ export default function HRDashboard() {
     setShowFeedbackModal(true);
   };
 
-  const isFeedbackComplete = (f: HRFeedback) => {
-    return (
-      f.overall_rating > 0 &&
-      f.communication !== '' &&
-      f.technical_knowledge !== '' &&
-      f.problem_solving !== '' &&
-      f.cultural_fit !== '' &&
-      f.key_strengths.trim() !== '' &&
-      f.areas_for_improvement.trim() !== '' &&
-      f.hire_recommendation !== ''
-    );
-  };
+  const isFeedbackComplete = (f: HRFeedback) => (
+    f.overall_rating > 0 &&
+    f.communication !== '' &&
+    f.technical_knowledge !== '' &&
+    f.problem_solving !== '' &&
+    f.cultural_fit !== '' &&
+    f.key_strengths.trim() !== '' &&
+    f.areas_for_improvement.trim() !== '' &&
+    f.hire_recommendation !== ''
+  );
 
   const generateAIReport = async () => {
     if (!feedbackTicket || !isFeedbackComplete(feedback)) return;
@@ -526,10 +491,11 @@ Return ONLY valid JSON with this exact structure:
     setDragOver(null);
     dragTicketRef.current = null;
     if (col === 'claimed' && ticket.booking_status === 'unclaimed') await handleClaim(ticket.id);
-    else if (col === 'pool' && ticket.claimed_by === user?.uid && ticket.booking_status === 'claimed') await handleRelease(ticket.id);
     else if (col === 'scheduled' && ticket.booking_status === 'claimed') openBooking(ticket);
     else if (col === 'completed' && ticket.booking_status === 'booked') openFeedback(ticket);
   };
+
+  const poolTickets = getPoolTickets();
 
   if (loading) {
     return (
@@ -542,28 +508,65 @@ Return ONLY valid JSON with this exact structure:
     );
   }
 
+  const columnAllConfig = columnAllModal ? COLUMN_CONFIG.find(c => c.key === columnAllModal) : null;
+
   return (
     <div className="min-h-screen bg-gray-50">
       <nav className="sticky top-0 z-40 border-b bg-white border-gray-200 shadow-sm">
         <div className="px-5 py-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
-                <Brain className="w-4 h-4 text-white" />
+              <div className="w-8 h-8 rounded-lg flex items-center justify-center overflow-hidden bg-white">
+                <img
+                  src="/Adobe_Express_-_file.png"
+                  alt="Sophyra AI"
+                  className="w-8 h-8 rounded-lg"
+                  style={{ mixBlendMode: 'darken' }}
+                />
               </div>
               <span className="text-sm font-bold text-gray-900">Sophyra AI</span>
               <span className="text-[10px] font-bold text-blue-600 bg-blue-50 border border-blue-200 px-2.5 py-1 rounded-full tracking-widest uppercase">
                 HR Portal
               </span>
             </div>
+
             <div className="flex items-center gap-2">
+              <button
+                onClick={() => setShowTicketPoolModal(true)}
+                className="flex items-center gap-1.5 px-3 py-1.5 border border-gray-200 rounded-lg bg-gray-50 text-gray-600 hover:bg-cyan-50 hover:border-cyan-200 hover:text-cyan-700 transition-all text-xs font-medium relative"
+              >
+                <Inbox className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Ticket Pool</span>
+                {poolTickets.length > 0 && (
+                  <span className="flex items-center justify-center w-4 h-4 rounded-full bg-cyan-500 text-white text-[10px] font-bold">
+                    {poolTickets.length > 9 ? '9+' : poolTickets.length}
+                  </span>
+                )}
+              </button>
+
+              <button
+                onClick={() => setShowProfileModal(true)}
+                className="flex items-center gap-1.5 px-3 py-1.5 border border-gray-200 rounded-lg bg-gray-50 text-gray-600 hover:bg-blue-50 hover:border-blue-200 hover:text-blue-600 transition-all text-xs font-medium"
+              >
+                {hrProfile?.avatarUrl ? (
+                  <img
+                    src={hrProfile.avatarUrl}
+                    alt="Profile"
+                    className="w-5 h-5 rounded-full object-cover"
+                  />
+                ) : (
+                  <UserCircle className="w-3.5 h-3.5" />
+                )}
+                <span className="hidden sm:inline">Profile</span>
+              </button>
+
               <span className="text-xs hidden md:block text-gray-400">{user?.email}</span>
               <button
                 onClick={async () => { await signOut(); navigate('/'); }}
                 className="flex items-center gap-1.5 px-3 py-1.5 border border-gray-200 rounded-lg bg-gray-50 text-gray-600 hover:bg-gray-100 transition-all text-xs font-medium"
               >
                 <LogOut className="w-3.5 h-3.5" />
-                Sign Out
+                <span className="hidden sm:inline">Sign Out</span>
               </button>
             </div>
           </div>
@@ -590,7 +593,7 @@ Return ONLY valid JSON with this exact structure:
           </div>
         </div>
 
-        <div className="mb-3 bg-white border border-gray-200 rounded-xl p-3 shadow-sm">
+        <div className="mb-4 bg-white border border-gray-200 rounded-xl p-3 shadow-sm">
           <div className="flex items-center gap-3 flex-wrap">
             <div className="flex-1 min-w-[200px] relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
@@ -607,88 +610,16 @@ Return ONLY valid JSON with this exact structure:
                 </button>
               )}
             </div>
-
-            <button
-              onClick={() => setShowFilters(!showFilters)}
-              className={`flex items-center gap-1.5 px-3 py-2 border rounded-lg text-xs font-medium transition-all ${showFilters || filterExp || filterHire ? 'border-blue-400 text-blue-600 bg-blue-50' : 'border-gray-200 text-gray-600 bg-gray-50 hover:bg-gray-100'}`}
-            >
-              <SlidersHorizontal className="w-3.5 h-3.5" />
-              <span>Filters</span>
-              {(filterExp || filterHire) && (
-                <span className="w-1.5 h-1.5 rounded-full bg-blue-500 flex-shrink-0" />
-              )}
-            </button>
-
-            {hasActiveFilters && (
-              <div className="text-xs text-gray-400">
-                {totalFiltered} result{totalFiltered !== 1 ? 's' : ''}
-              </div>
+            {searchQuery.trim() && (
+              <span className="text-xs text-gray-400">
+                {COLUMN_CONFIG.reduce((sum, col) => sum + getColumnTickets(col.key).length, 0)} result{COLUMN_CONFIG.reduce((sum, col) => sum + getColumnTickets(col.key).length, 0) !== 1 ? 's' : ''}
+              </span>
             )}
-
-            {hasActiveFilters && (
-              <button
-                onClick={() => { setSearchQuery(''); setFilterExp(''); setFilterHire(''); setDateFilter('all'); }}
-                className="text-xs text-red-500 hover:text-red-400 transition-colors font-medium"
-              >
-                Clear all
-              </button>
-            )}
-          </div>
-
-          {showFilters && (
-            <div className="mt-3 pt-3 border-t border-gray-100 flex items-center gap-3 flex-wrap">
-              <div className="flex items-center gap-1.5">
-                <Filter className="w-3 h-3 text-gray-400" />
-                <span className="text-xs font-semibold text-gray-400">Experience:</span>
-              </div>
-              <select
-                value={filterExp}
-                onChange={e => setFilterExp(e.target.value)}
-                className="px-2.5 py-1.5 border border-gray-200 rounded-lg text-xs text-gray-900 focus:outline-none bg-gray-50 focus:border-blue-400 transition-all"
-              >
-                <option value="">All levels</option>
-                {EXP_LEVELS.map(l => <option key={l} value={l}>{l}</option>)}
-              </select>
-
-              <div className="flex items-center gap-1.5">
-                <span className="text-xs font-semibold text-gray-400">Hire status:</span>
-              </div>
-              <select
-                value={filterHire}
-                onChange={e => setFilterHire(e.target.value)}
-                className="px-2.5 py-1.5 border border-gray-200 rounded-lg text-xs text-gray-900 focus:outline-none bg-gray-50 focus:border-blue-400 transition-all"
-              >
-                <option value="">All recommendations</option>
-                {HIRE_OPTIONS.map(o => <option key={o} value={o}>{o}</option>)}
-              </select>
-            </div>
-          )}
-        </div>
-
-        <div className="mb-4 bg-white border border-gray-200 rounded-xl px-3 py-2.5 shadow-sm">
-          <div className="flex items-center gap-2 flex-wrap">
-            <div className="flex items-center gap-1.5 mr-1">
-              <CalendarDays className="w-3.5 h-3.5 text-gray-400" />
-              <span className="text-xs font-semibold text-gray-400">Date:</span>
-            </div>
-            {DATE_FILTER_OPTIONS.map(opt => (
-              <button
-                key={opt.key}
-                onClick={() => setDateFilter(opt.key)}
-                className={`px-3 py-1 rounded-lg text-xs font-semibold border transition-all ${
-                  dateFilter === opt.key
-                    ? 'bg-blue-600 text-white border-blue-600 shadow-sm'
-                    : 'bg-gray-50 text-gray-500 border-gray-200 hover:bg-gray-100 hover:text-gray-700'
-                }`}
-              >
-                {opt.label}
-              </button>
-            ))}
           </div>
         </div>
 
         <div className="overflow-x-auto pb-4">
-          <div className="grid grid-cols-5 gap-3 items-start min-w-[900px]">
+          <div className="grid grid-cols-4 gap-3 items-start min-w-[800px]">
             {COLUMN_CONFIG.map(col => (
               <KanbanColumnComponent
                 key={col.key}
@@ -701,12 +632,12 @@ Return ONLY valid JSON with this exact structure:
                 onDragOver={(e) => { e.preventDefault(); setDragOver(col.key); }}
                 onDragLeave={() => setDragOver(null)}
                 onDrop={() => handleDrop(col.key)}
-                onClaim={handleClaim}
                 onRelease={handleRelease}
                 onSchedule={openBooking}
                 onMarkDone={openFeedback}
                 onViewReport={(ticket) => navigate(`/hr-report/${ticket.id}`)}
                 onViewProfile={(ticket) => setProfileTicket(ticket)}
+                onSeeMore={() => setColumnAllModal(col.key)}
               />
             ))}
           </div>
@@ -858,6 +789,47 @@ Return ONLY valid JSON with this exact structure:
           onClose={() => { setShowFeedbackModal(false); setFeedbackTicket(null); setAiReport(null); }}
         />
       )}
+
+      {showProfileModal && user && (
+        <HRProfileModal
+          userId={user.uid}
+          userEmail={user.email || ''}
+          onClose={() => setShowProfileModal(false)}
+          onSaved={(p) => setHrProfile(p)}
+        />
+      )}
+
+      {showTicketPoolModal && (
+        <>
+          <TicketPoolModal
+            tickets={poolTickets}
+            actionLoading={actionLoading}
+            onClaim={handleClaim}
+            onViewDetail={(ticket) => setDetailTicket(ticket)}
+            onClose={() => setShowTicketPoolModal(false)}
+          />
+          {detailTicket && (
+            <TicketDetailModal
+              ticket={detailTicket}
+              actionLoading={actionLoading}
+              onClaim={handleClaim}
+              onClose={() => setDetailTicket(null)}
+            />
+          )}
+        </>
+      )}
+
+      {columnAllModal && columnAllConfig && (
+        <ColumnAllTicketsModal
+          config={columnAllConfig}
+          tickets={getColumnTickets(columnAllModal)}
+          onClose={() => setColumnAllModal(null)}
+          onSchedule={columnAllModal === 'claimed' ? openBooking : undefined}
+          onMarkDone={columnAllModal === 'scheduled' || columnAllModal === 'completed' ? openFeedback : undefined}
+          onViewReport={columnAllModal === 'completed' ? (ticket) => { setColumnAllModal(null); navigate(`/hr-report/${ticket.id}`); } : undefined}
+          onViewProfile={(ticket) => { setColumnAllModal(null); setProfileTicket(ticket); }}
+        />
+      )}
     </div>
   );
 }
@@ -871,10 +843,12 @@ function RowItem({ label, value, mono }: { label: string; value: string; mono?: 
   );
 }
 
+const TICKETS_PER_COLUMN = 3;
+
 function KanbanColumnComponent({
   config, tickets, isDragOver, actionLoading, userId,
   onDragStart, onDragOver, onDragLeave, onDrop,
-  onClaim, onRelease, onSchedule, onMarkDone, onViewReport, onViewProfile,
+  onRelease, onSchedule, onMarkDone, onViewReport, onViewProfile, onSeeMore,
 }: {
   config: typeof COLUMN_CONFIG[0];
   tickets: MockInterviewRequest[];
@@ -885,13 +859,16 @@ function KanbanColumnComponent({
   onDragOver: (e: React.DragEvent) => void;
   onDragLeave: () => void;
   onDrop: () => void;
-  onClaim: (id: string) => void;
   onRelease: (id: string) => void;
   onSchedule: (t: MockInterviewRequest) => void;
   onMarkDone: (t: MockInterviewRequest) => void;
   onViewReport: (t: MockInterviewRequest) => void;
   onViewProfile: (t: MockInterviewRequest) => void;
+  onSeeMore: () => void;
 }) {
+  const visible = tickets.slice(0, TICKETS_PER_COLUMN);
+  const remaining = tickets.length - TICKETS_PER_COLUMN;
+
   return (
     <div
       className={`rounded-2xl border transition-all duration-200 flex flex-col bg-white ${config.border} ${isDragOver ? 'ring-2 ring-blue-400/40 scale-[1.005] shadow-lg' : 'shadow-sm'}`}
@@ -907,14 +884,14 @@ function KanbanColumnComponent({
         <span className={`text-xs font-bold px-2 py-0.5 rounded-full bg-white border ${config.border} ${config.color}`}>{tickets.length}</span>
       </div>
 
-      <div className="p-2 space-y-2 max-h-[calc(100vh-280px)] overflow-y-auto">
+      <div className="p-2 space-y-2">
         {tickets.length === 0 && (
           <div className={`flex flex-col items-center justify-center py-10 text-center transition-opacity ${isDragOver ? 'opacity-100' : 'opacity-40'}`}>
             <Ticket className={`w-6 h-6 mb-2 ${config.color}`} />
             <p className={`text-xs ${config.color}`}>Drop here</p>
           </div>
         )}
-        {tickets.map(ticket => (
+        {visible.map(ticket => (
           <TicketCard
             key={ticket.id}
             ticket={ticket}
@@ -922,7 +899,6 @@ function KanbanColumnComponent({
             actionLoading={actionLoading}
             userId={userId}
             onDragStart={onDragStart}
-            onClaim={onClaim}
             onRelease={onRelease}
             onSchedule={onSchedule}
             onMarkDone={onMarkDone}
@@ -930,6 +906,14 @@ function KanbanColumnComponent({
             onViewProfile={onViewProfile}
           />
         ))}
+        {remaining > 0 && (
+          <button
+            onClick={onSeeMore}
+            className={`w-full py-2 text-xs font-semibold rounded-xl border transition-colors ${config.headerBg} ${config.border} ${config.headerText} hover:opacity-80`}
+          >
+            See More ({remaining})
+          </button>
+        )}
       </div>
     </div>
   );
@@ -947,14 +931,13 @@ const EXP_COLORS: Record<string, string> = {
 
 function TicketCard({
   ticket, columnKey, actionLoading, userId,
-  onDragStart, onClaim, onRelease, onSchedule, onMarkDone, onViewReport, onViewProfile,
+  onDragStart, onRelease, onSchedule, onMarkDone, onViewReport, onViewProfile,
 }: {
   ticket: MockInterviewRequest;
   columnKey: KanbanColumn;
   actionLoading: string | null;
   userId?: string;
   onDragStart: (t: MockInterviewRequest) => void;
-  onClaim: (id: string) => void;
   onRelease: (id: string) => void;
   onSchedule: (t: MockInterviewRequest) => void;
   onMarkDone: (t: MockInterviewRequest) => void;
@@ -1050,11 +1033,10 @@ function TicketCard({
         )}
 
         <div className="mt-3 flex flex-wrap gap-1.5">
-          {(columnKey === 'pool' || (columnKey === 'assigned' && ticket.booking_status === 'unclaimed')) && (
-            <button onClick={() => onClaim(ticket.id)} disabled={isLoading}
-              className="text-[11px] font-semibold px-2.5 py-1 rounded-lg bg-blue-50 text-blue-600 border border-blue-200 hover:bg-blue-100 transition-colors disabled:opacity-40">
-              {isLoading ? '...' : 'Claim'}
-            </button>
+          {columnKey === 'assigned' && ticket.booking_status === 'unclaimed' && (
+            <span className="text-[11px] font-semibold px-2.5 py-1 rounded-lg bg-blue-50 text-blue-500 border border-blue-100">
+              Assigned
+            </span>
           )}
           {columnKey === 'claimed' && (
             <>
