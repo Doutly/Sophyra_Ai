@@ -15,6 +15,7 @@ import PendingApproval from './pages/PendingApproval';
 import Profile from './pages/Profile';
 import SharedReport from './pages/SharedReport';
 import HRReport from './pages/HRReport';
+import HRTicketPool from './pages/HRTicketPool';
 
 function App() {
   return (
@@ -131,6 +132,17 @@ function App() {
                 <ErrorBoundary>
                   <ProtectedRoute allowedRoles={['hr']} requireApproval={true}>
                     <HRReport />
+                  </ProtectedRoute>
+                </ErrorBoundary>
+              }
+            />
+
+            <Route
+              path="/hr-ticket-pool"
+              element={
+                <ErrorBoundary>
+                  <ProtectedRoute allowedRoles={['hr']} requireApproval={true}>
+                    <HRTicketPool />
                   </ProtectedRoute>
                 </ErrorBoundary>
               }

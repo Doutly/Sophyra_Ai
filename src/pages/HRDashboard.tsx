@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../contexts/AuthContext';
 import { db } from '../lib/firebase';
 import { collection, onSnapshot, doc, getDoc, updateDoc, addDoc, serverTimestamp } from 'firebase/firestore';
@@ -7,11 +8,9 @@ import {
   LogOut, ExternalLink, Download,
   ChevronRight, X, Star, FileText, Loader2, CheckCircle,
   User, Briefcase, Calendar, Clock, Ticket, Search,
-  Mail, Building2, Target, BookOpen, Brain, Inbox, UserCircle
+  Mail, Building2, Target, BookOpen, Brain, Inbox, UserCircle, AlertCircle
 } from 'lucide-react';
 import HRProfileModal from '../components/ui/HRProfileModal';
-import TicketPoolModal from '../components/ui/TicketPoolModal';
-import TicketDetailModal from '../components/ui/TicketDetailModal';
 import ColumnAllTicketsModal from '../components/ui/ColumnAllTicketsModal';
 
 interface MockInterviewRequest {
@@ -148,9 +147,10 @@ export default function HRDashboard() {
 
   const [searchQuery, setSearchQuery] = useState('');
 
+  const [profileComplete, setProfileComplete] = useState(true);
+  const [profileCheckDone, setProfileCheckDone] = useState(false);
+
   const [showProfileModal, setShowProfileModal] = useState(false);
-  const [showTicketPoolModal, setShowTicketPoolModal] = useState(false);
-  const [detailTicket, setDetailTicket] = useState<MockInterviewRequest | null>(null);
 
   const [columnAllModal, setColumnAllModal] = useState<KanbanColumn | null>(null);
 
@@ -193,16 +193,22 @@ export default function HRDashboard() {
         const snap = await getDoc(doc(db, 'users', user.uid));
         if (snap.exists()) {
           const d = snap.data();
-          setHrProfile({
+          const p: HRProfile = {
             displayName: d.displayName || d.name || '',
             bio: d.bio || '',
             hrExperience: d.hrExperience || '',
             expertise: d.expertise || '',
             linkedinUrl: d.linkedinUrl || '',
             avatarUrl: d.avatarUrl || '',
-          });
+          };
+          setHrProfile(p);
+          const complete = !!(p.displayName && p.bio && p.hrExperience && p.expertise && p.linkedinUrl);
+          setProfileComplete(complete);
+          if (!complete) setShowProfileModal(true);
         }
-      } catch { /* ignore */ }
+      } catch { /* ignore */ } finally {
+        setProfileCheckDone(true);
+      }
     };
     fetchProfile();
 
@@ -293,8 +299,6 @@ export default function HRDashboard() {
         claimed_at: new Date().toISOString(),
         booking_status: 'claimed',
       });
-      setShowTicketPoolModal(false);
-      setDetailTicket(null);
     } finally { setActionLoading(null); }
   };
 
@@ -532,12 +536,22 @@ Return ONLY valid JSON with this exact structure:
 
             <div className="flex items-center gap-2">
               <button
-                onClick={() => setShowTicketPoolModal(true)}
-                className="flex items-center gap-1.5 px-3 py-1.5 border border-gray-200 rounded-lg bg-gray-50 text-gray-600 hover:bg-cyan-50 hover:border-cyan-200 hover:text-cyan-700 transition-all text-xs font-medium relative"
+                onClick={() => {
+                  if (!profileComplete) {
+                    setShowProfileModal(true);
+                  } else {
+                    navigate('/hr-ticket-pool');
+                  }
+                }}
+                className={`flex items-center gap-1.5 px-3 py-1.5 border rounded-lg transition-all text-xs font-medium relative ${
+                  profileComplete
+                    ? 'border-gray-200 bg-gray-50 text-gray-600 hover:bg-cyan-50 hover:border-cyan-200 hover:text-cyan-700'
+                    : 'border-gray-200 bg-gray-50 text-gray-400 cursor-not-allowed'
+                }`}
               >
                 <Inbox className="w-3.5 h-3.5" />
                 <span className="hidden sm:inline">Ticket Pool</span>
-                {poolTickets.length > 0 && (
+                {profileComplete && poolTickets.length > 0 && (
                   <span className="flex items-center justify-center w-4 h-4 rounded-full bg-cyan-500 text-white text-[10px] font-bold">
                     {poolTickets.length > 9 ? '9+' : poolTickets.length}
                   </span>
@@ -573,7 +587,31 @@ Return ONLY valid JSON with this exact structure:
         </div>
       </nav>
 
-      <div className="px-4 py-5">
+      <AnimatePresence>
+        {profileCheckDone && !profileComplete && (
+          <motion.div
+            initial={{ opacity: 0, y: -8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={{ duration: 0.3 }}
+            className="mx-4 mt-4 flex items-center gap-3 px-4 py-3 bg-amber-50 border border-amber-200 rounded-xl shadow-sm"
+          >
+            <AlertCircle className="w-4 h-4 text-amber-600 flex-shrink-0" />
+            <p className="text-xs font-medium text-amber-800 flex-1">
+              Complete your HR profile to access the Ticket Pool and claim interviews
+            </p>
+            <button
+              onClick={() => setShowProfileModal(true)}
+              className="text-xs font-semibold px-3 py-1.5 bg-amber-600 text-white rounded-lg hover:bg-amber-500 transition-colors flex-shrink-0"
+            >
+              Complete Profile
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <div className={`px-4 py-5 transition-all duration-300 ${!profileComplete ? 'pointer-events-none' : ''}`}>
+        <div className={`transition-all duration-300 ${!profileComplete ? 'blur-[2px] opacity-50 select-none' : ''}`}>
         <div className="mb-4 flex items-start justify-between flex-wrap gap-3">
           <div>
             <h1 className="text-xl font-bold text-gray-900">Interview Board</h1>
@@ -641,6 +679,7 @@ Return ONLY valid JSON with this exact structure:
               />
             ))}
           </div>
+        </div>
         </div>
       </div>
 
@@ -795,28 +834,12 @@ Return ONLY valid JSON with this exact structure:
           userId={user.uid}
           userEmail={user.email || ''}
           onClose={() => setShowProfileModal(false)}
-          onSaved={(p) => setHrProfile(p)}
+          onSaved={(p) => {
+            setHrProfile(p);
+            const complete = !!(p.displayName && p.bio && p.hrExperience && p.expertise && p.linkedinUrl);
+            setProfileComplete(complete);
+          }}
         />
-      )}
-
-      {showTicketPoolModal && (
-        <>
-          <TicketPoolModal
-            tickets={poolTickets}
-            actionLoading={actionLoading}
-            onClaim={handleClaim}
-            onViewDetail={(ticket) => setDetailTicket(ticket)}
-            onClose={() => setShowTicketPoolModal(false)}
-          />
-          {detailTicket && (
-            <TicketDetailModal
-              ticket={detailTicket}
-              actionLoading={actionLoading}
-              onClaim={handleClaim}
-              onClose={() => setDetailTicket(null)}
-            />
-          )}
-        </>
       )}
 
       {columnAllModal && columnAllConfig && (
