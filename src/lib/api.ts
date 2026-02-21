@@ -1,7 +1,29 @@
 import { httpsCallable } from 'firebase/functions';
 import { functions } from './firebase';
 
-const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY || '';
+const FUNCTIONS_BASE_URL = 'https://us-central1-sophyraai.cloudfunctions.net';
+
+// Helper to call Gemini through our server-side proxy
+async function callGemini(prompt: string, options?: { temperature?: number; maxOutputTokens?: number; model?: string }): Promise<string> {
+  const response = await fetch(`${FUNCTIONS_BASE_URL}/geminiProxy`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      prompt,
+      temperature: options?.temperature ?? 0.4,
+      maxOutputTokens: options?.maxOutputTokens ?? 2048,
+      model: options?.model ?? 'gemini-1.5-flash',
+    }),
+  });
+
+  if (!response.ok) {
+    const errText = await response.text();
+    throw new Error(`Gemini proxy error: ${response.status} ${errText}`);
+  }
+
+  const data = await response.json();
+  return data.text || '';
+}
 
 export async function generateInterviewQuestion(params: {
   jobRole: string;
@@ -101,8 +123,8 @@ export async function generateQuestionWithGemini(params: {
 }) {
   try {
     const tone = params.experienceLevel === 'fresher' ? 'supportive mentor' :
-                 params.experienceLevel === '6+' ? 'calm senior leader' :
-                 'formal HR';
+      params.experienceLevel === '6+' ? 'calm senior leader' :
+        'formal HR';
 
     const context = `You are interviewing for: ${params.jobRole}\nExperience Level: ${params.experienceLevel}\nJob Description: ${params.jobDescription}`;
 
@@ -118,24 +140,13 @@ export async function generateQuestionWithGemini(params: {
 
     prompt += `\n\nReturn ONLY the question text, nothing else.`;
 
-    const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${GEMINI_API_KEY}`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [{
-            parts: [{ text: prompt }]
-          }]
-        })
-      }
-    );
+    // Route through server-side Gemini proxy
+    const question = await callGemini(prompt, { model: 'gemini-pro' });
 
-    const data = await response.json();
-    const question = data?.candidates?.[0]?.content?.parts?.[0]?.text?.trim() ||
-                    "Tell me about a time when you demonstrated leadership.";
-
-    return { question, tone };
+    return {
+      question: question || "Tell me about a time when you demonstrated leadership.",
+      tone
+    };
   } catch (error) {
     console.error('Error with Gemini API:', error);
     const defaultQuestions = [
@@ -149,3 +160,6 @@ export async function generateQuestionWithGemini(params: {
     };
   }
 }
+
+// Export the helper for use in other files
+export { callGemini };

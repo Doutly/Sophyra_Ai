@@ -1,19 +1,21 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.elevenLabsWebhook = exports.getSimliSessionToken = exports.getElevenLabsSignedUrl = void 0;
+exports.elevenLabsWebhook = exports.elevenLabsVoicesProxy = exports.elevenLabsTTSProxy = exports.geminiProxy = exports.getSimliSessionToken = exports.getElevenLabsSignedUrl = void 0;
 const functions = require("firebase-functions");
 const admin = require("firebase-admin");
 const crypto = require("crypto");
 admin.initializeApp();
 const db = admin.firestore();
-const corsHeaders = {
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-};
+// ─── CORS helper ────────────────────────────────────────────────────────────
+function setCors(res) {
+    res.set('Access-Control-Allow-Origin', '*');
+    res.set('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+    res.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    res.set('Access-Control-Max-Age', '3600');
+}
+// ─── ElevenLabs Signed URL (callable) ───────────────────────────────────────
 exports.getElevenLabsSignedUrl = functions
-    .runWith({ secrets: ['ELEVENLABS_API_KEY', 'ELEVENLABS_AGENT_ID'] })
-    .https.onCall(async (data, context) => {
+    .https.onCall(async (data, _context) => {
     const apiKey = process.env.ELEVENLABS_API_KEY;
     const defaultAgentId = process.env.ELEVENLABS_AGENT_ID || 'agent_6401kf6a3faqejpbsks4a5h1j3da';
     if (!apiKey) {
@@ -31,21 +33,24 @@ exports.getElevenLabsSignedUrl = functions
     const result = await response.json();
     return { signed_url: result.signed_url };
 });
+// ─── Simli Session Token ────────────────────────────────────────────────────
 exports.getSimliSessionToken = functions
     .https.onRequest(async (req, res) => {
-    res.set(corsHeaders);
+    setCors(res);
     if (req.method === 'OPTIONS') {
-        res.status(200).send();
+        res.status(204).send('');
         return;
     }
     try {
-        const apiKey = 'ke47f43byck10xged4tx7rf';
-        const faceId = 'cace3ef7-a4c4-425d-a8cf-a5358eb0c427';
-        const response = await fetch('https://api.simli.ai/startAudioToVideoSession', {
+        const apiKey = process.env.SIMLI_API_KEY || 'ke47f43byck10xged4tx7rf';
+        const faceId = process.env.SIMLI_FACE_ID || 'cace3ef7-a4c4-425d-a8cf-a5358eb0c427';
+        const response = await fetch('https://api.simli.ai/compose/token', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: {
+                'Content-Type': 'application/json',
+                'x-simli-api-key': apiKey,
+            },
             body: JSON.stringify({
-                apiKey,
                 faceId,
                 handleSilence: true,
                 maxSessionLength: 600,
@@ -69,13 +74,144 @@ exports.getSimliSessionToken = functions
         res.status(500).json({ error: 'Internal server error' });
     }
 });
+// ─── Gemini Proxy (keeps API key server-side) ───────────────────────────────
+exports.geminiProxy = functions
+    .https.onRequest(async (req, res) => {
+    var _a, _b, _c, _d, _e, _f;
+    setCors(res);
+    if (req.method === 'OPTIONS') {
+        res.status(204).send('');
+        return;
+    }
+    if (req.method !== 'POST') {
+        res.status(405).json({ error: 'Method not allowed' });
+        return;
+    }
+    try {
+        const geminiKey = process.env.GEMINI_API_KEY;
+        if (!geminiKey) {
+            res.status(500).json({ error: 'Gemini API key not configured' });
+            return;
+        }
+        const { prompt, temperature = 0.4, maxOutputTokens = 2048, model = 'gemini-1.5-flash' } = req.body;
+        if (!prompt) {
+            res.status(400).json({ error: 'Missing prompt in request body' });
+            return;
+        }
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${geminiKey}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                contents: [{ parts: [{ text: prompt }] }],
+                generationConfig: { temperature, maxOutputTokens },
+            }),
+        });
+        if (!response.ok) {
+            const errText = await response.text();
+            res.status(response.status).json({ error: `Gemini API error: ${errText}` });
+            return;
+        }
+        const data = await response.json();
+        const text = ((_f = (_e = (_d = (_c = (_b = (_a = data === null || data === void 0 ? void 0 : data.candidates) === null || _a === void 0 ? void 0 : _a[0]) === null || _b === void 0 ? void 0 : _b.content) === null || _c === void 0 ? void 0 : _c.parts) === null || _d === void 0 ? void 0 : _d[0]) === null || _e === void 0 ? void 0 : _e.text) === null || _f === void 0 ? void 0 : _f.trim()) || '';
+        res.status(200).json({ text });
+    }
+    catch (err) {
+        console.error('geminiProxy error:', err);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+});
+// ─── ElevenLabs TTS Proxy (keeps API key server-side) ───────────────────────
+exports.elevenLabsTTSProxy = functions
+    .https.onRequest(async (req, res) => {
+    setCors(res);
+    if (req.method === 'OPTIONS') {
+        res.status(204).send('');
+        return;
+    }
+    if (req.method !== 'POST') {
+        res.status(405).json({ error: 'Method not allowed' });
+        return;
+    }
+    try {
+        const apiKey = process.env.ELEVENLABS_API_KEY;
+        if (!apiKey) {
+            res.status(500).json({ error: 'ElevenLabs API key not configured' });
+            return;
+        }
+        const { text, voiceId = 'EXAVITQu4vr4xnSDxMaL', voiceSettings } = req.body;
+        if (!text) {
+            res.status(400).json({ error: 'Missing text in request body' });
+            return;
+        }
+        const response = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}/stream`, {
+            method: 'POST',
+            headers: {
+                'Accept': 'audio/mpeg',
+                'Content-Type': 'application/json',
+                'xi-api-key': apiKey,
+            },
+            body: JSON.stringify({
+                text,
+                model_id: 'eleven_monolingual_v1',
+                voice_settings: voiceSettings || {
+                    stability: 0.5,
+                    similarity_boost: 0.75,
+                    style: 0.5,
+                    use_speaker_boost: true,
+                },
+            }),
+        });
+        if (!response.ok) {
+            const errText = await response.text();
+            res.status(response.status).json({ error: `ElevenLabs TTS error: ${errText}` });
+            return;
+        }
+        const audioBuffer = await response.arrayBuffer();
+        res.set('Content-Type', 'audio/mpeg');
+        res.status(200).send(Buffer.from(audioBuffer));
+    }
+    catch (err) {
+        console.error('elevenLabsTTSProxy error:', err);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+});
+// ─── ElevenLabs Voices List Proxy ───────────────────────────────────────────
+exports.elevenLabsVoicesProxy = functions
+    .https.onRequest(async (req, res) => {
+    setCors(res);
+    if (req.method === 'OPTIONS') {
+        res.status(204).send('');
+        return;
+    }
+    try {
+        const apiKey = process.env.ELEVENLABS_API_KEY;
+        if (!apiKey) {
+            res.status(500).json({ error: 'ElevenLabs API key not configured' });
+            return;
+        }
+        const response = await fetch('https://api.elevenlabs.io/v1/voices', {
+            headers: { 'xi-api-key': apiKey },
+        });
+        if (!response.ok) {
+            const errText = await response.text();
+            res.status(response.status).json({ error: `ElevenLabs error: ${errText}` });
+            return;
+        }
+        const data = await response.json();
+        res.status(200).json(data);
+    }
+    catch (err) {
+        console.error('elevenLabsVoicesProxy error:', err);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+});
+// ─── ElevenLabs Webhook ─────────────────────────────────────────────────────
 exports.elevenLabsWebhook = functions
-    .runWith({ secrets: ['ELEVENLABS_WEBHOOK_SECRET'] })
     .https.onRequest(async (req, res) => {
     var _a;
-    res.set(corsHeaders);
+    setCors(res);
     if (req.method === 'OPTIONS') {
-        res.status(200).send();
+        res.status(204).send('');
         return;
     }
     if (req.method !== 'POST') {

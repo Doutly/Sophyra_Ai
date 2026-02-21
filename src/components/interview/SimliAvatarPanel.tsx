@@ -19,29 +19,24 @@ interface SimliAvatarPanelProps {
 
 const SIMLI_TOKEN_URL = 'https://us-central1-sophyraai.cloudfunctions.net/getSimliSessionToken';
 
+/**
+ * Fetches a session token from our Cloud Function proxy.
+ * The Cloud Function calls Simli's API with our API key server-side.
+ */
 async function fetchSessionToken(): Promise<string> {
-  const attemptFetch = async (): Promise<string> => {
-    const response = await fetch(SIMLI_TOKEN_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({}),
-    });
-    if (!response.ok) {
-      const errText = await response.text();
-      throw new Error(`Failed to get Simli token: ${response.status} ${errText}`);
-    }
-    const data = await response.json();
-    const token = data?.session_token;
-    if (!token) throw new Error('No session token in response');
-    return token;
-  };
-
-  try {
-    return await attemptFetch();
-  } catch (err) {
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    return await attemptFetch();
+  const response = await fetch(SIMLI_TOKEN_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({}),
+  });
+  if (!response.ok) {
+    const errText = await response.text();
+    throw new Error(`Failed to get Simli token: ${response.status} ${errText}`);
   }
+  const data = await response.json();
+  const token = data?.session_token;
+  if (!token) throw new Error('No session token in response');
+  return token;
 }
 
 const SimliAvatarPanel = forwardRef<SimliAvatarPanelHandle, SimliAvatarPanelProps>(
@@ -78,11 +73,15 @@ const SimliAvatarPanel = forwardRef<SimliAvatarPanelHandle, SimliAvatarPanelProp
         updateStatus('loading');
 
         try {
-          const token = await fetchSessionToken();
+          // 1. Fetch session token from our server-side proxy
+          const sessionToken = await fetchSessionToken();
           if (cancelled) return;
 
+          // SimliClient constructor for installed v3.0.0:
+          // (session_token, videoElement, audioElement, iceServers, logLevel, transportMode)
+          // Using 'livekit' transport (P2P mode requires ICE servers we don't configure)
           const client = new SimliClient(
-            token,
+            sessionToken,
             videoRef.current,
             audioRef.current,
             null,
@@ -90,6 +89,7 @@ const SimliAvatarPanel = forwardRef<SimliAvatarPanelHandle, SimliAvatarPanelProp
             'livekit'
           );
 
+          // 3. Register event listeners before calling start()
           client.on('start', () => {
             if (cancelled) return;
             setVideoVisible(true);
@@ -108,30 +108,36 @@ const SimliAvatarPanel = forwardRef<SimliAvatarPanelHandle, SimliAvatarPanelProp
             }
           });
 
+          // SDK 3.x.x: 'stop' = server decided to end (maxIdle, maxSession, done signal)
           client.on('stop', () => {
             if (cancelled) return;
             updateStatus('idle');
             setVideoVisible(false);
           });
 
-          client.on('error', () => {
+          // SDK 3.x.x: 'error' = server-side error post initialization
+          client.on('error', (reason: string) => {
             if (cancelled) return;
+            console.warn('Simli error:', reason);
             updateStatus('fallback');
             setVideoVisible(false);
           });
 
-          client.on('startup_error', (msg: string) => {
+          // SDK 3.x.x: 'startup_error' = server-side error during connection setup
+          client.on('startup_error', (reason: string) => {
             if (cancelled) return;
-            console.error('Simli startup error (full message):', msg);
+            console.warn('Simli startup error:', reason);
             updateStatus('fallback');
             setVideoVisible(false);
           });
 
+          // 4. Store ref and start the connection
           simliClientRef.current = client;
           await client.start();
         } catch (err) {
           if (cancelled) return;
-          console.error('Simli init error:', err);
+          // Gracefully fall back — CORS or network errors are expected in dev
+          console.warn('Simli avatar unavailable, using fallback:', (err as Error)?.message || err);
           updateStatus('fallback');
         }
       };
@@ -142,6 +148,7 @@ const SimliAvatarPanel = forwardRef<SimliAvatarPanelHandle, SimliAvatarPanelProp
         cancelled = true;
         cleanup();
       };
+      // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     useImperativeHandle(ref, () => ({
@@ -186,11 +193,10 @@ const SimliAvatarPanel = forwardRef<SimliAvatarPanelHandle, SimliAvatarPanelProp
                 </>
               )}
               <div
-                className={`w-28 h-28 rounded-full flex items-center justify-center transition-all duration-300 ${
-                  avatarSpeaking && !isFallback
-                    ? 'bg-brand-electric/20 border-2 border-brand-electric/50 shadow-blue-glow'
-                    : 'bg-slate-800 border border-slate-700'
-                }`}
+                className={`w-28 h-28 rounded-full flex items-center justify-center transition-all duration-300 ${avatarSpeaking && !isFallback
+                  ? 'bg-brand-electric/20 border-2 border-brand-electric/50 shadow-blue-glow'
+                  : 'bg-slate-800 border border-slate-700'
+                  }`}
               >
                 {isLoading && !isFallback ? (
                   <div className="w-14 h-14 flex items-center justify-center">
@@ -198,9 +204,8 @@ const SimliAvatarPanel = forwardRef<SimliAvatarPanelHandle, SimliAvatarPanelProp
                   </div>
                 ) : (
                   <Brain
-                    className={`w-14 h-14 transition-colors duration-300 ${
-                      avatarSpeaking ? 'text-brand-electric' : 'text-slate-500'
-                    }`}
+                    className={`w-14 h-14 transition-colors duration-300 ${avatarSpeaking ? 'text-brand-electric' : 'text-slate-500'
+                      }`}
                   />
                 )}
               </div>
@@ -228,13 +233,12 @@ const SimliAvatarPanel = forwardRef<SimliAvatarPanelHandle, SimliAvatarPanelProp
         <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between z-10">
           <div className="bg-black/60 backdrop-blur-sm rounded-lg px-3 py-1.5 flex items-center space-x-2">
             <div
-              className={`w-1.5 h-1.5 rounded-full ${
-                avatarSpeaking
-                  ? 'bg-green-400 animate-pulse'
-                  : status === 'connected' || videoVisible
+              className={`w-1.5 h-1.5 rounded-full ${avatarSpeaking
+                ? 'bg-green-400 animate-pulse'
+                : status === 'connected' || videoVisible
                   ? 'bg-green-600'
                   : 'bg-slate-500'
-              }`}
+                }`}
             />
             <span className="text-xs font-semibold text-white">Sophyra AI</span>
             {avatarSpeaking && (

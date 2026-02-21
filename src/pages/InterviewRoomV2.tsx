@@ -25,7 +25,9 @@ import TranscriptSidebar from '../components/interview/TranscriptSidebar';
 import PreInterviewScreen from '../components/interview/PreInterviewScreen';
 import SimliAvatarPanel, { SimliAvatarPanelHandle, SimliAvatarStatus } from '../components/interview/SimliAvatarPanel';
 
-const AGENT_ID = import.meta.env.VITE_ELEVENLABS_AGENT_ID;
+
+// Agent ID is a public identifier (not a secret) — the actual API key is server-side only
+const AGENT_ID = 'agent_6401kf6a3faqejpbsks4a5h1j3da';
 const MAX_JD_LENGTH = 800;
 
 export interface TranscriptMessage {
@@ -256,7 +258,7 @@ export default function InterviewRoomV2() {
       audioSourceRef.current = null;
     }
     if (audioContextRef.current) {
-      audioContextRef.current.close().catch(() => {});
+      audioContextRef.current.close().catch(() => { });
       audioContextRef.current = null;
     }
   }, []);
@@ -428,13 +430,12 @@ export default function InterviewRoomV2() {
             </div>
           )}
 
-          <div className={`flex items-center space-x-1.5 rounded-full px-3 py-1.5 text-xs font-medium border ${
-            connectionStatus === 'connected'
-              ? 'bg-green-50 text-green-700 border-green-200'
-              : connectionStatus === 'connecting'
+          <div className={`flex items-center space-x-1.5 rounded-full px-3 py-1.5 text-xs font-medium border ${connectionStatus === 'connected'
+            ? 'bg-green-50 text-green-700 border-green-200'
+            : connectionStatus === 'connecting'
               ? 'bg-amber-50 text-amber-700 border-amber-200'
               : 'bg-slate-100 text-slate-500 border-slate-200'
-          }`}>
+            }`}>
             {connectionStatus === 'connected' ? (
               <Wifi className="w-3 h-3" />
             ) : (
@@ -444,8 +445,8 @@ export default function InterviewRoomV2() {
               {connectionStatus === 'connected'
                 ? 'Live'
                 : connectionStatus === 'connecting'
-                ? 'Connecting'
-                : 'Ready'}
+                  ? 'Connecting'
+                  : 'Ready'}
             </span>
           </div>
         </div>
@@ -514,11 +515,10 @@ export default function InterviewRoomV2() {
               </div>
               <button
                 onClick={() => setShowTranscript((v) => !v)}
-                className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all border ${
-                  showTranscript
-                    ? 'bg-brand-electric text-white border-brand-electric'
-                    : 'bg-white text-slate-600 border-slate-200 hover:border-slate-300 hover:bg-slate-50'
-                }`}
+                className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all border ${showTranscript
+                  ? 'bg-brand-electric text-white border-brand-electric'
+                  : 'bg-white text-slate-600 border-slate-200 hover:border-slate-300 hover:bg-slate-50'
+                  }`}
                 title="Toggle transcript"
               >
                 <MessageSquare className="w-3.5 h-3.5" />
@@ -531,11 +531,10 @@ export default function InterviewRoomV2() {
               </button>
               <button
                 onClick={() => setShowCodeEditor((v) => !v)}
-                className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all border ${
-                  showCodeEditor
-                    ? 'bg-slate-900 text-white border-slate-900'
-                    : 'bg-white text-slate-600 border-slate-200 hover:border-slate-300 hover:bg-slate-50'
-                }`}
+                className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all border ${showCodeEditor
+                  ? 'bg-slate-900 text-white border-slate-900'
+                  : 'bg-white text-slate-600 border-slate-200 hover:border-slate-300 hover:bg-slate-50'
+                  }`}
                 title="Toggle code editor"
               >
                 <Code2 className="w-3.5 h-3.5" />
@@ -546,11 +545,10 @@ export default function InterviewRoomV2() {
             <div className="flex items-center space-x-2">
               <button
                 onClick={toggleMic}
-                className={`w-11 h-11 rounded-full flex items-center justify-center transition-all border shadow-swiss-sm ${
-                  micEnabled
-                    ? 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50 hover:border-slate-300'
-                    : 'bg-red-50 border-red-200 text-red-500 hover:bg-red-100'
-                }`}
+                className={`w-11 h-11 rounded-full flex items-center justify-center transition-all border shadow-swiss-sm ${micEnabled
+                  ? 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50 hover:border-slate-300'
+                  : 'bg-red-50 border-red-200 text-red-500 hover:bg-red-100'
+                  }`}
                 title={micEnabled ? 'Mute microphone' : 'Unmute microphone'}
               >
                 {micEnabled ? <Mic className="w-4.5 h-4.5" /> : <MicOff className="w-4.5 h-4.5" />}
@@ -559,11 +557,10 @@ export default function InterviewRoomV2() {
               <button
                 onClick={toggleCamera}
                 disabled={cameraError}
-                className={`w-11 h-11 rounded-full flex items-center justify-center transition-all border shadow-swiss-sm ${
-                  cameraEnabled && !cameraError
-                    ? 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50 hover:border-slate-300'
-                    : 'bg-red-50 border-red-200 text-red-500 hover:bg-red-100'
-                } disabled:opacity-40 disabled:cursor-not-allowed`}
+                className={`w-11 h-11 rounded-full flex items-center justify-center transition-all border shadow-swiss-sm ${cameraEnabled && !cameraError
+                  ? 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50 hover:border-slate-300'
+                  : 'bg-red-50 border-red-200 text-red-500 hover:bg-red-100'
+                  } disabled:opacity-40 disabled:cursor-not-allowed`}
                 title={cameraEnabled ? 'Turn off camera' : 'Turn on camera'}
               >
                 {cameraEnabled && !cameraError ? <Video className="w-4.5 h-4.5" /> : <VideoOff className="w-4.5 h-4.5" />}
@@ -571,11 +568,10 @@ export default function InterviewRoomV2() {
 
               <button
                 onClick={() => setSpeakerEnabled((v) => !v)}
-                className={`w-11 h-11 rounded-full flex items-center justify-center transition-all border shadow-swiss-sm ${
-                  speakerEnabled
-                    ? 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50 hover:border-slate-300'
-                    : 'bg-red-50 border-red-200 text-red-500 hover:bg-red-100'
-                }`}
+                className={`w-11 h-11 rounded-full flex items-center justify-center transition-all border shadow-swiss-sm ${speakerEnabled
+                  ? 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50 hover:border-slate-300'
+                  : 'bg-red-50 border-red-200 text-red-500 hover:bg-red-100'
+                  }`}
                 title={speakerEnabled ? 'Mute speaker' : 'Unmute speaker'}
               >
                 {speakerEnabled ? <Volume2 className="w-4.5 h-4.5" /> : <VolumeX className="w-4.5 h-4.5" />}

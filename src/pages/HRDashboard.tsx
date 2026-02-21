@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import HRProfileModal from '../components/ui/HRProfileModal';
 import ColumnAllTicketsModal from '../components/ui/ColumnAllTicketsModal';
+import { callGemini } from '../lib/api';
 
 interface MockInterviewRequest {
   id: string;
@@ -83,47 +84,47 @@ const COLUMN_CONFIG: {
   dotColor: string;
   headerText: string;
 }[] = [
-  {
-    key: 'assigned',
-    label: 'Assigned to Me',
-    color: 'text-blue-600',
-    headerBg: 'bg-blue-50',
-    border: 'border-blue-200',
-    colBg: 'bg-blue-50/40',
-    dotColor: 'bg-blue-500',
-    headerText: 'text-blue-700',
-  },
-  {
-    key: 'claimed',
-    label: 'Claimed',
-    color: 'text-amber-600',
-    headerBg: 'bg-amber-50',
-    border: 'border-amber-200',
-    colBg: 'bg-amber-50/40',
-    dotColor: 'bg-amber-500',
-    headerText: 'text-amber-700',
-  },
-  {
-    key: 'scheduled',
-    label: 'Scheduled',
-    color: 'text-emerald-600',
-    headerBg: 'bg-emerald-50',
-    border: 'border-emerald-200',
-    colBg: 'bg-emerald-50/40',
-    dotColor: 'bg-emerald-500',
-    headerText: 'text-emerald-700',
-  },
-  {
-    key: 'completed',
-    label: 'Completed',
-    color: 'text-slate-500',
-    headerBg: 'bg-slate-50',
-    border: 'border-slate-200',
-    colBg: 'bg-slate-50/40',
-    dotColor: 'bg-slate-400',
-    headerText: 'text-slate-600',
-  },
-];
+    {
+      key: 'assigned',
+      label: 'Assigned to Me',
+      color: 'text-blue-600',
+      headerBg: 'bg-blue-50',
+      border: 'border-blue-200',
+      colBg: 'bg-blue-50/40',
+      dotColor: 'bg-blue-500',
+      headerText: 'text-blue-700',
+    },
+    {
+      key: 'claimed',
+      label: 'Claimed',
+      color: 'text-amber-600',
+      headerBg: 'bg-amber-50',
+      border: 'border-amber-200',
+      colBg: 'bg-amber-50/40',
+      dotColor: 'bg-amber-500',
+      headerText: 'text-amber-700',
+    },
+    {
+      key: 'scheduled',
+      label: 'Scheduled',
+      color: 'text-emerald-600',
+      headerBg: 'bg-emerald-50',
+      border: 'border-emerald-200',
+      colBg: 'bg-emerald-50/40',
+      dotColor: 'bg-emerald-500',
+      headerText: 'text-emerald-700',
+    },
+    {
+      key: 'completed',
+      label: 'Completed',
+      color: 'text-slate-500',
+      headerBg: 'bg-slate-50',
+      border: 'border-slate-200',
+      colBg: 'bg-slate-50/40',
+      dotColor: 'bg-slate-400',
+      headerText: 'text-slate-600',
+    },
+  ];
 
 const RATING_OPTIONS = ['Excellent', 'Good', 'Average', 'Needs Improvement'];
 const HIRE_OPTIONS = ['Strong Hire', 'Hire', 'Maybe', 'No Hire'];
@@ -401,20 +402,7 @@ Return ONLY valid JSON with this exact structure:
 }`;
 
     try {
-      const GEMINI_KEY = import.meta.env.VITE_GEMINI_API_KEY;
-      const response = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_KEY}`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            contents: [{ parts: [{ text: prompt }] }],
-            generationConfig: { temperature: 0.4, maxOutputTokens: 1024 },
-          }),
-        }
-      );
-      const data = await response.json();
-      const raw = data?.candidates?.[0]?.content?.parts?.[0]?.text || '{}';
+      const raw = await callGemini(prompt, { temperature: 0.4, maxOutputTokens: 1024 });
       const clean = raw.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
       const parsed = JSON.parse(clean);
       const report: AIReport = { ...parsed, report_generated_at: new Date().toISOString() };
@@ -543,11 +531,10 @@ Return ONLY valid JSON with this exact structure:
                     navigate('/hr-ticket-pool');
                   }
                 }}
-                className={`flex items-center gap-1.5 px-3 py-1.5 border rounded-lg transition-all text-xs font-medium relative ${
-                  profileComplete
-                    ? 'border-gray-200 bg-gray-50 text-gray-600 hover:bg-cyan-50 hover:border-cyan-200 hover:text-cyan-700'
-                    : 'border-gray-200 bg-gray-50 text-gray-400 cursor-not-allowed'
-                }`}
+                className={`flex items-center gap-1.5 px-3 py-1.5 border rounded-lg transition-all text-xs font-medium relative ${profileComplete
+                  ? 'border-gray-200 bg-gray-50 text-gray-600 hover:bg-cyan-50 hover:border-cyan-200 hover:text-cyan-700'
+                  : 'border-gray-200 bg-gray-50 text-gray-400 cursor-not-allowed'
+                  }`}
               >
                 <Inbox className="w-3.5 h-3.5" />
                 <span className="hidden sm:inline">Ticket Pool</span>
@@ -612,74 +599,74 @@ Return ONLY valid JSON with this exact structure:
 
       <div className={`px-4 py-5 transition-all duration-300 ${!profileComplete ? 'pointer-events-none' : ''}`}>
         <div className={`transition-all duration-300 ${!profileComplete ? 'blur-[2px] opacity-50 select-none' : ''}`}>
-        <div className="mb-4 flex items-start justify-between flex-wrap gap-3">
-          <div>
-            <h1 className="text-xl font-bold text-gray-900">Interview Board</h1>
-            <p className="text-xs mt-0.5 text-gray-400">Drag tickets between columns to update status</p>
+          <div className="mb-4 flex items-start justify-between flex-wrap gap-3">
+            <div>
+              <h1 className="text-xl font-bold text-gray-900">Interview Board</h1>
+              <p className="text-xs mt-0.5 text-gray-400">Drag tickets between columns to update status</p>
+            </div>
+            <div className="flex items-center gap-2 flex-wrap">
+              {COLUMN_CONFIG.map(col => {
+                const count = getColumnTickets(col.key).length;
+                return (
+                  <div key={col.key} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border ${col.headerBg} ${col.border}`}>
+                    <div className={`w-1.5 h-1.5 rounded-full ${col.dotColor}`} />
+                    <span className={`text-[11px] font-semibold ${col.headerText}`}>{col.label}</span>
+                    <span className={`text-[11px] font-bold ${col.headerText} opacity-70`}>{count}</span>
+                  </div>
+                );
+              })}
+            </div>
           </div>
-          <div className="flex items-center gap-2 flex-wrap">
-            {COLUMN_CONFIG.map(col => {
-              const count = getColumnTickets(col.key).length;
-              return (
-                <div key={col.key} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border ${col.headerBg} ${col.border}`}>
-                  <div className={`w-1.5 h-1.5 rounded-full ${col.dotColor}`} />
-                  <span className={`text-[11px] font-semibold ${col.headerText}`}>{col.label}</span>
-                  <span className={`text-[11px] font-bold ${col.headerText} opacity-70`}>{count}</span>
-                </div>
-              );
-            })}
-          </div>
-        </div>
 
-        <div className="mb-4 bg-white border border-gray-200 rounded-xl p-3 shadow-sm">
-          <div className="flex items-center gap-3 flex-wrap">
-            <div className="flex-1 min-w-[200px] relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={e => setSearchQuery(e.target.value)}
-                placeholder="Search by name, ticket ID, role, company..."
-                className="w-full pl-8 pr-3 py-2 border border-gray-200 rounded-lg text-xs text-gray-900 placeholder-gray-400 focus:outline-none focus:border-blue-400 transition-all bg-gray-50"
-              />
-              {searchQuery && (
-                <button onClick={() => setSearchQuery('')} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
-                  <X className="w-3 h-3" />
-                </button>
+          <div className="mb-4 bg-white border border-gray-200 rounded-xl p-3 shadow-sm">
+            <div className="flex items-center gap-3 flex-wrap">
+              <div className="flex-1 min-w-[200px] relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={e => setSearchQuery(e.target.value)}
+                  placeholder="Search by name, ticket ID, role, company..."
+                  className="w-full pl-8 pr-3 py-2 border border-gray-200 rounded-lg text-xs text-gray-900 placeholder-gray-400 focus:outline-none focus:border-blue-400 transition-all bg-gray-50"
+                />
+                {searchQuery && (
+                  <button onClick={() => setSearchQuery('')} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+                    <X className="w-3 h-3" />
+                  </button>
+                )}
+              </div>
+              {searchQuery.trim() && (
+                <span className="text-xs text-gray-400">
+                  {COLUMN_CONFIG.reduce((sum, col) => sum + getColumnTickets(col.key).length, 0)} result{COLUMN_CONFIG.reduce((sum, col) => sum + getColumnTickets(col.key).length, 0) !== 1 ? 's' : ''}
+                </span>
               )}
             </div>
-            {searchQuery.trim() && (
-              <span className="text-xs text-gray-400">
-                {COLUMN_CONFIG.reduce((sum, col) => sum + getColumnTickets(col.key).length, 0)} result{COLUMN_CONFIG.reduce((sum, col) => sum + getColumnTickets(col.key).length, 0) !== 1 ? 's' : ''}
-              </span>
-            )}
           </div>
-        </div>
 
-        <div className="overflow-x-auto pb-4">
-          <div className="grid grid-cols-4 gap-3 items-start min-w-[800px]">
-            {COLUMN_CONFIG.map(col => (
-              <KanbanColumnComponent
-                key={col.key}
-                config={col}
-                tickets={getColumnTickets(col.key)}
-                isDragOver={dragOver === col.key}
-                actionLoading={actionLoading}
-                userId={user?.uid}
-                onDragStart={handleDragStart}
-                onDragOver={(e) => { e.preventDefault(); setDragOver(col.key); }}
-                onDragLeave={() => setDragOver(null)}
-                onDrop={() => handleDrop(col.key)}
-                onRelease={handleRelease}
-                onSchedule={openBooking}
-                onMarkDone={openFeedback}
-                onViewReport={(ticket) => navigate(`/hr-report/${ticket.id}`)}
-                onViewProfile={(ticket) => setProfileTicket(ticket)}
-                onSeeMore={() => setColumnAllModal(col.key)}
-              />
-            ))}
+          <div className="overflow-x-auto pb-4">
+            <div className="grid grid-cols-4 gap-3 items-start min-w-[800px]">
+              {COLUMN_CONFIG.map(col => (
+                <KanbanColumnComponent
+                  key={col.key}
+                  config={col}
+                  tickets={getColumnTickets(col.key)}
+                  isDragOver={dragOver === col.key}
+                  actionLoading={actionLoading}
+                  userId={user?.uid}
+                  onDragStart={handleDragStart}
+                  onDragOver={(e) => { e.preventDefault(); setDragOver(col.key); }}
+                  onDragLeave={() => setDragOver(null)}
+                  onDrop={() => handleDrop(col.key)}
+                  onRelease={handleRelease}
+                  onSchedule={openBooking}
+                  onMarkDone={openFeedback}
+                  onViewReport={(ticket) => navigate(`/hr-report/${ticket.id}`)}
+                  onViewProfile={(ticket) => setProfileTicket(ticket)}
+                  onSeeMore={() => setColumnAllModal(col.key)}
+                />
+              ))}
+            </div>
           </div>
-        </div>
         </div>
       </div>
 

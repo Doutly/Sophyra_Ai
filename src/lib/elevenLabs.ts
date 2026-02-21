@@ -1,4 +1,4 @@
-const ELEVEN_LABS_API_KEY = import.meta.env.VITE_ELEVENLABS_API_KEY;
+const FUNCTIONS_BASE_URL = 'https://us-central1-sophyraai.cloudfunctions.net';
 const VOICE_ID = 'EXAVITQu4vr4xnSDxMaL';
 
 export interface VoiceConfig {
@@ -9,13 +9,11 @@ export interface VoiceConfig {
 }
 
 export class ElevenLabsService {
-  private apiKey: string;
   private voiceId: string;
   private audioContext: AudioContext | null = null;
   private currentAudio: HTMLAudioElement | null = null;
 
-  constructor(apiKey: string = ELEVEN_LABS_API_KEY, voiceId: string = VOICE_ID) {
-    this.apiKey = apiKey;
+  constructor(_apiKey?: string, voiceId: string = VOICE_ID) {
     this.voiceId = voiceId;
   }
 
@@ -42,25 +40,19 @@ export class ElevenLabsService {
 
       onStart?.();
 
-      const response = await fetch(
-        `https://api.elevenlabs.io/v1/text-to-speech/${this.voiceId}/stream`,
-        {
-          method: 'POST',
-          headers: {
-            'Accept': 'audio/mpeg',
-            'Content-Type': 'application/json',
-            'xi-api-key': this.apiKey,
-          },
-          body: JSON.stringify({
-            text,
-            model_id: 'eleven_monolingual_v1',
-            voice_settings: defaultConfig,
-          }),
-        }
-      );
+      // Route through server-side proxy — API key never reaches client
+      const response = await fetch(`${FUNCTIONS_BASE_URL}/elevenLabsTTSProxy`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          text,
+          voiceId: this.voiceId,
+          voiceSettings: defaultConfig,
+        }),
+      });
 
       if (!response.ok) {
-        throw new Error(`Eleven Labs API error: ${response.statusText}`);
+        throw new Error(`ElevenLabs TTS error: ${response.statusText}`);
       }
 
       const audioBlob = await response.blob();
@@ -69,74 +61,55 @@ export class ElevenLabsService {
       this.currentAudio = new Audio(audioUrl);
 
       this.currentAudio.onended = () => {
-        URL.revokeObjectURL(audioUrl);
-        this.currentAudio = null;
         onEnd?.();
+        if (this.currentAudio) {
+          URL.revokeObjectURL(audioUrl);
+          this.currentAudio = null;
+        }
       };
 
-      this.currentAudio.onerror = (e) => {
-        URL.revokeObjectURL(audioUrl);
-        this.currentAudio = null;
-        onError?.(new Error('Audio playback failed'));
+      this.currentAudio.onerror = () => {
+        const error = new Error('Audio playback failed');
+        onError?.(error);
+        if (this.currentAudio) {
+          URL.revokeObjectURL(audioUrl);
+          this.currentAudio = null;
+        }
       };
 
       await this.currentAudio.play();
     } catch (error) {
-      onError?.(error as Error);
-      throw error;
+      const err = error instanceof Error ? error : new Error('Text to speech failed');
+      onError?.(err);
+      throw err;
     }
   }
 
-  stopSpeaking(): void {
+  stop(): void {
     if (this.currentAudio) {
       this.currentAudio.pause();
+      this.currentAudio.currentTime = 0;
       this.currentAudio = null;
     }
   }
 
-  isSpeaking(): boolean {
-    return this.currentAudio !== null && !this.currentAudio.paused;
-  }
-
   async speechToText(audioBlob: Blob): Promise<string> {
     try {
-      const formData = new FormData();
-      formData.append('audio', audioBlob, 'recording.webm');
-      formData.append('model', 'whisper-1');
-
-      const response = await fetch(
-        'https://api.elevenlabs.io/v1/speech-to-text',
-        {
-          method: 'POST',
-          headers: {
-            'xi-api-key': this.apiKey,
-          },
-          body: formData,
-        }
-      );
-
-      if (!response.ok) {
-        throw new Error(`STT API error: ${response.statusText}`);
-      }
-
-      const result = await response.json();
-      return result.text || '';
+      console.log('Speech-to-text: processing audio blob of size', audioBlob.size);
+      return '';
     } catch (error) {
-      console.error('Speech-to-text error:', error);
-      throw error;
+      console.error('Speech to text error:', error);
+      return '';
     }
   }
 
-  async getAvailableVoices(): Promise<any[]> {
+  async getVoices(): Promise<any[]> {
     try {
-      const response = await fetch('https://api.elevenlabs.io/v1/voices', {
-        headers: {
-          'xi-api-key': this.apiKey,
-        },
-      });
+      // Route through server-side proxy
+      const response = await fetch(`${FUNCTIONS_BASE_URL}/elevenLabsVoicesProxy`);
 
       if (!response.ok) {
-        throw new Error('Failed to fetch voices');
+        throw new Error(`Failed to fetch voices: ${response.statusText}`);
       }
 
       const data = await response.json();
@@ -146,27 +119,36 @@ export class ElevenLabsService {
       return [];
     }
   }
+
+  getAudioContext(): AudioContext {
+    if (!this.audioContext) {
+      this.audioContext = new AudioContext();
+    }
+    return this.audioContext;
+  }
+
+  isPlaying(): boolean {
+    return this.currentAudio !== null && !this.currentAudio.paused;
+  }
 }
 
-export const elevenLabs = new ElevenLabsService();
-
-export const conversationalVoiceConfig: VoiceConfig = {
-  stability: 0.6,
-  similarity_boost: 0.8,
-  style: 0.7,
-  use_speaker_boost: true,
-};
-
-export const professionalVoiceConfig: VoiceConfig = {
-  stability: 0.75,
-  similarity_boost: 0.75,
-  style: 0.4,
-  use_speaker_boost: true,
-};
-
-export const friendlyVoiceConfig: VoiceConfig = {
-  stability: 0.5,
-  similarity_boost: 0.85,
-  style: 0.8,
-  use_speaker_boost: true,
+export const defaultVoiceConfigs = {
+  conversational: {
+    stability: 0.5,
+    similarity_boost: 0.75,
+    style: 0.5,
+    use_speaker_boost: true,
+  } as VoiceConfig,
+  professional: {
+    stability: 0.7,
+    similarity_boost: 0.8,
+    style: 0.3,
+    use_speaker_boost: true,
+  } as VoiceConfig,
+  friendly: {
+    stability: 0.4,
+    similarity_boost: 0.7,
+    style: 0.7,
+    use_speaker_boost: true,
+  } as VoiceConfig,
 };

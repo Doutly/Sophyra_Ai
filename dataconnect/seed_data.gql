@@ -1,0 +1,100 @@
+mutation SeedData @transaction @auth(level: USER, insecureReason: "Seed data mutation is safe to expose to logged in users.") {
+  department_insertMany(data: [
+    {
+      id: "b45a4a51-9b1b-4f4d-8e4a-9c2c7c8c6c5c",
+      name: "Engineering",
+      description: "Handles software development and technical operations.",
+      createdAt: "2023-01-15T10:00:00Z"
+    },
+    {
+      id: "a32b3c2d-1e2f-3g4h-5i6j-7k8l9m0n1o2p",
+      name: "Human Resources",
+      description: "Manages employee relations, recruitment, and benefits.",
+      createdAt: "2023-02-01T09:00:00Z"
+    }
+  ])
+  user_insertMany(data: [
+    {
+      id: "f8b9d0e1-c2d3-4e5f-8a9b-0c1d2e3f4a5b",
+      firstName: "Alice",
+      lastName: "Smith",
+      email: "alice.smith@example.com",
+      role: "Software Engineer",
+      departmentId: "b45a4a51-9b1b-4f4d-8e4a-9c2c7c8c6c5c",
+      createdAt: "2023-03-01T11:00:00Z"
+    },
+    {
+      id: "1a2b3c4d-5e6f-7a8b-9c0d-1e2f3a4b5c6d",
+      firstName: "Bob",
+      lastName: "Johnson",
+      email: "bob.johnson@example.com",
+      role: "HR Manager",
+      departmentId: "a32b3c2d-1e2f-3g4h-5i6j-7k8l9m0n1o2p",
+      createdAt: "2023-03-05T10:30:00Z"
+    },
+    {
+      id: "a1b2c3d4-e5f6-7a8b-9c0d-1e2f3a4b5c7e",
+      firstName: "Charlie",
+      lastName: "Brown",
+      email: "charlie.brown@example.com",
+      role: "Software Engineer",
+      departmentId: "b45a4a51-9b1b-4f4d-8e4a-9c2c7c8c6c5c",
+      createdAt: "2023-03-10T14:00:00Z"
+    }
+  ])
+  trainingCourse_insertMany(data: [
+    {
+      id: "e1f2g3h4-i5j6-k7l8-m9n0-o1p2q3r4s5t6",
+      title: "Advanced React Development",
+      description: "In-depth course on building complex React applications.",
+      durationHours: 20,
+      category: "Frontend Development",
+      createdAt: "2023-04-01T09:00:00Z"
+    },
+    {
+      id: "f1e2d3c4-b5a6-9876-5432-10fedcba9876",
+      title: "HR Policies and Procedures",
+      description: "A comprehensive guide to company HR policies.",
+      durationHours: 8,
+      category: "Human Resources",
+      createdAt: "2023-04-05T10:00:00Z"
+    }
+  ])
+  employeeTraining_insertMany(data: [
+    {
+      userId: "f8b9d0e1-c2d3-4e5f-8a9b-0c1d2e3f4a5b",
+      trainingCourseId: "e1f2g3h4-i5j6-k7l8-m9n0-o1p2q3r4s5t6",
+      assignedDate: "2023-04-10",
+      status: "In Progress"
+    },
+    {
+      userId: "1a2b3c4d-5e6f-7a8b-9c0d-1e2f3a4b5c6d",
+      trainingCourseId: "f1e2d3c4-b5a6-9876-5432-10fedcba9876",
+      assignedDate: "2023-04-12",
+      completionDate: "2023-04-15",
+      status: "Completed"
+    }
+  ])
+  performanceReview_insertMany(data: [
+    {
+      employeeId: "f8b9d0e1-c2d3-4e5f-8a9b-0c1d2e3f4a5b",
+      reviewerId: "1a2b3c4d-5e6f-7a8b-9c0d-1e2f3a4b5c6d",
+      comments: "Alice has shown significant improvement in her coding skills.",
+      rating: 4,
+      reviewDate: "2023-05-01",
+      createdAt: "2023-05-01T15:00:00Z",
+      goalsAchieved: "Completed two major features ahead of schedule.",
+      areasForImprovement: "Needs to work on public speaking skills."
+    }
+  ])
+  jobApplication_insertMany(data: [
+    {
+      applicantName: "Diana Prince",
+      applicantEmail: "diana.prince@example.com",
+      positionAppliedFor: "Senior Software Engineer",
+      applicationDate: "2023-05-10",
+      status: "Pending Review",
+      resumeUrl: "http://example.com/diana_resume.pdf"
+    }
+  ])
+}

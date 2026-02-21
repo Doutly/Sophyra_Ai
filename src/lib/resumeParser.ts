@@ -1,3 +1,5 @@
+import { callGemini } from './api';
+
 export interface ParsedResume {
   name: string;
   email: string;
@@ -22,11 +24,7 @@ const DEFAULT_OPTIONS: ParseOptions = {
 };
 
 export class ResumeParser {
-  private geminiApiKey: string;
-
-  constructor(apiKey?: string) {
-    this.geminiApiKey = apiKey || import.meta.env.VITE_GEMINI_API_KEY || '';
-  }
+  constructor() { }
 
   async parseResume(file: File, options: ParseOptions = {}): Promise<ParsedResume> {
     const opts = { ...DEFAULT_OPTIONS, ...options };
@@ -131,31 +129,7 @@ Resume text (first 8000 characters):
 ${text.substring(0, 8000)}`;
 
     try {
-      const response = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${this.geminiApiKey}`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            contents: [{
-              parts: [{ text: prompt }]
-            }],
-            generationConfig: {
-              temperature: 0.1,
-              topK: 1,
-              topP: 1,
-              maxOutputTokens: 2048,
-            }
-          })
-        }
-      );
-
-      if (!response.ok) {
-        throw new Error(`Gemini API error: ${response.statusText}`);
-      }
-
-      const data = await response.json();
-      const responseText = data?.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || '{}';
+      const responseText = await callGemini(prompt, { temperature: 0.1, maxOutputTokens: 2048, model: 'gemini-pro' });
 
       let parsedData: ParsedResume;
       try {

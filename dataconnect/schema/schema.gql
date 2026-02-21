@@ -1,0 +1,54 @@
+type User @table {
+  firstName: String!
+  lastName: String!
+  email: String!
+  role: String!
+  createdAt: Timestamp!
+  phoneNumber: String
+  dateOfBirth: Date
+  address: String
+  department: Department
+}
+
+type Department @table {
+  name: String!
+  createdAt: Timestamp!
+  description: String
+}
+
+type TrainingCourse @table {
+  title: String!
+  description: String!
+  durationHours: Int!
+  createdAt: Timestamp!
+  category: String
+}
+
+type EmployeeTraining @table {
+  user: User!
+  trainingCourse: TrainingCourse!
+  assignedDate: Date!
+  status: String!
+  completionDate: Date
+}
+
+type PerformanceReview @table {
+  employee: User!
+  reviewer: User!
+  reviewDate: Date!
+  rating: Int!
+  comments: String!
+  createdAt: Timestamp!
+  goalsAchieved: String
+  areasForImprovement: String
+}
+
+type JobApplication @table {
+  applicantName: String!
+  applicantEmail: String!
+  positionAppliedFor: String!
+  applicationDate: Date!
+  status: String!
+  resumeUrl: String
+  coverLetterUrl: String
+}

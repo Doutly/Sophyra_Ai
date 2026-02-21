@@ -1,0 +1,42 @@
+query ListAllUsers @auth(level: USER, insecureReason: "This operation is safe to expose to all logged in users.") {
+  users {
+    id
+    firstName
+    lastName
+    email
+    role
+    department {
+      name
+    }
+  }
+}
+
+mutation CreateDepartment($name: String!, $description: String) @auth(level: USER) {
+  department_insert(data: {
+    name: $name,
+    description: $description,
+    createdAt_expr: "request.time"
+  })
+}
+
+query GetMyPerformanceReviews @auth(level: USER) {
+  performanceReviews(where: { employeeId: { eq_expr: "auth.uid" } }) {
+    id
+    reviewDate
+    rating
+    comments
+    reviewer {
+      firstName
+      lastName
+    }
+  }
+}
+
+mutation AssignTrainingToUser($userId: UUID!, $trainingCourseId: UUID!, $assignedDate: Date!, $status: String!) @auth(level: USER) {
+  employeeTraining_insert(data: {
+    userId: $userId,
+    trainingCourseId: $trainingCourseId,
+    assignedDate: $assignedDate,
+    status: $status
+  })
+}
