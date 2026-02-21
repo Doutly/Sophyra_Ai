@@ -1,8 +1,8 @@
 import * as React from "react";
 import { motion } from "framer-motion";
 import { Star, Edit3, BarChart2, Layers } from "lucide-react";
-import { cn } from "@/lib/utils";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { cn } from "../../lib/utils";
+import { Avatar, AvatarFallback, AvatarImage } from "./avatar";
 
 interface ProfileCardProps extends React.HTMLAttributes<HTMLDivElement> {
   name: string;
