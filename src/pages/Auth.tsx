@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { Mail, Lock, User, AlertCircle, UserCheck, Briefcase, ArrowLeft, Zap, Eye, EyeOff } from 'lucide-react';
+import { Mail, Lock, User, AlertCircle, UserCheck, Briefcase, ArrowLeft, Zap, Eye, EyeOff, Linkedin, X, Upload, Camera } from 'lucide-react';
 import { UserRole } from '../lib/firebase.types';
 import { motion } from 'framer-motion';
 
@@ -138,6 +138,49 @@ export default function Auth() {
   const [resetSent, setResetSent] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
+  const [hrDisplayName, setHrDisplayName] = useState('');
+  const [hrBio, setHrBio] = useState('');
+  const [hrYears, setHrYears] = useState('');
+  const [hrExpertiseInput, setHrExpertiseInput] = useState('');
+  const [hrExpertiseTags, setHrExpertiseTags] = useState<string[]>([]);
+  const [hrLinkedin, setHrLinkedin] = useState('');
+  const [hrPhotoPreview, setHrPhotoPreview] = useState<string | null>(null);
+  const [hrPhotoFile, setHrPhotoFile] = useState<File | null>(null);
+  const hrPhotoRef = useRef<HTMLInputElement>(null);
+
+  const handleHrExpertiseKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter' || e.key === ',') {
+      e.preventDefault();
+      const val = hrExpertiseInput.trim().replace(/,$/, '');
+      if (val && !hrExpertiseTags.includes(val)) {
+        setHrExpertiseTags(prev => [...prev, val]);
+      }
+      setHrExpertiseInput('');
+    }
+  };
+
+  const handleHrExpertiseBlur = () => {
+    const val = hrExpertiseInput.trim().replace(/,$/, '');
+    if (val && !hrExpertiseTags.includes(val)) {
+      setHrExpertiseTags(prev => [...prev, val]);
+      setHrExpertiseInput('');
+    }
+  };
+
+  const removeExpertiseTag = (tag: string) => {
+    setHrExpertiseTags(prev => prev.filter(t => t !== tag));
+  };
+
+  const handleHrPhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setHrPhotoFile(file);
+      const reader = new FileReader();
+      reader.onload = () => setHrPhotoPreview(reader.result as string);
+      reader.readAsDataURL(file);
+    }
+  };
+
   useEffect(() => {
     if (user) {
       if (user.email === 'mani@sophyra.in') { navigate('/admin'); return; }
@@ -156,7 +199,23 @@ export default function Auth() {
     try {
       if (authMode === 'signup') {
         if (!fullName.trim()) { setError('Please enter your full name'); setLoading(false); return; }
-        const { error } = await signUp(email, password, fullName, selectedRole);
+        let hrProfile = undefined;
+        if (selectedRole === 'hr') {
+          if (!hrDisplayName.trim()) { setError('Please enter your display name'); setLoading(false); return; }
+          if (!hrBio.trim()) { setError('Please enter a bio'); setLoading(false); return; }
+          if (!hrYears || isNaN(Number(hrYears)) || Number(hrYears) < 0) { setError('Please enter valid years of experience'); setLoading(false); return; }
+          if (hrExpertiseTags.length === 0) { setError('Please add at least one area of expertise'); setLoading(false); return; }
+          if (!hrLinkedin.trim()) { setError('Please enter your LinkedIn URL'); setLoading(false); return; }
+          hrProfile = {
+            displayName: hrDisplayName.trim(),
+            bio: hrBio.trim(),
+            yearsOfExperience: Number(hrYears),
+            expertiseAreas: hrExpertiseTags,
+            linkedinUrl: hrLinkedin.trim(),
+            photoUrl: hrPhotoPreview || undefined,
+          };
+        }
+        const { error } = await signUp(email, password, fullName, selectedRole, hrProfile);
         if (error) setError(error.message);
         else navigate(selectedRole === 'hr' ? '/pending-approval' : '/dashboard');
       } else if (authMode === 'signin') {
@@ -388,6 +447,132 @@ export default function Auth() {
                         ))}
                       </div>
                     </div>
+
+                    {selectedRole === 'hr' && (
+                      <motion.div
+                        initial={{ opacity: 0, y: -8 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.3 }}
+                        className="space-y-4 pt-1"
+                      >
+                        <div className="flex items-center gap-2 pb-1 border-b border-slate-100">
+                          <Briefcase className="w-3.5 h-3.5 text-blue-500" />
+                          <span className="text-xs font-bold text-slate-700 uppercase tracking-wide">HR Profile Details</span>
+                        </div>
+
+                        <div className="flex justify-center">
+                          <div className="relative">
+                            <div
+                              className="w-20 h-20 rounded-full border-2 border-dashed border-slate-300 bg-slate-50 flex items-center justify-center cursor-pointer overflow-hidden hover:border-blue-400 transition-colors"
+                              onClick={() => hrPhotoRef.current?.click()}
+                            >
+                              {hrPhotoPreview ? (
+                                <img src={hrPhotoPreview} alt="Profile" className="w-full h-full object-cover" />
+                              ) : (
+                                <div className="flex flex-col items-center gap-1">
+                                  <Camera className="w-5 h-5 text-slate-400" />
+                                  <span className="text-[9px] text-slate-400 font-medium">Photo</span>
+                                </div>
+                              )}
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => hrPhotoRef.current?.click()}
+                              className="absolute -bottom-1 -right-1 w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center hover:bg-blue-600 transition-colors"
+                            >
+                              <Upload className="w-3 h-3 text-white" />
+                            </button>
+                            <input
+                              ref={hrPhotoRef}
+                              type="file"
+                              accept="image/*"
+                              className="hidden"
+                              onChange={handleHrPhotoChange}
+                            />
+                          </div>
+                        </div>
+
+                        <div>
+                          <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wide">Display Name <span className="text-red-400">*</span></label>
+                          <div className="relative">
+                            <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-300" />
+                            <input
+                              type="text"
+                              value={hrDisplayName}
+                              onChange={(e) => setHrDisplayName(e.target.value)}
+                              className="w-full pl-9 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-blue-400 focus:bg-white focus:ring-2 focus:ring-blue-50 transition-all"
+                              placeholder="e.g. Manikanta T.G"
+                            />
+                          </div>
+                        </div>
+
+                        <div>
+                          <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wide">Bio <span className="text-red-400">*</span></label>
+                          <textarea
+                            value={hrBio}
+                            onChange={(e) => setHrBio(e.target.value)}
+                            rows={3}
+                            className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-blue-400 focus:bg-white focus:ring-2 focus:ring-blue-50 transition-all resize-none"
+                            placeholder="Tell candidates a bit about yourself..."
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wide">Years of HR Experience <span className="text-red-400">*</span></label>
+                          <input
+                            type="number"
+                            min="0"
+                            max="60"
+                            value={hrYears}
+                            onChange={(e) => setHrYears(e.target.value)}
+                            className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-blue-400 focus:bg-white focus:ring-2 focus:ring-blue-50 transition-all"
+                            placeholder="e.g. 5"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wide">Areas of Expertise <span className="text-red-400">*</span></label>
+                          <div className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg focus-within:border-blue-400 focus-within:bg-white focus-within:ring-2 focus-within:ring-blue-50 transition-all">
+                            {hrExpertiseTags.length > 0 && (
+                              <div className="flex flex-wrap gap-1.5 mb-2">
+                                {hrExpertiseTags.map(tag => (
+                                  <span key={tag} className="inline-flex items-center gap-1 px-2 py-0.5 bg-blue-50 border border-blue-200 rounded-full text-[11px] font-medium text-blue-700">
+                                    {tag}
+                                    <button type="button" onClick={() => removeExpertiseTag(tag)} className="hover:text-blue-900 transition-colors">
+                                      <X className="w-2.5 h-2.5" />
+                                    </button>
+                                  </span>
+                                ))}
+                              </div>
+                            )}
+                            <input
+                              type="text"
+                              value={hrExpertiseInput}
+                              onChange={(e) => setHrExpertiseInput(e.target.value)}
+                              onKeyDown={handleHrExpertiseKeyDown}
+                              onBlur={handleHrExpertiseBlur}
+                              className="w-full bg-transparent text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none"
+                              placeholder="Type and press Enter or comma to add..."
+                            />
+                          </div>
+                          <p className="text-[10px] text-slate-400 mt-1">e.g. Communication, HR, Company Management</p>
+                        </div>
+
+                        <div>
+                          <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wide">LinkedIn URL <span className="text-red-400">*</span></label>
+                          <div className="relative">
+                            <Linkedin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-300" />
+                            <input
+                              type="url"
+                              value={hrLinkedin}
+                              onChange={(e) => setHrLinkedin(e.target.value)}
+                              className="w-full pl-9 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-blue-400 focus:bg-white focus:ring-2 focus:ring-blue-50 transition-all"
+                              placeholder="https://linkedin.com/in/yourprofile"
+                            />
+                          </div>
+                        </div>
+                      </motion.div>
+                    )}
                   </>
                 )}
 

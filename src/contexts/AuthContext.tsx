@@ -9,14 +9,14 @@ import {
 } from 'firebase/auth';
 import { doc, getDoc, setDoc, Timestamp } from 'firebase/firestore';
 import { auth, db } from '../lib/firebase';
-import { UserRole } from '../lib/firebase.types';
+import { UserRole, HRProfile } from '../lib/firebase.types';
 
 interface AuthContextType {
   user: FirebaseUser | null;
   loading: boolean;
   role: UserRole | null;
   isApproved: boolean | null;
-  signUp: (email: string, password: string, fullName: string, role?: UserRole) => Promise<{ error: any }>;
+  signUp: (email: string, password: string, fullName: string, role?: UserRole, hrProfile?: HRProfile) => Promise<{ error: any }>;
   signIn: (email: string, password: string) => Promise<{ error: any }>;
   signOut: () => Promise<void>;
   resetPassword: (email: string) => Promise<{ error: any }>;
@@ -95,14 +95,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => unsubscribe();
   }, []);
 
-  const signUp = async (email: string, password: string, fullName: string, userRole: UserRole = 'candidate') => {
+  const signUp = async (email: string, password: string, fullName: string, userRole: UserRole = 'candidate', hrProfile?: HRProfile) => {
     try {
       const isApproved = userRole === 'candidate' || userRole === 'admin';
 
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       const userId = userCredential.user.uid;
 
-      await setDoc(doc(db, 'users', userId), {
+      const userData: Record<string, any> = {
         uid: userId,
         email: email,
         name: fullName,
@@ -110,7 +110,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         isApproved: isApproved,
         createdAt: Timestamp.now(),
         updatedAt: Timestamp.now(),
-      });
+      };
+
+      if (userRole === 'hr' && hrProfile) {
+        userData.hrProfile = hrProfile;
+      }
+
+      await setDoc(doc(db, 'users', userId), userData);
 
       await fetchUserData(userId);
 

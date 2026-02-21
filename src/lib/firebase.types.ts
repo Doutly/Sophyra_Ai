@@ -1,5 +1,14 @@
 import { Timestamp } from 'firebase/firestore';
 
+export interface HRProfile {
+  displayName?: string;
+  bio?: string;
+  yearsOfExperience?: number;
+  expertiseAreas?: string[];
+  linkedinUrl?: string;
+  photoUrl?: string;
+}
+
 export interface User {
   uid: string;
   email: string;
@@ -8,6 +17,7 @@ export interface User {
   isApproved: boolean;
   resumeUrl?: string;
   bio?: string;
+  hrProfile?: HRProfile;
   createdAt: Timestamp;
   updatedAt: Timestamp;
 }
