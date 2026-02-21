@@ -1,6 +1,15 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { supabase } from '../lib/supabase';
+import { db } from '../lib/firebase';
+import {
+  collection,
+  getDocs,
+  addDoc,
+  query,
+  where,
+  orderBy,
+  Timestamp,
+} from 'firebase/firestore';
 import { ArrowLeft, MapPin, Briefcase, Clock, Send, X, Upload } from 'lucide-react';
 
 interface CareerListing {
@@ -31,8 +40,14 @@ export default function CareersPage() {
   const [submitted, setSubmitted] = useState(false);
 
   useEffect(() => {
-    supabase.from('careers').select('*').eq('is_active', true).order('created_at', { ascending: false }).then(({ data }) => {
-      setListings(data || []);
+    getDocs(
+      query(
+        collection(db, 'careers'),
+        where('isActive', '==', true),
+        orderBy('createdAt', 'desc')
+      )
+    ).then(snap => {
+      setListings(snap.docs.map(d => ({ id: d.id, ...d.data() } as CareerListing)));
       setLoading(false);
     });
   }, []);
@@ -41,12 +56,13 @@ export default function CareersPage() {
     if (!applyTarget || !form.name || !form.email) return;
     setSubmitting(true);
     try {
-      await supabase.from('job_applications').insert({
-        career_id: applyTarget.id,
+      await addDoc(collection(db, 'jobApplications'), {
+        careerId: applyTarget.id,
         name: form.name,
         email: form.email,
         phone: form.phone,
-        resume_url: '',
+        resumeUrl: form.message || '',
+        createdAt: Timestamp.now().toDate().toISOString(),
       });
       setSubmitted(true);
     } finally {

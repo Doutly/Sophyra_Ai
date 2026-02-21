@@ -1,5 +1,16 @@
 import { useEffect, useState } from 'react';
-import { supabase } from '../../lib/supabase';
+import { db } from '../../lib/firebase';
+import {
+  collection,
+  getDocs,
+  addDoc,
+  updateDoc,
+  deleteDoc,
+  doc,
+  orderBy,
+  query,
+  Timestamp,
+} from 'firebase/firestore';
 import { Plus, Edit2, Trash2, Eye, EyeOff, X } from 'lucide-react';
 import ConfirmModal from './ConfirmModal';
 
@@ -7,26 +18,26 @@ interface BlogPost {
   id: string;
   title: string;
   slug: string;
-  cover_image_url: string;
+  coverImageUrl: string;
   author: string;
   category: string;
   excerpt: string;
   content: string;
-  is_published: boolean;
-  published_at: string | null;
-  created_at: string;
+  isPublished: boolean;
+  publishedAt: string | null;
+  createdAt: string;
 }
 
-const EMPTY_POST: Omit<BlogPost, 'id' | 'created_at'> = {
+const EMPTY_POST: Omit<BlogPost, 'id' | 'createdAt'> = {
   title: '',
   slug: '',
-  cover_image_url: '',
+  coverImageUrl: '',
   author: 'Sophyra AI',
   category: 'General',
   excerpt: '',
   content: '',
-  is_published: false,
-  published_at: null,
+  isPublished: false,
+  publishedAt: null,
 };
 
 function toSlug(title: string) {
@@ -42,8 +53,10 @@ export default function BlogSection() {
   const [deleteLoading, setDeleteLoading] = useState(false);
 
   const load = async () => {
-    const { data } = await supabase.from('blogs').select('*').order('created_at', { ascending: false });
-    setPosts(data || []);
+    const q = query(collection(db, 'blogs'), orderBy('createdAt', 'desc'));
+    const snap = await getDocs(q);
+    const data = snap.docs.map(d => ({ id: d.id, ...d.data() } as BlogPost));
+    setPosts(data);
     setLoading(false);
   };
 
@@ -56,22 +69,23 @@ export default function BlogSection() {
     if (!modal) return;
     setSaving(true);
     try {
+      const now = Timestamp.now().toDate().toISOString();
       const payload = {
         title: modal.title || '',
         slug: modal.slug || toSlug(modal.title || ''),
-        cover_image_url: modal.cover_image_url || '',
+        coverImageUrl: modal.coverImageUrl || '',
         author: modal.author || 'Sophyra AI',
         category: modal.category || 'General',
         excerpt: modal.excerpt || '',
         content: modal.content || '',
-        is_published: modal.is_published || false,
-        published_at: modal.is_published ? (modal.published_at || new Date().toISOString()) : null,
+        isPublished: modal.isPublished || false,
+        publishedAt: modal.isPublished ? (modal.publishedAt || now) : null,
       };
 
       if (modal.id) {
-        await supabase.from('blogs').update(payload).eq('id', modal.id);
+        await updateDoc(doc(db, 'blogs', modal.id), payload);
       } else {
-        await supabase.from('blogs').insert(payload);
+        await addDoc(collection(db, 'blogs'), { ...payload, createdAt: now });
       }
       setModal(null);
       await load();
@@ -81,17 +95,18 @@ export default function BlogSection() {
   };
 
   const handleTogglePublish = async (p: BlogPost) => {
-    await supabase.from('blogs').update({
-      is_published: !p.is_published,
-      published_at: !p.is_published ? new Date().toISOString() : null,
-    }).eq('id', p.id);
+    const now = Timestamp.now().toDate().toISOString();
+    await updateDoc(doc(db, 'blogs', p.id), {
+      isPublished: !p.isPublished,
+      publishedAt: !p.isPublished ? now : null,
+    });
     await load();
   };
 
   const handleDelete = async () => {
     if (!deleteTarget) return;
     setDeleteLoading(true);
-    await supabase.from('blogs').delete().eq('id', deleteTarget.id);
+    await deleteDoc(doc(db, 'blogs', deleteTarget.id));
     setDeleteTarget(null);
     setDeleteLoading(false);
     await load();
@@ -102,7 +117,7 @@ export default function BlogSection() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-xl font-bold text-slate-900">Blog</h1>
-          <p className="text-sm text-slate-500 mt-0.5">{posts.length} posts · {posts.filter(p => p.is_published).length} published</p>
+          <p className="text-sm text-slate-500 mt-0.5">{posts.length} posts · {posts.filter(p => p.isPublished).length} published</p>
         </div>
         <button onClick={openCreate} className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm font-semibold rounded-xl hover:bg-blue-700 transition-all">
           <Plus className="w-4 h-4" />New Post
@@ -142,16 +157,16 @@ export default function BlogSection() {
                       <span className="text-xs bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full">{p.category}</span>
                     </td>
                     <td className="py-3 px-4 text-xs text-slate-500">{p.author}</td>
-                    <td className="py-3 px-4 text-xs text-slate-500">{new Date(p.created_at).toLocaleDateString()}</td>
+                    <td className="py-3 px-4 text-xs text-slate-500">{new Date(p.createdAt).toLocaleDateString()}</td>
                     <td className="py-3 px-4 text-center">
-                      <span className={`text-[11px] font-semibold px-2.5 py-1 rounded-full ${p.is_published ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-500'}`}>
-                        {p.is_published ? 'Published' : 'Draft'}
+                      <span className={`text-[11px] font-semibold px-2.5 py-1 rounded-full ${p.isPublished ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-500'}`}>
+                        {p.isPublished ? 'Published' : 'Draft'}
                       </span>
                     </td>
                     <td className="py-3 px-4">
                       <div className="flex items-center justify-end gap-1.5">
-                        <button onClick={() => handleTogglePublish(p)} className={`p-1.5 rounded-lg transition-all ${p.is_published ? 'text-amber-500 hover:bg-amber-50' : 'text-emerald-600 hover:bg-emerald-50'}`} title={p.is_published ? 'Unpublish' : 'Publish'}>
-                          {p.is_published ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                        <button onClick={() => handleTogglePublish(p)} className={`p-1.5 rounded-lg transition-all ${p.isPublished ? 'text-amber-500 hover:bg-amber-50' : 'text-emerald-600 hover:bg-emerald-50'}`} title={p.isPublished ? 'Unpublish' : 'Publish'}>
+                          {p.isPublished ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
                         </button>
                         <button onClick={() => openEdit(p)} className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all">
                           <Edit2 className="w-3.5 h-3.5" />
@@ -198,7 +213,7 @@ export default function BlogSection() {
                 </div>
                 <div>
                   <label className="block text-xs font-semibold text-slate-500 mb-1.5">Cover Image URL</label>
-                  <input value={modal.cover_image_url || ''} onChange={e => setModal(m => ({ ...m!, cover_image_url: e.target.value }))} placeholder="https://images.pexels.com/..." className="w-full px-3 py-2 text-sm border border-slate-200 rounded-xl focus:outline-none focus:border-blue-400 transition-all" />
+                  <input value={modal.coverImageUrl || ''} onChange={e => setModal(m => ({ ...m!, coverImageUrl: e.target.value }))} placeholder="https://images.pexels.com/..." className="w-full px-3 py-2 text-sm border border-slate-200 rounded-xl focus:outline-none focus:border-blue-400 transition-all" />
                 </div>
                 <div className="col-span-2">
                   <label className="block text-xs font-semibold text-slate-500 mb-1.5">Excerpt</label>
@@ -210,7 +225,7 @@ export default function BlogSection() {
                 </div>
                 <div className="col-span-2">
                   <label className="flex items-center gap-3 cursor-pointer">
-                    <input type="checkbox" checked={modal.is_published || false} onChange={e => setModal(m => ({ ...m!, is_published: e.target.checked }))} className="w-4 h-4 rounded border-slate-300 text-blue-600" />
+                    <input type="checkbox" checked={modal.isPublished || false} onChange={e => setModal(m => ({ ...m!, isPublished: e.target.checked }))} className="w-4 h-4 rounded border-slate-300 text-blue-600" />
                     <span className="text-sm font-medium text-slate-700">Publish immediately</span>
                   </label>
                 </div>

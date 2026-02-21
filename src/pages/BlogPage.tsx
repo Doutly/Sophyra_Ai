@@ -1,19 +1,26 @@
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { supabase } from '../lib/supabase';
+import { db } from '../lib/firebase';
+import {
+  collection,
+  getDocs,
+  query,
+  where,
+  orderBy,
+} from 'firebase/firestore';
 import { ArrowLeft, Calendar, User, Tag, BookOpen } from 'lucide-react';
 
 interface BlogPost {
   id: string;
   title: string;
   slug: string;
-  cover_image_url: string;
+  coverImageUrl: string;
   author: string;
   category: string;
   excerpt: string;
   content: string;
-  published_at: string | null;
-  created_at: string;
+  publishedAt: string | null;
+  createdAt: string;
 }
 
 function BlogList() {
@@ -21,8 +28,14 @@ function BlogList() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    supabase.from('blogs').select('*').eq('is_published', true).order('published_at', { ascending: false }).then(({ data }) => {
-      setPosts(data || []);
+    getDocs(
+      query(
+        collection(db, 'blogs'),
+        where('isPublished', '==', true),
+        orderBy('publishedAt', 'desc')
+      )
+    ).then(snap => {
+      setPosts(snap.docs.map(d => ({ id: d.id, ...d.data() } as BlogPost)));
       setLoading(false);
     });
   }, []);
@@ -79,9 +92,9 @@ function BlogList() {
                 to={`/blog/${post.slug}`}
                 className="group bg-white rounded-2xl overflow-hidden border border-slate-200 hover:border-slate-300 hover:shadow-md transition-all"
               >
-                {post.cover_image_url ? (
+                {post.coverImageUrl ? (
                   <div className="h-44 overflow-hidden">
-                    <img src={post.cover_image_url} alt={post.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                    <img src={post.coverImageUrl} alt={post.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
                   </div>
                 ) : (
                   <div className="h-44 bg-gradient-to-br from-slate-100 to-slate-50 flex items-center justify-center">
@@ -91,7 +104,7 @@ function BlogList() {
                 <div className="p-5">
                   <div className="flex items-center gap-2 mb-2">
                     <span className="text-[11px] font-semibold bg-blue-50 text-blue-700 px-2 py-0.5 rounded-full">{post.category}</span>
-                    <span className="text-[11px] text-slate-400">{post.published_at ? new Date(post.published_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : ''}</span>
+                    <span className="text-[11px] text-slate-400">{post.publishedAt ? new Date(post.publishedAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : ''}</span>
                   </div>
                   <h2 className="text-base font-bold text-slate-900 mb-2 line-clamp-2 group-hover:text-blue-700 transition-colors">{post.title}</h2>
                   {post.excerpt && <p className="text-sm text-slate-500 line-clamp-3 leading-relaxed">{post.excerpt}</p>}
@@ -117,9 +130,19 @@ function BlogPostDetail() {
 
   useEffect(() => {
     if (!slug) return;
-    supabase.from('blogs').select('*').eq('slug', slug).eq('is_published', true).maybeSingle().then(({ data }) => {
-      if (data) setPost(data);
-      else setNotFound(true);
+    getDocs(
+      query(
+        collection(db, 'blogs'),
+        where('slug', '==', slug),
+        where('isPublished', '==', true)
+      )
+    ).then(snap => {
+      if (!snap.empty) {
+        const d = snap.docs[0];
+        setPost({ id: d.id, ...d.data() } as BlogPost);
+      } else {
+        setNotFound(true);
+      }
       setLoading(false);
     });
   }, [slug]);
@@ -166,9 +189,9 @@ function BlogPostDetail() {
           <span className="text-xs font-semibold bg-blue-50 text-blue-700 px-2.5 py-1 rounded-full flex items-center gap-1.5">
             <Tag className="w-3 h-3" />{post.category}
           </span>
-          {post.published_at && (
+          {post.publishedAt && (
             <span className="text-xs text-slate-400 flex items-center gap-1.5">
-              <Calendar className="w-3 h-3" />{new Date(post.published_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })}
+              <Calendar className="w-3 h-3" />{new Date(post.publishedAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })}
             </span>
           )}
         </div>
@@ -187,9 +210,9 @@ function BlogPostDetail() {
           </div>
         </div>
 
-        {post.cover_image_url && (
+        {post.coverImageUrl && (
           <div className="mb-8 rounded-2xl overflow-hidden">
-            <img src={post.cover_image_url} alt={post.title} className="w-full object-cover max-h-80" />
+            <img src={post.coverImageUrl} alt={post.title} className="w-full object-cover max-h-80" />
           </div>
         )}
 
