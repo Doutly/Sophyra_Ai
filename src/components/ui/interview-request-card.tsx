@@ -1,6 +1,6 @@
 import * as React from "react";
-import { motion } from "framer-motion";
-import { Clock, ClipboardCopy, CheckCircle, QrCode, Play, Calendar, Briefcase, Building2, ExternalLink, AlertCircle } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Clock, ClipboardCopy, CheckCircle, QrCode, Play, Calendar, Briefcase, Building2, ExternalLink, AlertCircle, Info, X } from "lucide-react";
 import { cn } from "../../lib/utils";
 import { Avatar, AvatarFallback } from "./avatar";
 
@@ -66,6 +66,7 @@ export const InterviewRequestCard = ({
   className,
 }: InterviewRequestCardProps) => {
   const [copied, setCopied] = React.useState(false);
+  const [showBanner, setShowBanner] = React.useState(false);
 
   const handleCopy = () => {
     navigator.clipboard.writeText(ticketNumber);
@@ -106,6 +107,9 @@ export const InterviewRequestCard = ({
   const handleStartInterview = () => {
     if (hasMeetingLink) {
       window.open(meetingLink!, "_blank", "noopener,noreferrer");
+    } else if (status === "pending") {
+      setShowBanner(true);
+      setTimeout(() => setShowBanner(false), 5000);
     } else if (onStartInterview) {
       onStartInterview();
     }
@@ -117,7 +121,15 @@ export const InterviewRequestCard = ({
         label: "Request Rejected",
         icon: null,
         disabled: true,
-        className: "bg-slate-100 text-slate-400 cursor-not-allowed",
+        className: "bg-red-100 text-red-500 cursor-not-allowed",
+      };
+    }
+    if (status === "completed") {
+      return {
+        label: "Completed",
+        icon: CheckCircle,
+        disabled: true,
+        className: "bg-slate-900 text-white cursor-not-allowed",
       };
     }
     if (hasMeetingLink) {
@@ -130,25 +142,26 @@ export const InterviewRequestCard = ({
     }
     if (isBooked && !meetingLink) {
       return {
-        label: "Meeting Not Yet Scheduled",
+        label: "Meeting Link Coming Soon",
         icon: Clock,
         disabled: true,
-        className: "bg-slate-100 text-slate-400 cursor-not-allowed",
+        className: "bg-blue-100 text-blue-500 cursor-not-allowed",
       };
     }
     if (status === "approved") {
       return {
-        label: "Start Interview",
-        icon: Play,
-        disabled: false,
-        className: "bg-brand-electric text-white hover:bg-brand-electric-dark shadow-sm shadow-blue-500/20",
+        label: "Awaiting Schedule",
+        icon: Clock,
+        disabled: true,
+        className: "bg-blue-100 text-blue-600 cursor-not-allowed",
       };
     }
     return {
-      label: "Start Interview",
-      icon: Play,
+      label: "Waiting for Approval",
+      icon: Clock,
       disabled: true,
-      className: "bg-slate-800 text-white hover:bg-slate-900",
+      className: "bg-blue-100 text-blue-600 cursor-not-allowed",
+      clickable: true,
     };
   };
 
@@ -244,10 +257,29 @@ export const InterviewRequestCard = ({
           </div>
         </div>
 
-        <div className="px-5 pb-5">
+        <div className="px-5 pb-5 space-y-2">
+          <AnimatePresence>
+            {showBanner && (
+              <motion.div
+                initial={{ opacity: 0, y: -6, height: 0 }}
+                animate={{ opacity: 1, y: 0, height: 'auto' }}
+                exit={{ opacity: 0, y: -6, height: 0 }}
+                transition={{ duration: 0.2 }}
+                className="flex items-start gap-2 p-3 bg-amber-50 rounded-xl border border-amber-100"
+              >
+                <Info className="h-3.5 w-3.5 text-amber-600 flex-shrink-0 mt-0.5" />
+                <p className="text-[11px] text-amber-700 font-semibold flex-1">
+                  Your request is awaiting admin approval. You will be notified once it is reviewed.
+                </p>
+                <button onClick={() => setShowBanner(false)} className="text-amber-400 hover:text-amber-600 transition-colors flex-shrink-0">
+                  <X className="h-3 w-3" />
+                </button>
+              </motion.div>
+            )}
+          </AnimatePresence>
           <button
             onClick={handleStartInterview}
-            disabled={buttonConfig.disabled}
+            disabled={buttonConfig.disabled && !('clickable' in buttonConfig && buttonConfig.clickable)}
             className={cn(
               "w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold transition-all",
               buttonConfig.className

@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { db, functions } from '../../lib/firebase';
 import { collection, query, where, onSnapshot, orderBy, getDocs, updateDoc, doc } from 'firebase/firestore';
 import { httpsCallable } from 'firebase/functions';
-import { Search, Download, X, FileText, ExternalLink, User } from 'lucide-react';
+import { Search, Download, X, FileText, ExternalLink, User, Ticket } from 'lucide-react';
 import ConfirmModal from './ConfirmModal';
 
 interface Candidate {
@@ -21,8 +21,18 @@ interface Candidate {
   isActive: boolean;
 }
 
+interface HRRequest {
+  id: string;
+  ticketNumber: string;
+  jobRole: string;
+  companyName: string;
+  status: string;
+  createdAt: string;
+}
+
 interface SlideoverCandidate extends Candidate {
   reports: { id: string; overallScore: number; createdAt: string; role?: string; company?: string }[];
+  hrRequests: HRRequest[];
 }
 
 function SkeletonRow() {
@@ -109,11 +119,13 @@ export default function CandidatesSection() {
 
   const openSlideOver = async (c: Candidate) => {
     setSlideLoading(true);
-    setSlideOver({ ...c, reports: [] });
+    setSlideOver({ ...c, reports: [], hrRequests: [] });
     try {
-      const reportsSnap = await getDocs(
-        query(collection(db, 'reports'), where('userId', '==', c.id), orderBy('createdAt', 'desc'))
-      );
+      const [reportsSnap, hrReqSnap] = await Promise.all([
+        getDocs(query(collection(db, 'reports'), where('userId', '==', c.id), orderBy('createdAt', 'desc'))),
+        getDocs(query(collection(db, 'mockInterviewRequests'), where('user_id', '==', c.id), orderBy('created_at', 'desc'))),
+      ]);
+
       const reports = await Promise.all(reportsSnap.docs.map(async d => {
         const data = d.data();
         let role = '';
@@ -135,7 +147,20 @@ export default function CandidatesSection() {
           company,
         };
       }));
-      setSlideOver({ ...c, reports });
+
+      const hrRequests: HRRequest[] = hrReqSnap.docs.map(d => {
+        const data = d.data();
+        return {
+          id: d.id,
+          ticketNumber: data.ticket_number || '',
+          jobRole: data.job_role || '',
+          companyName: data.company_name || '',
+          status: data.status || 'pending',
+          createdAt: data.created_at || '',
+        };
+      });
+
+      setSlideOver({ ...c, reports, hrRequests });
     } finally {
       setSlideLoading(false);
     }
@@ -314,7 +339,7 @@ export default function CandidatesSection() {
 
               <div>
                 <div className="flex items-center justify-between mb-2">
-                  <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wide">Past Sessions</p>
+                  <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wide">AI Session Reports</p>
                   <span className="text-[10px] text-slate-400">{slideOver.reports.length} total</span>
                 </div>
                 {slideLoading ? (
@@ -324,7 +349,7 @@ export default function CandidatesSection() {
                 ) : slideOver.reports.length === 0 ? (
                   <div className="flex flex-col items-center py-6 text-center">
                     <FileText className="w-8 h-8 text-slate-200 mb-2" />
-                    <p className="text-sm text-slate-400">No interview sessions yet</p>
+                    <p className="text-sm text-slate-400">No AI interview sessions yet</p>
                   </div>
                 ) : (
                   <div className="space-y-2">
@@ -347,6 +372,50 @@ export default function CandidatesSection() {
                         </div>
                       </div>
                     ))}
+                  </div>
+                )}
+              </div>
+
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wide">HR Interview Requests</p>
+                  <span className="text-[10px] text-slate-400">{slideOver.hrRequests.length} total</span>
+                </div>
+                {slideLoading ? (
+                  <div className="space-y-2">
+                    {[1, 2].map(i => <div key={i} className="h-14 bg-slate-100 rounded-xl animate-pulse" />)}
+                  </div>
+                ) : slideOver.hrRequests.length === 0 ? (
+                  <div className="flex flex-col items-center py-6 text-center">
+                    <Ticket className="w-8 h-8 text-slate-200 mb-2" />
+                    <p className="text-sm text-slate-400">No HR interview requests yet</p>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {slideOver.hrRequests.map(r => {
+                      const statusColors: Record<string, string> = {
+                        pending: 'bg-amber-50 text-amber-700',
+                        approved: 'bg-blue-50 text-blue-700',
+                        rejected: 'bg-red-50 text-red-600',
+                        completed: 'bg-emerald-50 text-emerald-700',
+                      };
+                      return (
+                        <div key={r.id} className="flex items-center justify-between p-3 bg-slate-50 rounded-xl">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2">
+                              <p className="text-xs font-semibold text-slate-700 truncate">{r.jobRole}{r.companyName && ` · ${r.companyName}`}</p>
+                            </div>
+                            <div className="flex items-center gap-2 mt-0.5">
+                              {r.ticketNumber && <code className="text-[9px] text-slate-400 bg-white border border-slate-200 px-1.5 py-0.5 rounded font-mono">{r.ticketNumber}</code>}
+                              <p className="text-[10px] text-slate-400">{r.createdAt ? new Date(r.createdAt).toLocaleDateString() : '—'}</p>
+                            </div>
+                          </div>
+                          <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full capitalize flex-shrink-0 ml-2 ${statusColors[r.status] || 'bg-slate-100 text-slate-500'}`}>
+                            {r.status}
+                          </span>
+                        </div>
+                      );
+                    })}
                   </div>
                 )}
               </div>

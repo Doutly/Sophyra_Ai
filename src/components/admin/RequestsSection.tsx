@@ -4,7 +4,7 @@ import {
   collection, query, onSnapshot, orderBy, getDocs, where,
   updateDoc, doc, Timestamp, addDoc, deleteDoc
 } from 'firebase/firestore';
-import { CheckCircle, XCircle, X, Download, FileText, Plus, Pencil, Trash2 } from 'lucide-react';
+import { CheckCircle, XCircle, X, Download, FileText, Plus, Pencil, Trash2, Hash, Clock, CheckSquare, Ban } from 'lucide-react';
 import ConfirmModal from './ConfirmModal';
 
 interface Request {
@@ -146,6 +146,7 @@ export default function RequestsSection() {
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<string>('all');
   const [search, setSearch] = useState('');
+  const [ticketSearch, setTicketSearch] = useState('');
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [detail, setDetail] = useState<Request | null>(null);
   const [showCreate, setShowCreate] = useState(false);
@@ -297,11 +298,17 @@ export default function RequestsSection() {
   };
 
   const filtered = requests.filter(r => {
-    const matchSearch = r.jobRole.toLowerCase().includes(search.toLowerCase()) ||
-      (r.candidateInfo?.name || '').toLowerCase().includes(search.toLowerCase()) ||
-      r.ticketNumber.toLowerCase().includes(search.toLowerCase());
+    const matchSearch = !search || (
+      r.jobRole.toLowerCase().includes(search.toLowerCase()) ||
+      (r.candidateInfo?.name || '').toLowerCase().includes(search.toLowerCase())
+    );
+    const matchTicket = !ticketSearch || (() => {
+      const numericOnly = r.ticketNumber.replace(/\D/g, '');
+      const last5 = numericOnly.slice(-5);
+      return last5 === ticketSearch.replace(/\D/g, '');
+    })();
     const matchFilter = filter === 'all' || r.status === filter;
-    return matchSearch && matchFilter;
+    return matchSearch && matchTicket && matchFilter;
   });
 
   const counts = {
@@ -324,6 +331,13 @@ export default function RequestsSection() {
     candidateEmail: r.candidateInfo?.email || '',
   });
 
+  const statCards = [
+    { label: 'Pending', count: counts.pending, icon: Clock, color: 'text-amber-600', bg: 'bg-amber-50', border: 'border-amber-100', filter: 'pending' },
+    { label: 'Approved', count: counts.approved, icon: CheckCircle, color: 'text-blue-600', bg: 'bg-blue-50', border: 'border-blue-100', filter: 'approved' },
+    { label: 'Completed', count: counts.completed, icon: CheckSquare, color: 'text-emerald-600', bg: 'bg-emerald-50', border: 'border-emerald-100', filter: 'completed' },
+    { label: 'Rejected', count: counts.rejected, icon: Ban, color: 'text-red-600', bg: 'bg-red-50', border: 'border-red-100', filter: 'rejected' },
+  ];
+
   return (
     <div className="space-y-5">
       <div className="flex items-center justify-between">
@@ -340,21 +354,58 @@ export default function RequestsSection() {
         </button>
       </div>
 
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        {statCards.map(card => (
+          <button
+            key={card.filter}
+            onClick={() => setFilter(f => f === card.filter ? 'all' : card.filter)}
+            className={`flex items-center gap-3 p-4 rounded-2xl border transition-all text-left hover:shadow-sm ${filter === card.filter ? `${card.bg} ${card.border} border` : 'bg-white border-slate-200 hover:border-slate-300'}`}
+          >
+            <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 ${card.bg}`}>
+              <card.icon className={`w-4.5 h-4.5 ${card.color}`} style={{ width: '18px', height: '18px' }} />
+            </div>
+            <div>
+              <p className="text-xl font-bold text-slate-900 leading-none">{card.count}</p>
+              <p className="text-xs text-slate-500 mt-0.5">{card.label}</p>
+            </div>
+          </button>
+        ))}
+      </div>
+
       <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden">
-        <div className="px-5 py-4 border-b border-slate-100 flex flex-col sm:flex-row gap-3">
-          <div className="flex gap-1 flex-wrap">
-            {(['all', 'pending', 'approved', 'rejected', 'completed'] as const).map(f => (
-              <button key={f} onClick={() => setFilter(f)} className={`px-3 py-1.5 rounded-lg text-xs font-semibold capitalize transition-all ${filter === f ? 'bg-slate-900 text-white' : 'text-slate-500 hover:bg-slate-100'}`}>
-                {f} {counts[f] > 0 && <span className="ml-1 opacity-70">({counts[f]})</span>}
-              </button>
-            ))}
+        <div className="px-5 py-4 border-b border-slate-100 flex flex-col gap-3">
+          <div className="flex flex-col sm:flex-row gap-3">
+            <div className="flex gap-1 flex-wrap">
+              {(['all', 'pending', 'approved', 'rejected', 'completed'] as const).map(f => (
+                <button key={f} onClick={() => setFilter(f)} className={`px-3 py-1.5 rounded-lg text-xs font-semibold capitalize transition-all ${filter === f ? 'bg-slate-900 text-white' : 'text-slate-500 hover:bg-slate-100'}`}>
+                  {f} {counts[f] > 0 && <span className="ml-1 opacity-70">({counts[f]})</span>}
+                </button>
+              ))}
+            </div>
+            <input
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              placeholder="Search by name or role..."
+              className="sm:ml-auto px-3 py-1.5 text-xs border border-slate-200 rounded-lg focus:outline-none focus:border-blue-400 transition-all min-w-48"
+            />
           </div>
-          <input
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            placeholder="Search by name, role, or ticket..."
-            className="sm:ml-auto px-3 py-1.5 text-xs border border-slate-200 rounded-lg focus:outline-none focus:border-blue-400 transition-all min-w-48"
-          />
+          <div className="flex items-center gap-2">
+            <div className="relative flex-1 max-w-xs">
+              <Hash className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
+              <input
+                value={ticketSearch}
+                onChange={e => setTicketSearch(e.target.value.replace(/\D/g, '').slice(0, 5))}
+                placeholder="Last 5 digits of ticket #"
+                maxLength={5}
+                className="w-full pl-8 pr-3 py-1.5 text-xs border border-slate-200 rounded-lg focus:outline-none focus:border-blue-400 transition-all font-mono tracking-wider"
+              />
+            </div>
+            {ticketSearch && (
+              <button onClick={() => setTicketSearch('')} className="text-xs text-slate-400 hover:text-slate-700 transition-colors px-2 py-1.5 hover:bg-slate-100 rounded-lg">
+                Clear
+              </button>
+            )}
+          </div>
         </div>
 
         <div className="divide-y divide-slate-100">
