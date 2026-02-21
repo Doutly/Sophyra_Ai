@@ -1,8 +1,6 @@
 import { useEffect, useRef, useState, useCallback, forwardRef, useImperativeHandle } from 'react';
 import { SimliClient, LogLevel } from 'simli-client';
 import { Brain } from 'lucide-react';
-import { httpsCallable } from 'firebase/functions';
-import { functions } from '../../lib/firebase';
 
 export type SimliAvatarStatus = 'idle' | 'loading' | 'connected' | 'speaking' | 'error' | 'fallback';
 
@@ -19,12 +17,21 @@ interface SimliAvatarPanelProps {
   onStatusChange?: (status: SimliAvatarStatus) => void;
 }
 
-const getSimliSessionTokenFn = httpsCallable<unknown, { session_token: string }>(functions, 'getSimliSessionToken');
+const SIMLI_TOKEN_URL = 'https://us-central1-sophyraai.cloudfunctions.net/getSimliSessionToken';
 
 async function fetchSessionToken(): Promise<string> {
   const attemptFetch = async (): Promise<string> => {
-    const result = await getSimliSessionTokenFn({});
-    const token = result.data?.session_token;
+    const response = await fetch(SIMLI_TOKEN_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({}),
+    });
+    if (!response.ok) {
+      const errText = await response.text();
+      throw new Error(`Failed to get Simli token: ${response.status} ${errText}`);
+    }
+    const data = await response.json();
+    const token = data?.session_token;
     if (!token) throw new Error('No session token in response');
     return token;
   };

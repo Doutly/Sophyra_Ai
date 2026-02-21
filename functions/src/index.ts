@@ -41,33 +41,47 @@ export const getElevenLabsSignedUrl = functions
   });
 
 export const getSimliSessionToken = functions
-  .https.onCall(async (_data, _context) => {
-    const apiKey = 'ke47f43byck10xged4tx7rf';
-    const faceId = 'cace3ef7-a4c4-425d-a8cf-a5358eb0c427';
+  .https.onRequest(async (req, res) => {
+    res.set(corsHeaders);
 
-    const response = await fetch('https://api.simli.ai/startAudioToVideoSession', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        apiKey,
-        faceId,
-        handleSilence: true,
-        maxSessionLength: 600,
-        maxIdleTime: 180,
-      }),
-    });
-
-    if (!response.ok) {
-      const errText = await response.text();
-      throw new functions.https.HttpsError('internal', `Simli API error ${response.status}: ${errText}`);
+    if (req.method === 'OPTIONS') {
+      res.status(200).send();
+      return;
     }
 
-    const result = await response.json();
-    if (!result.session_token) {
-      throw new functions.https.HttpsError('internal', 'No session token in Simli response');
-    }
+    try {
+      const apiKey = 'ke47f43byck10xged4tx7rf';
+      const faceId = 'cace3ef7-a4c4-425d-a8cf-a5358eb0c427';
 
-    return { session_token: result.session_token };
+      const response = await fetch('https://api.simli.ai/startAudioToVideoSession', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          apiKey,
+          faceId,
+          handleSilence: true,
+          maxSessionLength: 600,
+          maxIdleTime: 180,
+        }),
+      });
+
+      if (!response.ok) {
+        const errText = await response.text();
+        res.status(500).json({ error: `Simli API error ${response.status}: ${errText}` });
+        return;
+      }
+
+      const result = await response.json();
+      if (!result.session_token) {
+        res.status(500).json({ error: 'No session token in Simli response' });
+        return;
+      }
+
+      res.status(200).json({ session_token: result.session_token });
+    } catch (err) {
+      console.error('getSimliSessionToken error:', err);
+      res.status(500).json({ error: 'Internal server error' });
+    }
   });
 
 export const elevenLabsWebhook = functions
