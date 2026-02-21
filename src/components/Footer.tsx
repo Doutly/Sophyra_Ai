@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { Linkedin, Phone, Mail, MapPin, FileText, Shield, Cookie, Lock, BookOpen, DollarSign, Building2, Info, Briefcase, MessageSquare, Newspaper } from 'lucide-react';
 import FooterPopup from './FooterPopup';
 import UniversityContactForm from './UniversityContactForm';
@@ -19,8 +20,8 @@ const TapeSVG = () => (
 );
 
 type PopupKey =
-  | 'reports' | 'universities' | 'about' | 'careers'
-  | 'contact' | 'blog' | 'privacy' | 'terms' | 'security' | 'cookies'
+  | 'reports' | 'universities' | 'about'
+  | 'contact' | 'privacy' | 'terms' | 'security' | 'cookies'
   | null;
 
 const scrollToSection = (id: string) => {
@@ -163,13 +164,13 @@ export default function Footer() {
                     </button>
                   </li>
                   <li>
-                    <button
-                      onClick={() => openPopup('careers')}
+                    <Link
+                      to="/careers"
                       className="flex items-center gap-2 text-sm text-slate-500 hover:text-slate-900 transition-colors group"
                     >
                       <Briefcase className="w-3.5 h-3.5 text-slate-300 group-hover:text-slate-600 transition-colors" />
                       Careers
-                    </button>
+                    </Link>
                   </li>
                   <li>
                     <button
@@ -181,13 +182,13 @@ export default function Footer() {
                     </button>
                   </li>
                   <li>
-                    <button
-                      onClick={() => openPopup('blog')}
+                    <Link
+                      to="/blog"
                       className="flex items-center gap-2 text-sm text-slate-500 hover:text-slate-900 transition-colors group"
                     >
                       <Newspaper className="w-3.5 h-3.5 text-slate-300 group-hover:text-slate-600 transition-colors" />
                       Blog
-                    </button>
+                    </Link>
                   </li>
                 </ul>
               </div>
@@ -314,31 +315,6 @@ export default function Footer() {
         </div>
       </FooterPopup>
 
-      <FooterPopup isOpen={activePopup === 'careers'} onClose={closePopup} title="Careers at Sophyra AI">
-        <div className="px-6 py-6 space-y-4">
-          <div className="p-4 bg-green-50 border border-green-100 rounded-xl">
-            <p className="font-semibold text-green-800 text-sm">We're growing!</p>
-            <p className="text-xs text-green-700 mt-1">Join us in reshaping how the world prepares for interviews.</p>
-          </div>
-          <p className="text-sm text-slate-600 leading-relaxed">
-            We're a lean, ambitious team working at the intersection of AI, voice technology, and education. We value curiosity, ownership, and a bias for action.
-          </p>
-          <div className="space-y-2">
-            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Open Roles</p>
-            {['AI/ML Engineer', 'Frontend Engineer (React)', 'Product Designer', 'Growth & Partnerships'].map((role) => (
-              <div key={role} className="flex items-center justify-between p-3 bg-slate-50 rounded-lg">
-                <span className="text-sm text-slate-700">{role}</span>
-                <span className="text-xs text-blue-600 font-medium">Remote</span>
-              </div>
-            ))}
-          </div>
-          <p className="text-sm text-slate-500">
-            Send your resume to{' '}
-            <a href="mailto:careers@sophyra.ai" className="text-blue-600 hover:underline">careers@sophyra.ai</a>
-          </p>
-        </div>
-      </FooterPopup>
-
       <FooterPopup isOpen={activePopup === 'contact'} onClose={closePopup} title="Contact Sophyra AI">
         <div className="px-6 py-6 space-y-4">
           {[
@@ -376,19 +352,6 @@ export default function Footer() {
               Instagram
             </a>
           </div>
-        </div>
-      </FooterPopup>
-
-      <FooterPopup isOpen={activePopup === 'blog'} onClose={closePopup} title="Sophyra Blog">
-        <div className="px-6 py-8 text-center space-y-3">
-          <div className="w-14 h-14 bg-amber-50 rounded-2xl flex items-center justify-center mx-auto">
-            <Newspaper className="w-7 h-7 text-amber-500" />
-          </div>
-          <h3 className="font-bold text-slate-800">Coming Soon</h3>
-          <p className="text-sm text-slate-500 max-w-xs mx-auto leading-relaxed">
-            We're working on articles about interview strategy, AI-powered preparation, and career growth tips. Stay tuned!
-          </p>
-          <p className="text-xs text-slate-400">Follow us on LinkedIn for updates.</p>
         </div>
       </FooterPopup>
 

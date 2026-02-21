@@ -248,6 +248,32 @@ export const elevenLabsVoicesProxy = functions
     }
   });
 
+// ─── Delete User (Admin only) ────────────────────────────────────────────────
+export const deleteUser = functions
+  .https.onCall(async (data: any, context: functions.https.CallableContext) => {
+    if (!context.auth) {
+      throw new functions.https.HttpsError('unauthenticated', 'Must be authenticated');
+    }
+
+    const callerRecord = await admin.auth().getUser(context.auth.uid);
+    const callerEmail = callerRecord.email || '';
+    const adminEmail = process.env.ADMIN_EMAIL || '';
+
+    if (callerEmail !== adminEmail) {
+      throw new functions.https.HttpsError('permission-denied', 'Admin only');
+    }
+
+    const { uid } = data;
+    if (!uid) {
+      throw new functions.https.HttpsError('invalid-argument', 'Missing uid');
+    }
+
+    await db.collection('users').doc(uid).delete();
+    await admin.auth().deleteUser(uid);
+
+    return { success: true };
+  });
+
 // ─── ElevenLabs Webhook ─────────────────────────────────────────────────────
 export const elevenLabsWebhook = functions
   .https.onRequest(async (req: Request, res: Response) => {

@@ -16,6 +16,8 @@ import Profile from './pages/Profile';
 import SharedReport from './pages/SharedReport';
 import HRReport from './pages/HRReport';
 import HRTicketPool from './pages/HRTicketPool';
+import { BlogList, BlogPostDetail } from './pages/BlogPage';
+import CareersPage from './pages/CareersPage';
 
 function App() {
   return (
@@ -147,6 +149,10 @@ function App() {
                 </ErrorBoundary>
               }
             />
+
+            <Route path="/blog" element={<BlogList />} />
+            <Route path="/blog/:slug" element={<BlogPostDetail />} />
+            <Route path="/careers" element={<CareersPage />} />
 
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
