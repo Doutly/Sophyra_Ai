@@ -1,8 +1,8 @@
 import * as React from "react";
 import { motion } from "framer-motion";
 import { Clock, ClipboardCopy, CheckCircle, QrCode, Play, Calendar, Briefcase, Building2, ExternalLink, AlertCircle } from "lucide-react";
-import { cn } from "@/lib/utils";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { cn } from "../../lib/utils";
+import { Avatar, AvatarFallback } from "./avatar";
 
 interface InterviewRequestCardProps {
   candidateName: string;
