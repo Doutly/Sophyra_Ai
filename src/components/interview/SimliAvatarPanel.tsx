@@ -46,6 +46,7 @@ const SimliAvatarPanel = forwardRef<SimliAvatarPanelHandle, SimliAvatarPanelProp
     const simliClientRef = useRef<SimliClient | null>(null);
     const [status, setStatus] = useState<SimliAvatarStatus>('idle');
     const [videoVisible, setVideoVisible] = useState(false);
+    const initializingRef = useRef(false);
     const statusRef = useRef<SimliAvatarStatus>('idle');
 
     const updateStatus = useCallback((s: SimliAvatarStatus) => {
@@ -55,14 +56,16 @@ const SimliAvatarPanel = forwardRef<SimliAvatarPanelHandle, SimliAvatarPanelProp
     }, [onStatusChange]);
 
     const cleanup = useCallback(async () => {
+      console.log('SimliAvatarPanel: Cleaning up...');
       if (simliClientRef.current) {
         try {
           await simliClientRef.current.stop();
-        } catch {
-          // ignore cleanup errors
+        } catch (err) {
+          console.warn('Simli cleanup error:', err);
         }
         simliClientRef.current = null;
       }
+      initializingRef.current = false;
     }, []);
 
     useEffect(() => {
@@ -70,12 +73,18 @@ const SimliAvatarPanel = forwardRef<SimliAvatarPanelHandle, SimliAvatarPanelProp
 
       const init = async () => {
         if (!videoRef.current || !audioRef.current) return;
+        if (initializingRef.current) return;
+
+        initializingRef.current = true;
         updateStatus('loading');
 
         try {
           // 1. Fetch session token from our server-side proxy
           const sessionToken = await fetchSessionToken();
-          if (cancelled) return;
+          if (cancelled) {
+            initializingRef.current = false;
+            return;
+          }
 
           // SimliClient constructor for installed v3.0.0:
           // (session_token, videoElement, audioElement, iceServers, logLevel, transportMode)
@@ -92,6 +101,7 @@ const SimliAvatarPanel = forwardRef<SimliAvatarPanelHandle, SimliAvatarPanelProp
           // 3. Register event listeners before calling start()
           client.on('start', () => {
             if (cancelled) return;
+            console.log('Simli session started');
             setVideoVisible(true);
             updateStatus('connected');
           });
@@ -111,6 +121,7 @@ const SimliAvatarPanel = forwardRef<SimliAvatarPanelHandle, SimliAvatarPanelProp
           // SDK 3.x.x: 'stop' = server decided to end (maxIdle, maxSession, done signal)
           client.on('stop', () => {
             if (cancelled) return;
+            console.log('Simli session stopped by server');
             updateStatus('idle');
             setVideoVisible(false);
           });
@@ -135,10 +146,14 @@ const SimliAvatarPanel = forwardRef<SimliAvatarPanelHandle, SimliAvatarPanelProp
           simliClientRef.current = client;
           await client.start();
         } catch (err) {
-          if (cancelled) return;
+          if (cancelled) {
+            initializingRef.current = false;
+            return;
+          }
           // Gracefully fall back — CORS or network errors are expected in dev
           console.warn('Simli avatar unavailable, using fallback:', (err as Error)?.message || err);
           updateStatus('fallback');
+          initializingRef.current = false;
         }
       };
 

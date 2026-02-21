@@ -1,37 +1,7 @@
 import { useRef } from 'react';
 import { X, Briefcase, Calendar, Clock, Download, ExternalLink, FileText } from 'lucide-react';
 
-interface MockInterviewRequest {
-  id: string;
-  ticket_number: string;
-  user_id: string;
-  job_role: string;
-  company_name: string | null;
-  experience_level: string;
-  job_description: string;
-  additional_notes: string;
-  status: string;
-  booking_status: string;
-  assigned_hr_id: string | null;
-  preferred_date: string;
-  preferred_time: string;
-  scheduled_date: string | null;
-  scheduled_time: string | null;
-  claimed_by: string | null;
-  meeting_room_link: string | null;
-  candidate_info: {
-    name: string;
-    email: string;
-    bio: string;
-    experience_level: string;
-    industry: string;
-    career_goals: string;
-    resume_url: string | null;
-  } | null;
-  users: { name: string; email: string };
-  hr_feedback?: { hire_recommendation?: string };
-  ai_report?: unknown;
-}
+import { MockInterviewRequest } from '../../lib/dashboard.types';
 
 interface ColumnConfig {
   key: string;
