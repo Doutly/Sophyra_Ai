@@ -1,7 +1,11 @@
 import { useEffect, useState } from 'react';
 import { db } from '../../lib/firebase';
-import { collection, query, onSnapshot, orderBy, getDocs, where, updateDoc, doc, Timestamp } from 'firebase/firestore';
-import { CheckCircle, XCircle, X, Download, FileText } from 'lucide-react';
+import {
+  collection, query, onSnapshot, orderBy, getDocs, where,
+  updateDoc, doc, Timestamp, addDoc, deleteDoc
+} from 'firebase/firestore';
+import { CheckCircle, XCircle, X, Download, FileText, Plus, Pencil, Trash2 } from 'lucide-react';
+import ConfirmModal from './ConfirmModal';
 
 interface Request {
   id: string;
@@ -22,12 +26,119 @@ interface Request {
   hrUsers: { id: string; name: string }[];
 }
 
+interface RequestFormData {
+  jobRole: string;
+  companyName: string;
+  experienceLevel: string;
+  jobDescription: string;
+  preferredDate: string;
+  preferredTime: string;
+  status: 'pending' | 'approved' | 'rejected' | 'completed';
+  candidateName: string;
+  candidateEmail: string;
+}
+
+const EMPTY_FORM: RequestFormData = {
+  jobRole: '',
+  companyName: '',
+  experienceLevel: '',
+  jobDescription: '',
+  preferredDate: '',
+  preferredTime: '',
+  status: 'pending',
+  candidateName: '',
+  candidateEmail: '',
+};
+
 const STATUS_COLORS: Record<string, string> = {
   pending: 'bg-amber-50 text-amber-700',
   approved: 'bg-blue-50 text-blue-700',
   rejected: 'bg-red-50 text-red-600',
   completed: 'bg-emerald-50 text-emerald-700',
 };
+
+function RequestFormModal({
+  title,
+  initial,
+  onSave,
+  onClose,
+  saving,
+}: {
+  title: string;
+  initial: RequestFormData;
+  onSave: (data: RequestFormData) => void;
+  onClose: () => void;
+  saving: boolean;
+}) {
+  const [form, setForm] = useState<RequestFormData>(initial);
+
+  const set = (key: keyof RequestFormData, val: string) =>
+    setForm(prev => ({ ...prev, [key]: val }));
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
+        <div className="px-6 py-5 border-b border-slate-100 flex items-center justify-between sticky top-0 bg-white">
+          <h2 className="text-base font-bold text-slate-900">{title}</h2>
+          <button onClick={onClose} className="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition-all">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+        <div className="px-6 py-5 space-y-4">
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="text-[11px] font-semibold text-slate-500 uppercase tracking-wide block mb-1">Candidate Name</label>
+              <input value={form.candidateName} onChange={e => set('candidateName', e.target.value)} className="w-full px-3 py-2 text-sm border border-slate-200 rounded-xl focus:outline-none focus:border-blue-400 transition-all" placeholder="Full name" />
+            </div>
+            <div>
+              <label className="text-[11px] font-semibold text-slate-500 uppercase tracking-wide block mb-1">Email</label>
+              <input value={form.candidateEmail} onChange={e => set('candidateEmail', e.target.value)} className="w-full px-3 py-2 text-sm border border-slate-200 rounded-xl focus:outline-none focus:border-blue-400 transition-all" placeholder="Email address" />
+            </div>
+            <div>
+              <label className="text-[11px] font-semibold text-slate-500 uppercase tracking-wide block mb-1">Job Role</label>
+              <input value={form.jobRole} onChange={e => set('jobRole', e.target.value)} className="w-full px-3 py-2 text-sm border border-slate-200 rounded-xl focus:outline-none focus:border-blue-400 transition-all" placeholder="e.g. Software Engineer" />
+            </div>
+            <div>
+              <label className="text-[11px] font-semibold text-slate-500 uppercase tracking-wide block mb-1">Company</label>
+              <input value={form.companyName} onChange={e => set('companyName', e.target.value)} className="w-full px-3 py-2 text-sm border border-slate-200 rounded-xl focus:outline-none focus:border-blue-400 transition-all" placeholder="Company name" />
+            </div>
+            <div>
+              <label className="text-[11px] font-semibold text-slate-500 uppercase tracking-wide block mb-1">Experience Level</label>
+              <select value={form.experienceLevel} onChange={e => set('experienceLevel', e.target.value)} className="w-full px-3 py-2 text-sm border border-slate-200 rounded-xl focus:outline-none focus:border-blue-400 transition-all">
+                <option value="">Select level</option>
+                {['Entry Level', 'Mid Level', 'Senior Level', 'Lead', 'Manager', 'Executive'].map(l => <option key={l} value={l}>{l}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="text-[11px] font-semibold text-slate-500 uppercase tracking-wide block mb-1">Status</label>
+              <select value={form.status} onChange={e => set('status', e.target.value as RequestFormData['status'])} className="w-full px-3 py-2 text-sm border border-slate-200 rounded-xl focus:outline-none focus:border-blue-400 transition-all">
+                {(['pending', 'approved', 'rejected', 'completed'] as const).map(s => <option key={s} value={s} className="capitalize">{s}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="text-[11px] font-semibold text-slate-500 uppercase tracking-wide block mb-1">Preferred Date</label>
+              <input type="date" value={form.preferredDate} onChange={e => set('preferredDate', e.target.value)} className="w-full px-3 py-2 text-sm border border-slate-200 rounded-xl focus:outline-none focus:border-blue-400 transition-all" />
+            </div>
+            <div>
+              <label className="text-[11px] font-semibold text-slate-500 uppercase tracking-wide block mb-1">Preferred Time</label>
+              <input type="time" value={form.preferredTime} onChange={e => set('preferredTime', e.target.value)} className="w-full px-3 py-2 text-sm border border-slate-200 rounded-xl focus:outline-none focus:border-blue-400 transition-all" />
+            </div>
+          </div>
+          <div>
+            <label className="text-[11px] font-semibold text-slate-500 uppercase tracking-wide block mb-1">Job Description</label>
+            <textarea value={form.jobDescription} onChange={e => set('jobDescription', e.target.value)} rows={4} className="w-full px-3 py-2 text-sm border border-slate-200 rounded-xl focus:outline-none focus:border-blue-400 transition-all resize-none" placeholder="Optional job description..." />
+          </div>
+        </div>
+        <div className="px-6 py-4 border-t border-slate-100 flex justify-end gap-2">
+          <button onClick={onClose} className="px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-100 rounded-xl transition-all">Cancel</button>
+          <button onClick={() => onSave(form)} disabled={saving || !form.jobRole || !form.candidateName} className="px-4 py-2 text-sm font-semibold bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-all disabled:opacity-50">
+            {saving ? 'Saving...' : 'Save Request'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export default function RequestsSection() {
   const [requests, setRequests] = useState<Request[]>([]);
@@ -37,6 +148,11 @@ export default function RequestsSection() {
   const [search, setSearch] = useState('');
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [detail, setDetail] = useState<Request | null>(null);
+  const [showCreate, setShowCreate] = useState(false);
+  const [editTarget, setEditTarget] = useState<Request | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<Request | null>(null);
+  const [deleteLoading, setDeleteLoading] = useState(false);
+  const [formSaving, setFormSaving] = useState(false);
 
   useEffect(() => {
     const q = query(collection(db, 'mockInterviewRequests'), orderBy('created_at', 'desc'));
@@ -117,6 +233,69 @@ export default function RequestsSection() {
     }
   };
 
+  const generateTicketNumber = () => `TKT-${Date.now().toString(36).toUpperCase()}`;
+
+  const handleCreate = async (form: RequestFormData) => {
+    setFormSaving(true);
+    try {
+      await addDoc(collection(db, 'mockInterviewRequests'), {
+        ticket_number: generateTicketNumber(),
+        job_role: form.jobRole,
+        company_name: form.companyName,
+        experience_level: form.experienceLevel,
+        job_description: form.jobDescription,
+        preferred_date: form.preferredDate,
+        preferred_time: form.preferredTime,
+        status: form.status,
+        booking_status: 'open',
+        assigned_hr_id: null,
+        user_id: '',
+        candidate_info: { name: form.candidateName, email: form.candidateEmail },
+        created_at: new Date().toISOString(),
+        updated_at: Timestamp.now(),
+      });
+      setShowCreate(false);
+    } finally {
+      setFormSaving(false);
+    }
+  };
+
+  const handleEdit = async (form: RequestFormData) => {
+    if (!editTarget) return;
+    setFormSaving(true);
+    try {
+      await updateDoc(doc(db, 'mockInterviewRequests', editTarget.id), {
+        job_role: form.jobRole,
+        company_name: form.companyName,
+        experience_level: form.experienceLevel,
+        job_description: form.jobDescription,
+        preferred_date: form.preferredDate,
+        preferred_time: form.preferredTime,
+        status: form.status,
+        candidate_info: {
+          ...(editTarget.candidateInfo || {}),
+          name: form.candidateName,
+          email: form.candidateEmail,
+        },
+        updated_at: Timestamp.now(),
+      });
+      setEditTarget(null);
+    } finally {
+      setFormSaving(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!deleteTarget) return;
+    setDeleteLoading(true);
+    try {
+      await deleteDoc(doc(db, 'mockInterviewRequests', deleteTarget.id));
+      setDeleteTarget(null);
+    } finally {
+      setDeleteLoading(false);
+    }
+  };
+
   const filtered = requests.filter(r => {
     const matchSearch = r.jobRole.toLowerCase().includes(search.toLowerCase()) ||
       (r.candidateInfo?.name || '').toLowerCase().includes(search.toLowerCase()) ||
@@ -133,11 +312,32 @@ export default function RequestsSection() {
     completed: requests.filter(r => r.status === 'completed').length,
   };
 
+  const toFormData = (r: Request): RequestFormData => ({
+    jobRole: r.jobRole,
+    companyName: r.companyName,
+    experienceLevel: r.experienceLevel,
+    jobDescription: r.jobDescription,
+    preferredDate: r.preferredDate,
+    preferredTime: r.preferredTime,
+    status: r.status,
+    candidateName: r.candidateInfo?.name || '',
+    candidateEmail: r.candidateInfo?.email || '',
+  });
+
   return (
     <div className="space-y-5">
-      <div>
-        <h1 className="text-xl font-bold text-slate-900">Interview Requests</h1>
-        <p className="text-sm text-slate-500 mt-0.5">{counts.all} total · {counts.pending} pending action</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-xl font-bold text-slate-900">Interview Requests</h1>
+          <p className="text-sm text-slate-500 mt-0.5">{counts.all} total · {counts.pending} pending action</p>
+        </div>
+        <button
+          onClick={() => setShowCreate(true)}
+          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm font-semibold rounded-xl hover:bg-blue-700 transition-all"
+        >
+          <Plus className="w-4 h-4" />
+          New Request
+        </button>
       </div>
 
       <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden">
@@ -206,7 +406,15 @@ export default function RequestsSection() {
                   </div>
 
                   <div className="flex flex-col items-end gap-2 flex-shrink-0">
-                    <button onClick={() => setDetail(r)} className="text-xs text-blue-600 hover:underline">Details</button>
+                    <div className="flex items-center gap-1.5">
+                      <button onClick={() => setDetail(r)} className="text-xs text-blue-600 hover:underline">Details</button>
+                      <button onClick={() => setEditTarget(r)} className="p-1.5 text-slate-400 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition-all" title="Edit">
+                        <Pencil className="w-3.5 h-3.5" />
+                      </button>
+                      <button onClick={() => setDeleteTarget(r)} className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all" title="Delete">
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
                     {r.status === 'pending' && (
                       <div className="flex gap-1.5">
                         <button onClick={() => handleAction(r.id, 'approved')} disabled={actionLoading === r.id} className="px-3 py-1.5 text-xs font-semibold bg-emerald-50 text-emerald-700 rounded-lg hover:bg-emerald-100 transition-all disabled:opacity-50 flex items-center gap-1">
@@ -280,6 +488,36 @@ export default function RequestsSection() {
           </div>
         </div>
       )}
+
+      {showCreate && (
+        <RequestFormModal
+          title="New Interview Request"
+          initial={EMPTY_FORM}
+          onSave={handleCreate}
+          onClose={() => setShowCreate(false)}
+          saving={formSaving}
+        />
+      )}
+
+      {editTarget && (
+        <RequestFormModal
+          title="Edit Interview Request"
+          initial={toFormData(editTarget)}
+          onSave={handleEdit}
+          onClose={() => setEditTarget(null)}
+          saving={formSaving}
+        />
+      )}
+
+      <ConfirmModal
+        isOpen={!!deleteTarget}
+        title="Delete Interview Request"
+        message={`Permanently delete the request from ${deleteTarget?.candidateInfo?.name || 'this candidate'} for ${deleteTarget?.jobRole}? This cannot be undone.`}
+        confirmLabel="Delete"
+        onConfirm={handleDelete}
+        onCancel={() => setDeleteTarget(null)}
+        loading={deleteLoading}
+      />
     </div>
   );
 }

@@ -30,7 +30,7 @@ export default function PendingApproval() {
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-4">
       <MailboxFullState
-        imageUrl="https://images.unsplash.com/photo-1586769852044-692d6e3703f0?w=400&q=80&auto=format&fit=crop"
+        imageUrl="/lo.png"
         title="Account Under Review"
         description="Your HR account is currently being reviewed by our admin team. You'll receive full access once your profile is approved. This page refreshes automatically."
         primaryAction={{

@@ -1,4 +1,4 @@
-import { LayoutDashboard, Users, UserCheck, Ticket, BookOpen, Briefcase, Mail, LogOut, ChevronRight } from 'lucide-react';
+import { LayoutDashboard, Users, UserCheck, Ticket, BookOpen, Briefcase, Mail, LogOut, ChevronRight, Zap } from 'lucide-react';
 
 export type AdminSection =
   | 'overview'
@@ -7,7 +7,8 @@ export type AdminSection =
   | 'requests'
   | 'blog'
   | 'careers'
-  | 'contact';
+  | 'contact'
+  | 'elevenlabs';
 
 interface Props {
   active: AdminSection;
@@ -24,6 +25,7 @@ const navItems: { id: AdminSection; icon: React.FC<{ className?: string }>; labe
   { id: 'blog', icon: BookOpen, label: 'Blog' },
   { id: 'careers', icon: Briefcase, label: 'Careers' },
   { id: 'contact', icon: Mail, label: 'Contact Inbox' },
+  { id: 'elevenlabs', icon: Zap, label: 'ElevenLabs' },
 ];
 
 export default function AdminSidebar({ active, onSelect, onSignOut, badges }: Props) {

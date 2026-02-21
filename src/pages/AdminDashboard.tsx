@@ -11,6 +11,7 @@ import RequestsSection from '../components/admin/RequestsSection';
 import BlogSection from '../components/admin/BlogSection';
 import CareersSection from '../components/admin/CareersSection';
 import ContactSection from '../components/admin/ContactSection';
+import ElevenLabsSection from '../components/admin/ElevenLabsSection';
 import { Menu, X } from 'lucide-react';
 
 export default function AdminDashboard() {
@@ -105,6 +106,7 @@ export default function AdminDashboard() {
           {activeSection === 'blog' && <BlogSection />}
           {activeSection === 'careers' && <CareersSection />}
           {activeSection === 'contact' && <ContactSection />}
+          {activeSection === 'elevenlabs' && <ElevenLabsSection />}
         </main>
       </div>
     </div>

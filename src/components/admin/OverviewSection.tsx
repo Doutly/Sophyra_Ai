@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { db } from '../../lib/firebase';
 import { collection, query, where, getDocs, orderBy, limit } from 'firebase/firestore';
-import { Users, BarChart3, TrendingUp, Ticket, Zap, Activity } from 'lucide-react';
+import { Users, BarChart3, TrendingUp, Ticket, Zap, Activity, CheckCircle, Video } from 'lucide-react';
 
 const FUNCTIONS_BASE_URL = 'https://us-central1-sophyraai.cloudfunctions.net';
 
@@ -25,11 +25,13 @@ interface OverviewStats {
   totalRequests: number;
   pendingRequests: number;
   pendingHR: number;
+  completedAIInterviews: number;
+  completedHRInterviews: number;
 }
 
 export default function OverviewSection() {
   const [stats, setStats] = useState<OverviewStats>({
-    totalCandidates: 0, totalHR: 0, totalAISessions: 0, totalRequests: 0, pendingRequests: 0, pendingHR: 0,
+    totalCandidates: 0, totalHR: 0, totalAISessions: 0, totalRequests: 0, pendingRequests: 0, pendingHR: 0, completedAIInterviews: 0, completedHRInterviews: 0,
   });
   const [elUsage, setElUsage] = useState<ElevenLabsUsage | null>(null);
   const [elError, setElError] = useState(false);
@@ -43,15 +45,17 @@ export default function OverviewSection() {
 
   const loadStats = async () => {
     try {
-      const [candidatesSnap, hrSnap, sessionsSnap, requestsSnap] = await Promise.all([
+      const [candidatesSnap, hrSnap, sessionsSnap, requestsSnap, reportsSnap] = await Promise.all([
         getDocs(query(collection(db, 'users'), where('role', '==', 'candidate'))),
         getDocs(query(collection(db, 'users'), where('role', '==', 'hr'))),
         getDocs(collection(db, 'sessions')),
         getDocs(collection(db, 'mockInterviewRequests')),
+        getDocs(collection(db, 'reports')),
       ]);
 
       const pendingRequests = requestsSnap.docs.filter(d => d.data().status === 'pending').length;
       const pendingHR = hrSnap.docs.filter(d => !d.data().isApproved).length;
+      const completedHRInterviews = requestsSnap.docs.filter(d => d.data().status === 'completed').length;
 
       setStats({
         totalCandidates: candidatesSnap.size,
@@ -60,6 +64,8 @@ export default function OverviewSection() {
         totalRequests: requestsSnap.size,
         pendingRequests,
         pendingHR,
+        completedAIInterviews: reportsSnap.size,
+        completedHRInterviews,
       });
 
       const recentCandidates = candidatesSnap.docs
@@ -124,16 +130,18 @@ export default function OverviewSection() {
         <p className="text-sm text-slate-500 mt-0.5">Platform-wide analytics and live metrics</p>
       </div>
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
         {[
           { icon: Users, label: 'Candidates', value: stats.totalCandidates, color: 'text-blue-600', bg: 'bg-blue-50', border: 'border-blue-100' },
           { icon: UserCheckIcon, label: 'HR Professionals', value: stats.totalHR, color: 'text-emerald-600', bg: 'bg-emerald-50', border: 'border-emerald-100' },
-          { icon: BarChart3, label: 'AI Interviews', value: stats.totalAISessions, color: 'text-cyan-600', bg: 'bg-cyan-50', border: 'border-cyan-100' },
+          { icon: BarChart3, label: 'Total AI Sessions', value: stats.totalAISessions, color: 'text-cyan-600', bg: 'bg-cyan-50', border: 'border-cyan-100' },
           { icon: Ticket, label: 'HR Requests', value: stats.totalRequests, color: 'text-amber-600', bg: 'bg-amber-50', border: 'border-amber-100' },
+          { icon: CheckCircle, label: 'AI Interviews Completed', value: stats.completedAIInterviews, color: 'text-teal-600', bg: 'bg-teal-50', border: 'border-teal-100' },
+          { icon: Video, label: 'HR Interviews Completed', value: stats.completedHRInterviews, color: 'text-violet-600', bg: 'bg-violet-50', border: 'border-violet-100' },
         ].map(({ icon: Icon, label, value, color, bg, border }) => (
           <div key={label} className={`bg-white border ${border} rounded-2xl p-5`}>
             <div className={`w-9 h-9 ${bg} rounded-xl flex items-center justify-center mb-3`}>
-              <Icon className={`w-4.5 h-4.5 ${color}`} />
+              <Icon className={`w-4 h-4 ${color}`} />
             </div>
             <p className="text-2xl font-bold text-slate-900">{value}</p>
             <p className="text-xs text-slate-500 mt-0.5">{label}</p>

@@ -31,6 +31,8 @@ import {
   Settings,
   Menu,
   X,
+  GraduationCap,
+  ScrollText,
 } from 'lucide-react';
 import MockInterviewModal from '../components/MockInterviewModal';
 import { InterviewRequestCard } from '../components/ui/interview-request-card';
@@ -107,6 +109,7 @@ export default function Dashboard() {
   const [showAllRequestsModal, setShowAllRequestsModal] = useState(false);
   const [showAllReportsModal, setShowAllReportsModal] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [comingSoonModal, setComingSoonModal] = useState<string | null>(null);
   const unsubscribersRef = useRef<Array<() => void>>([]);
 
   const cleanupListeners = () => {
@@ -570,6 +573,46 @@ export default function Dashboard() {
                 </div>
               </div>
 
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                {[
+                  {
+                    icon: GraduationCap,
+                    title: 'Interview Exam Prep',
+                    desc: 'Practice topic-wise questions curated for your target role.',
+                    color: 'text-cyan-600',
+                    bg: 'bg-cyan-50',
+                    border: 'border-cyan-100',
+                    key: 'Exam Preparation',
+                  },
+                  {
+                    icon: ScrollText,
+                    title: 'Create ATS Resume',
+                    desc: 'Generate an ATS-optimised resume tailored to your job.',
+                    color: 'text-teal-600',
+                    bg: 'bg-teal-50',
+                    border: 'border-teal-100',
+                    key: 'ATS Resume Builder',
+                  },
+                ].map(feature => (
+                  <button
+                    key={feature.key}
+                    onClick={() => setComingSoonModal(feature.key)}
+                    className={`group bg-white border ${feature.border} rounded-2xl p-4 sm:p-5 shadow-sm hover:shadow-md transition-all text-left flex items-center gap-4`}
+                  >
+                    <div className={`w-10 h-10 sm:w-12 sm:h-12 ${feature.bg} rounded-2xl flex items-center justify-center flex-shrink-0 group-hover:scale-105 transition-transform`}>
+                      <feature.icon className={`w-5 h-5 sm:w-6 sm:h-6 ${feature.color}`} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-bold text-slate-900">{feature.title}</p>
+                      <p className="text-xs text-slate-400 mt-0.5 leading-relaxed">{feature.desc}</p>
+                    </div>
+                    <div className="flex-shrink-0">
+                      <span className="text-[10px] font-semibold px-2 py-0.5 bg-slate-100 text-slate-500 rounded-full">Soon</span>
+                    </div>
+                  </button>
+                ))}
+              </div>
+
               <div className="bg-white rounded-2xl border border-slate-100 shadow-sm">
                 <div className="px-4 sm:px-6 py-4 border-b border-slate-50 flex items-center justify-between">
                   <div>
@@ -794,6 +837,29 @@ export default function Dashboard() {
           </div>
         </main>
       </div>
+
+      {comingSoonModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm" onClick={() => setComingSoonModal(null)}>
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-8 text-center" onClick={e => e.stopPropagation()}>
+            <div className="w-16 h-16 bg-gradient-to-br from-slate-100 to-slate-200 rounded-2xl flex items-center justify-center mx-auto mb-5">
+              {comingSoonModal === 'Exam Preparation' ? (
+                <GraduationCap className="w-8 h-8 text-cyan-600" />
+              ) : (
+                <ScrollText className="w-8 h-8 text-teal-600" />
+              )}
+            </div>
+            <h2 className="text-lg font-bold text-slate-900 mb-2">{comingSoonModal}</h2>
+            <p className="text-sm text-slate-500 mb-2">This feature is on its way!</p>
+            <p className="text-xs text-slate-400 mb-6">We are working hard to bring this to you. Stay tuned for updates.</p>
+            <button
+              onClick={() => setComingSoonModal(null)}
+              className="w-full px-4 py-2.5 bg-slate-900 text-white text-sm font-semibold rounded-xl hover:bg-slate-800 transition-colors"
+            >
+              Got it
+            </button>
+          </div>
+        </div>
+      )}
 
       {showInterviewModal && (
         <MockInterviewModal onClose={() => setShowInterviewModal(false)} />
